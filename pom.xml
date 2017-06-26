@@ -27,7 +27,38 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
+
+    <folio.domain-models-runtime.version>12.1.3</folio.domain-models-runtime.version>
+
+    <pac4j.version>2.0.0</pac4j.version>
+    <vertx-pac4j.version>3.0.0</vertx-pac4j.version>
+
   </properties>
+
+
+  <dependencies>
+
+    <!-- not sure we need the whole runtime -->
+    <dependency>
+      <groupId>org.folio</groupId>
+      <artifactId>domain-models-runtime</artifactId>
+      <version>${folio.domain-models-runtime.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.pac4j</groupId>
+      <artifactId>vertx-pac4j</artifactId>
+      <version>${vertx-pac4j.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.pac4j</groupId>
+      <artifactId>pac4j-saml</artifactId>
+      <version>${pac4j.version}</version>
+    </dependency>
+
+  </dependencies>
+
 
   <build>
     <plugins>
