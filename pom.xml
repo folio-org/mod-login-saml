@@ -1,5 +1,5 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.folio</groupId>
   <artifactId>login-saml-module</artifactId>
@@ -15,11 +15,11 @@
   </licenses>
 
   <!--<repositories>-->
-    <!--<repository>-->
-      <!--<id>folio-nexus</id>-->
-      <!--<name>FOLIO Maven repository</name>-->
-      <!--<url>https://repository.folio.org/repository/maven-folio</url>-->
-    <!--</repository>-->
+  <!--<repository>-->
+  <!--<id>folio-nexus</id>-->
+  <!--<name>FOLIO Maven repository</name>-->
+  <!--<url>https://repository.folio.org/repository/maven-folio</url>-->
+  <!--</repository>-->
   <!--</repositories>-->
 
 
@@ -41,9 +41,9 @@
 
     <!-- not sure we need the whole runtime -->
     <!--<dependency>-->
-      <!--<groupId>org.folio</groupId>-->
-      <!--<artifactId>domain-models-runtime</artifactId>-->
-      <!--<version>${folio.domain-models-runtime.version}</version>-->
+    <!--<groupId>org.folio</groupId>-->
+    <!--<artifactId>domain-models-runtime</artifactId>-->
+    <!--<version>${folio.domain-models-runtime.version}</version>-->
     <!--</dependency>-->
 
     <dependency>
@@ -70,11 +70,11 @@
       <version>${pac4j.version}</version>
     </dependency>
 
-    <!--<dependency>-->
-      <!--<groupId>ch.qos.logback</groupId>-->
-      <!--<artifactId>logback-classic</artifactId>-->
-      <!--<version>1.2.3</version>-->
-    <!--</dependency>-->
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>1.2.3</version>
+    </dependency>
 
 
   </dependencies>

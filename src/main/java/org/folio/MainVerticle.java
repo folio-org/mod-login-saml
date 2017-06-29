@@ -8,20 +8,25 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
-import io.vertx.ext.web.handler.CookieHandler;
 import io.vertx.ext.web.handler.SessionHandler;
-import io.vertx.ext.web.handler.UserSessionHandler;
 import io.vertx.ext.web.sstore.LocalSessionStore;
 import org.folio.config.Pac4jConfigurationFactory;
+import org.pac4j.core.client.Client;
+import org.pac4j.core.client.Clients;
+import org.pac4j.core.client.IndirectClient;
 import org.pac4j.core.config.Config;
 import org.pac4j.core.context.session.SessionStore;
+import org.pac4j.core.credentials.Credentials;
+import org.pac4j.core.exception.HttpAction;
+import org.pac4j.saml.client.SAML2Client;
+import org.pac4j.saml.client.SAML2ClientConfiguration;
 import org.pac4j.vertx.VertxWebContext;
 import org.pac4j.vertx.auth.Pac4jAuthProvider;
 import org.pac4j.vertx.context.session.VertxSessionStore;
-import org.pac4j.vertx.handler.impl.CallbackHandler;
-import org.pac4j.vertx.handler.impl.CallbackHandlerOptions;
-import org.pac4j.vertx.handler.impl.SecurityHandler;
-import org.pac4j.vertx.handler.impl.SecurityHandlerOptions;
+import org.pac4j.vertx.http.DefaultHttpActionAdapter;
+
+import static org.pac4j.core.util.CommonHelper.assertNotNull;
+import static org.pac4j.core.util.CommonHelper.assertTrue;
 
 /**
  * Hello world!
@@ -51,36 +56,100 @@ public class MainVerticle extends AbstractVerticle {
 
     final Router router = Router.router(vertx);
 
-    router.route().handler(CookieHandler.create());
+
+    // TODO:
+    // java.lang.IllegalStateException: Session required for use of getSessionAttribute
+    // pl IndirectClient-ben: context.getSessionAttribute(getName() + ATTEMPTED_AUTHENTICATION_SUFFIX);
+    // ... viszont ugy nez ki, hogy CookieHandler nélkül is megy, mert így boldog, hogy van session-je... az mondiegy, hogy nem csinál vele semmit
+
+    //    router.route().handler(CookieHandler.create());
     router.route().handler(sessionHandler);
-    router.route().handler(UserSessionHandler.create(authProvider));
+    //    router.route().handler(UserSessionHandler.create(authProvider));
 
-
-    SecurityHandlerOptions options = new SecurityHandlerOptions().setClients("SAML2Client");
-    router.get("/login-saml").handler(new SecurityHandler(vertx, sessionStore, this.config, authProvider, options));
-    router.get("/login-saml").handler(routingContext -> {
-
-      // This handler will be called for every request
-      HttpServerResponse response = routingContext.response();
-      response.putHeader("content-type", "text/plain");
-
-      // Write to the response and end it
-      response.end("Hello World from Vert.x-Web!");
+    router.get("/").handler(rc -> {
+      HttpServerResponse response = rc.response();
+      response.putHeader("content-type", "text/html");
+      response.setChunked(true);
+      response.write("<html><body>");
+      response.write("<a href=\"/saml-login\">/saml-login</a><br>");
+      response.write("<a href=\"/regenerate\">/regenerate</a>");
+      response.end("</body></html>");
     });
 
-    final CallbackHandlerOptions callbackHandlerOptions = new CallbackHandlerOptions()
-        .setDefaultUrl("/")
-        .setMultiProfile(false);
-    final CallbackHandler callbackHandler = new CallbackHandler(vertx, sessionStore, this.config, callbackHandlerOptions);
-    router.get("/callback").handler(callbackHandler); // This will deploy the callback handler
-    router.post("/callback").handler(BodyHandler.create().setMergeFormAttributes(true));
-    router.post("/callback").handler(callbackHandler);
+    router.get("/regenerate").blockingHandler(routingContext -> {
+      // TODO: upload new idp-metadata.xml?
+      VertxWebContext vertxWebContext = new VertxWebContext(routingContext, null);
+      regenerateSaml2Config(vertxWebContext);
+      routingContext.response().end();
+    });
+
+
+    router.get("/saml-login").blockingHandler(routingContext -> {
+
+      IndirectClient saml2Client = findSaml2Client();
+      VertxWebContext vertxWebContext = new VertxWebContext(routingContext, null); // TODO: null ?!
+      HttpAction action;
+      try {
+        action = saml2Client.redirect(vertxWebContext); // highly blocking
+      } catch (HttpAction httpAction) {
+        action = httpAction;
+      }
+
+      new DefaultHttpActionAdapter().adapt(action.getCode(), vertxWebContext);
+    }, false);
+
+
+    router.post("/saml-callback").handler(BodyHandler.create().setMergeFormAttributes(true));
+    router.post("/saml-callback").blockingHandler(routingContext -> {
+
+      // TODO: ezt aszinkron kell, mint ahogy a CallbackHandlerben van
+      final VertxWebContext webContext = new VertxWebContext(routingContext, sessionStore);
+
+      IndirectClient client = findSaml2Client();
+      try {
+        Credentials credentials = client.getCredentials(webContext);
+        log.debug("credentials: {}", credentials);
+
+        HttpServerResponse response = routingContext.response();
+        response.putHeader("content-type", "text/plain");
+        response.end("Minden kiraly! Ide johet a JWT token kiadas, stb. Credentials: " + credentials);
+
+      } catch (HttpAction httpAction) {
+        new DefaultHttpActionAdapter().adapt(httpAction.getCode(), webContext);
+      }
+
+    }, false);
+
 
     vertx.createHttpServer()
-        .requestHandler(router::accept)
-        .listen(8080);
+      .requestHandler(router::accept)
+      .listen(8080);
 
-//    startFuture.complete();
+  }
+
+  private void regenerateSaml2Config(VertxWebContext vertxWebContext) {
+    SAML2Client saml2Client = findSaml2Client();
+    SAML2ClientConfiguration cfg = saml2Client.getConfiguration();
+
+    // force metadata generation then init
+    cfg.setForceServiceProviderMetadataGeneration(true);
+    saml2Client.reinit(vertxWebContext);
+
+    cfg.setForceServiceProviderMetadataGeneration(false);
+    //      saml2Client.reinit(vertxWebContext);
+  }
+
+  private SAML2Client findSaml2Client() {
+
+    final Clients clients = config.getClients();
+    assertNotNull("clients", clients);
+
+    // logic
+    final Client client = clients.findClient(SAML2Client.class);
+    assertNotNull("client", client);
+    assertTrue(client instanceof SAML2Client, "only indirect clients are allowed on the callback url");
+
+    return (SAML2Client) client;
 
   }
 

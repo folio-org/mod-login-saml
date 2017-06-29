@@ -20,9 +20,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.sstore.SessionStore;
-import org.pac4j.core.authorization.authorizer.RequireAnyRoleAuthorizer;
 import org.pac4j.core.client.Clients;
-import org.pac4j.core.client.direct.AnonymousClient;
 import org.pac4j.core.config.Config;
 import org.pac4j.core.config.ConfigFactory;
 import org.pac4j.saml.client.SAML2Client;
@@ -36,49 +34,53 @@ import java.io.File;
  */
 public class Pac4jConfigurationFactory implements ConfigFactory {
 
-    private static final Logger LOG = LoggerFactory.getLogger(Pac4jConfigurationFactory.class);
-    public static final String AUTHORIZER_ADMIN = "admin";
-    public static final String AUTHORIZER_CUSTOM = "custom";
+  private static final Logger LOG = LoggerFactory.getLogger(Pac4jConfigurationFactory.class);
+  public static final String AUTHORIZER_ADMIN = "admin";
+  public static final String AUTHORIZER_CUSTOM = "custom";
 
-    private final JsonObject jsonConf;
-    private final Vertx vertx;
-    private final SessionStore sessionStore;
+  private final JsonObject jsonConf;
+  private final Vertx vertx;
+  private final SessionStore sessionStore;
 
-    public Pac4jConfigurationFactory(final JsonObject jsonConf, final Vertx vertx, final SessionStore sessionStore) {
-        this.jsonConf = jsonConf;
-        this.vertx = vertx;
-        this.sessionStore = sessionStore;
-    }
+  public Pac4jConfigurationFactory(final JsonObject jsonConf, final Vertx vertx, final SessionStore sessionStore) {
+    this.jsonConf = jsonConf;
+    this.vertx = vertx;
+    this.sessionStore = sessionStore;
+  }
 
-    @Override
-    public Config build(Object... parameters) {
-        final String baseUrl = jsonConf.getString("baseUrl");
+  @Override
+  public Config build(Object... parameters) {
+    final String baseUrl = jsonConf.getString("baseUrl");
 
 
-        final Clients clients = new Clients(baseUrl + "/callback",
-                saml2Client()
-//            ,new AnonymousClient()
-        );
+    final Clients clients = new Clients(baseUrl + "/saml-callback",
+      saml2Client()
+    );
 
-        final Config config = new Config(clients);
-        config.addAuthorizer(AUTHORIZER_ADMIN, new RequireAnyRoleAuthorizer("ROLE_ADMIN"));
-//        config.addAuthorizer(AUTHORIZER_CUSTOM, new CustomAuthorizer()); // TODO
-        LOG.info("Config created " + config.toString());
-        return config;
-    }
+    final Config config = new Config(clients);
+    // config.addAuthorizer(AUTHORIZER_ADMIN, new RequireAnyRoleAuthorizer("ROLE_ADMIN"));
+    // config.addAuthorizer(AUTHORIZER_CUSTOM, new CustomAuthorizer()); // TODO
+    LOG.info("Config created " + config.toString());
+    return config;
+  }
 
-    public static SAML2Client saml2Client() {
+  public static SAML2Client saml2Client() {
 
-        final SAML2ClientConfiguration cfg = new SAML2ClientConfiguration("samlConfig/samlKeystore.jks",
-                "pac4j-demo-passwd",
-                "pac4j-demo-passwd",
-                "samlConfig/metadata-okta.xml");
-        cfg.setMaximumAuthenticationLifetime(3600);
-        cfg.setServiceProviderEntityId("http://localhost:8080/callback?client_name=SAML2Client");
-        cfg.setServiceProviderMetadataPath(new File("target", "sp-metadata.xml").getAbsolutePath());
-//        cfg.setDestinationBindingType(SAMLConstants.SAML2_REDIRECT_BINDING_URI);
-        return new SAML2Client(cfg);
-    }
+    final SAML2ClientConfiguration cfg = new SAML2ClientConfiguration("samlConfig/samlKeystore.jks",
+      "pac4j-demo-passwd",
+      "pac4j-demo-passwd",
+      "samlConfig/ssocircle.xml");
+    cfg.setMaximumAuthenticationLifetime(18000);
+//    cfg.setServiceProviderEntityId("http://localhost:8080/callback?client_name=SAML2Client");
+    cfg.setServiceProviderMetadataPath(new File("target", "sp-metadata.xml").getAbsolutePath());
+    // cfg.setSamlMessageStorageFactory(new EmptyStorageFactory()); // default
+    // cfg.setDestinationBindingType(SAMLConstants.SAML2_REDIRECT_BINDING_URI);
+
+
+    SAML2Client saml2Client = new SAML2Client(cfg);
+    saml2Client.setIncludeClientNameInCallbackUrl(false); // do not append ?client_name=SAML2Client to callback
+    return saml2Client;
+  }
 
 
 }
