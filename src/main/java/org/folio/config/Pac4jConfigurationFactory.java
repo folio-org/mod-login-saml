@@ -53,32 +53,36 @@ public class Pac4jConfigurationFactory implements ConfigFactory {
     final String baseUrl = jsonConf.getString("baseUrl");
 
 
-    final Clients clients = new Clients(baseUrl + "/saml-callback",
+//    final Clients clients = new Clients(baseUrl + "/saml-callback",
+    final Clients clients = new Clients("http://localhost:9130/_/invoke/tenant/testlib/saml-callback",
       saml2Client()
     );
 
     final Config config = new Config(clients);
     // config.addAuthorizer(AUTHORIZER_ADMIN, new RequireAnyRoleAuthorizer("ROLE_ADMIN"));
-    // config.addAuthorizer(AUTHORIZER_CUSTOM, new CustomAuthorizer()); // TODO
+    // config.addAuthorizer(AUTHORIZER_CUSTOM, new CustomAuthorizer());
     LOG.info("Config created " + config.toString());
+
     return config;
   }
 
   public static SAML2Client saml2Client() {
 
+    // TODO: .jks file is optional, it will be generated if missing.
+
     final SAML2ClientConfiguration cfg = new SAML2ClientConfiguration("samlConfig/samlKeystore.jks",
       "pac4j-demo-passwd",
       "pac4j-demo-passwd",
-      "samlConfig/ssocircle.xml");
+      "samlConfig/ssocircle.xml"); //"https://idp.ssocircle.com/meta-idp.xml" -> let's encrypt cert "bug"
+
     cfg.setMaximumAuthenticationLifetime(18000);
-//    cfg.setServiceProviderEntityId("http://localhost:8080/callback?client_name=SAML2Client");
+    // cfg.setServiceProviderEntityId("http://localhost:8080/callback?client_name=SAML2Client");
     cfg.setServiceProviderMetadataPath(new File("target", "sp-metadata.xml").getAbsolutePath());
-    // cfg.setSamlMessageStorageFactory(new EmptyStorageFactory()); // default
     // cfg.setDestinationBindingType(SAMLConstants.SAML2_REDIRECT_BINDING_URI);
 
 
     SAML2Client saml2Client = new SAML2Client(cfg);
-    saml2Client.setIncludeClientNameInCallbackUrl(false); // do not append ?client_name=SAML2Client to callback
+    saml2Client.setIncludeClientNameInCallbackUrl(false); // do not append ?client_name=SAML2Client in callback
     return saml2Client;
   }
 

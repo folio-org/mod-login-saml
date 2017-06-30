@@ -16,10 +16,11 @@ import org.pac4j.core.client.Clients;
 import org.pac4j.core.client.IndirectClient;
 import org.pac4j.core.config.Config;
 import org.pac4j.core.context.session.SessionStore;
-import org.pac4j.core.credentials.Credentials;
 import org.pac4j.core.exception.HttpAction;
+import org.pac4j.core.profile.CommonProfile;
 import org.pac4j.saml.client.SAML2Client;
 import org.pac4j.saml.client.SAML2ClientConfiguration;
+import org.pac4j.saml.credentials.SAML2Credentials;
 import org.pac4j.vertx.VertxWebContext;
 import org.pac4j.vertx.auth.Pac4jAuthProvider;
 import org.pac4j.vertx.context.session.VertxSessionStore;
@@ -79,8 +80,11 @@ public class MainVerticle extends AbstractVerticle {
     router.get("/regenerate").blockingHandler(routingContext -> {
       // TODO: upload new idp-metadata.xml?
       VertxWebContext vertxWebContext = new VertxWebContext(routingContext, null);
-      regenerateSaml2Config(vertxWebContext);
-      routingContext.response().end();
+      String metadata = regenerateSaml2Config(vertxWebContext);
+
+      HttpServerResponse response = routingContext.response();
+      response.headers().add("content-type", "application/xml");
+      response.end(metadata);
     });
 
 
@@ -98,21 +102,22 @@ public class MainVerticle extends AbstractVerticle {
       new DefaultHttpActionAdapter().adapt(action.getCode(), vertxWebContext);
     }, false);
 
-
     router.post("/saml-callback").handler(BodyHandler.create().setMergeFormAttributes(true));
     router.post("/saml-callback").blockingHandler(routingContext -> {
 
-      // TODO: ezt aszinkron kell, mint ahogy a CallbackHandlerben van
-      final VertxWebContext webContext = new VertxWebContext(routingContext, sessionStore);
+      final VertxWebContext webContext = new VertxWebContext(routingContext, null);
 
       IndirectClient client = findSaml2Client();
       try {
-        Credentials credentials = client.getCredentials(webContext);
+        SAML2Credentials credentials = (SAML2Credentials) client.getCredentials(webContext);
         log.debug("credentials: {}", credentials);
+
+        final CommonProfile profile = client.getUserProfile(credentials, webContext);
+        log.debug("profile: {}", profile);
 
         HttpServerResponse response = routingContext.response();
         response.putHeader("content-type", "text/plain");
-        response.end("Minden kiraly! Ide johet a JWT token kiadas, stb. Credentials: " + credentials);
+        response.end("Minden kiraly! Ide johet a JWT token kiadas, stb. Credentials: " + credentials + " profile" + profile);
 
       } catch (HttpAction httpAction) {
         new DefaultHttpActionAdapter().adapt(httpAction.getCode(), webContext);
@@ -127,16 +132,17 @@ public class MainVerticle extends AbstractVerticle {
 
   }
 
-  private void regenerateSaml2Config(VertxWebContext vertxWebContext) {
+  private String regenerateSaml2Config(VertxWebContext vertxWebContext) {
     SAML2Client saml2Client = findSaml2Client();
     SAML2ClientConfiguration cfg = saml2Client.getConfiguration();
 
     // force metadata generation then init
     cfg.setForceServiceProviderMetadataGeneration(true);
     saml2Client.reinit(vertxWebContext);
-
     cfg.setForceServiceProviderMetadataGeneration(false);
-    //      saml2Client.reinit(vertxWebContext);
+
+    // return xml as String
+    return saml2Client.getServiceProviderMetadataResolver().getMetadata();
   }
 
   private SAML2Client findSaml2Client() {
@@ -150,7 +156,6 @@ public class MainVerticle extends AbstractVerticle {
     assertTrue(client instanceof SAML2Client, "only indirect clients are allowed on the callback url");
 
     return (SAML2Client) client;
-
   }
 
 }
