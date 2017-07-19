@@ -7,16 +7,17 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
+import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.SessionHandler;
 import io.vertx.ext.web.sstore.LocalSessionStore;
 import org.folio.config.Pac4jConfigurationFactory;
 import org.pac4j.core.client.Client;
 import org.pac4j.core.client.Clients;
-import org.pac4j.core.client.IndirectClient;
 import org.pac4j.core.config.Config;
 import org.pac4j.core.context.session.SessionStore;
 import org.pac4j.core.exception.HttpAction;
+import org.pac4j.core.exception.TechnicalException;
 import org.pac4j.core.profile.CommonProfile;
 import org.pac4j.saml.client.SAML2Client;
 import org.pac4j.saml.client.SAML2ClientConfiguration;
@@ -26,13 +27,22 @@ import org.pac4j.vertx.auth.Pac4jAuthProvider;
 import org.pac4j.vertx.context.session.VertxSessionStore;
 import org.pac4j.vertx.http.DefaultHttpActionAdapter;
 
-import static org.pac4j.core.util.CommonHelper.assertNotNull;
-import static org.pac4j.core.util.CommonHelper.assertTrue;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import java.security.GeneralSecurityException;
+import java.security.cert.X509Certificate;
+import java.util.List;
 
-/**
- * Hello world!
- */
+import static org.pac4j.core.util.CommonHelper.assertNotNull;
+
 public class MainVerticle extends AbstractVerticle {
+
+  private static String OKAPI_URL_HEADER = "X-Okapi-URL";
+  private static String OKAPI_TOKEN_HEADER = "X-Okapi-Token";
+  private static String OKAPI_TENANT_HEADER = "X-Okapi-Tenant";
+  private static String OKAPI_PERMISSIONS_HEADER = "X-Okapi-Permissions";
 
   private final Logger log = LoggerFactory.getLogger(MainVerticle.class);
 
@@ -44,15 +54,18 @@ public class MainVerticle extends AbstractVerticle {
   @Override
   public void start(Future<Void> startFuture) throws Exception {
 
+
     JsonObject inheritedConfig = config();
     inheritedConfig.put("baseUrl", "http://localhost:8080");
 
+
+    trustAllCertificates(); // TODO: DO NOT USE IN PRODUCTION!
 
     LocalSessionStore vertxSessionStore = LocalSessionStore.create(vertx);
     sessionStore = new VertxSessionStore(vertxSessionStore);
     SessionHandler sessionHandler = SessionHandler.create(vertxSessionStore);
 
-    log.info("DemoServerVerticle: config is \n" + inheritedConfig.encodePrettily());
+    log.debug("Loaded configuration {}", inheritedConfig.encode());
     this.config = new Pac4jConfigurationFactory(inheritedConfig, vertx, vertxSessionStore).build();
 
     final Router router = Router.router(vertx);
@@ -73,89 +86,222 @@ public class MainVerticle extends AbstractVerticle {
       response.setChunked(true);
       response.write("<html><body>");
       response.write("<a href=\"/saml-login\">/saml-login</a><br>");
-      response.write("<a href=\"/regenerate\">/regenerate</a>");
+      response.write("<a href=\"/saml-regenerate\">/regenerate</a>");
       response.end("</body></html>");
     });
 
-    router.get("/regenerate").blockingHandler(routingContext -> {
-      // TODO: upload new idp-metadata.xml?
-      VertxWebContext vertxWebContext = new VertxWebContext(routingContext, null);
-      String metadata = regenerateSaml2Config(vertxWebContext);
 
-      HttpServerResponse response = routingContext.response();
-      response.headers().add("content-type", "application/xml");
-      response.end(metadata);
+    // TODO: remove, this is a testing endpoint
+    router.get("/saml-config-check").handler(rc -> {
+      ConfigurationsClient.getConfiguration(rc)
+        .setHandler(configuration -> {
+          if (configuration.failed()) {
+            log.warn("Failed to retrive configuration. ", configuration.cause());
+            rc.response()
+              .setStatusCode(500)
+              .end("Failed to retrive configuration: " + configuration.cause().getMessage());
+          } else {
+            rc.response()
+              .setStatusCode(200)
+              .putHeader("Content-Type", "application/json")
+              .end(JsonObject.mapFrom(configuration.result()).encodePrettily());
+          }
+        });
     });
 
-
-    router.get("/saml-login").blockingHandler(routingContext -> {
-
-      IndirectClient saml2Client = findSaml2Client();
-      VertxWebContext vertxWebContext = new VertxWebContext(routingContext, null); // TODO: null ?!
-      HttpAction action;
-      try {
-        action = saml2Client.redirect(vertxWebContext); // highly blocking
-      } catch (HttpAction httpAction) {
-        action = httpAction;
-      }
-
-      new DefaultHttpActionAdapter().adapt(action.getCode(), vertxWebContext);
-    }, false);
-
+    router.get("/saml-regenerate").handler(this::regenerateHandler);
+    router.get("/saml-login").handler(this::loginHandler);
     router.post("/saml-callback").handler(BodyHandler.create().setMergeFormAttributes(true));
-    router.post("/saml-callback").blockingHandler(routingContext -> {
-
-      final VertxWebContext webContext = new VertxWebContext(routingContext, null);
-
-      IndirectClient client = findSaml2Client();
-      try {
-        SAML2Credentials credentials = (SAML2Credentials) client.getCredentials(webContext);
-        log.debug("credentials: {}", credentials);
-
-        final CommonProfile profile = client.getUserProfile(credentials, webContext);
-        log.debug("profile: {}", profile);
-
-        HttpServerResponse response = routingContext.response();
-        response.putHeader("content-type", "text/plain");
-        response.end("Minden kiraly! Ide johet a JWT token kiadas, stb. Credentials: " + credentials + " profile" + profile);
-
-      } catch (HttpAction httpAction) {
-        new DefaultHttpActionAdapter().adapt(httpAction.getCode(), webContext);
-      }
-
-    }, false);
+    router.post("/saml-callback").handler(this::callbackHandler);
 
 
     vertx.createHttpServer()
       .requestHandler(router::accept)
-      .listen(8080);
+      .listen(8080, "0.0.0.0", listenHandler -> {
+        if (listenHandler.failed()) {
+          startFuture.fail(listenHandler.cause());
+        } else {
+          log.info("HTTP server listening on port {}", listenHandler.result().actualPort());
+          startFuture.complete();
+        }
+      });
 
   }
 
-  private String regenerateSaml2Config(VertxWebContext vertxWebContext) {
-    SAML2Client saml2Client = findSaml2Client();
-    SAML2ClientConfiguration cfg = saml2Client.getConfiguration();
 
-    // force metadata generation then init
-    cfg.setForceServiceProviderMetadataGeneration(true);
-    saml2Client.reinit(vertxWebContext);
-    cfg.setForceServiceProviderMetadataGeneration(false);
+  // TODO: let user rich login page if no config present? (IdP doesn't even know us)
+  private void loginHandler(RoutingContext routingContext) {
+    VertxWebContext vertxWebContext = new VertxWebContext(routingContext, null);
+    // do not allow login, if config is missing
+    findSaml2Client(routingContext, false).setHandler(samlClientHandler -> {
 
-    // return xml as String
-    return saml2Client.getServiceProviderMetadataResolver().getMetadata();
+      HttpAction action;
+      if (samlClientHandler.succeeded()) {
+        SAML2Client saml2Client = samlClientHandler.result();
+        try {
+          action = saml2Client.redirect(vertxWebContext); // highly blocking
+        } catch (HttpAction httpAction) {
+          action = httpAction;
+        }
+        new DefaultHttpActionAdapter().adapt(action.getCode(), vertxWebContext);
+
+      } else {
+        log.warn("Login called but cannot load client to handle", samlClientHandler.cause());
+        routingContext.response()
+          .setStatusCode(500)
+          .end(samlClientHandler.cause().getMessage());
+      }
+    });
   }
 
-  private SAML2Client findSaml2Client() {
+  private void callbackHandler(RoutingContext routingContext) {
+    final VertxWebContext webContext = VertxUtils.createWebContext(routingContext);
+
+    // How can someone rich this point if no stored configuration? Obviously an error.
+    findSaml2Client(routingContext, false).setHandler(samlClientHandler -> {
+
+      HttpAction action;
+      if (samlClientHandler.failed()) {
+        action = HttpAction.status(samlClientHandler.cause().getMessage(), 500, webContext);
+      } else {
+        try {
+          SAML2Client client = samlClientHandler.result();
+          SAML2Credentials credentials = client.getCredentials(webContext);
+          log.debug("credentials: {}", credentials);
+
+          final CommonProfile profile = client.getUserProfile(credentials, webContext);
+          log.debug("profile: {}", profile);
+
+          HttpServerResponse response = routingContext.response();
+          response.putHeader("content-type", "text/plain");
+          response.end("Minden kiraly! Ide johet a JWT token kiadas, stb. Credentials: " + credentials + " profile" + profile);
+
+          action = HttpAction.ok("Logged in", webContext, "Logged in. Credentials: " + credentials + " Profile:" + profile);
+
+        } catch (HttpAction httpAction) {
+          action = httpAction;
+        }
+      }
+      new DefaultHttpActionAdapter().adapt(action.getCode(), webContext);
+    });
+  }
+
+  private void regenerateHandler(RoutingContext routingContext) {
+    HttpServerResponse response = routingContext.response();
+    regenerateSaml2Config(routingContext)
+      .setHandler(regenerationHandler -> {
+        if (regenerationHandler.failed()) {
+          log.warn("Cannot regenerate SAML2 metadata.", regenerationHandler.cause());
+          response.setStatusCode(404).end("Cannot regenerate SAML2 matadata. Internal error was: " + regenerationHandler.cause().getMessage());
+        } else {
+          String metadata = regenerationHandler.result();
+          response.headers().add("content-type", "application/xml");
+          response.end(metadata);
+        }
+      });
+  }
+
+
+  private Future<String> regenerateSaml2Config(RoutingContext routingContext) {
+
+    Future<String> result = Future.future();
+
+    findSaml2Client(routingContext, true) // generate KeyStore if missing
+      .setHandler(handler -> {
+        if (handler.failed()) {
+          result.fail(handler.cause());
+        } else {
+          SAML2Client saml2Client = handler.result();
+
+          vertx.executeBlocking(blockingCode -> {
+
+            SAML2ClientConfiguration cfg = saml2Client.getConfiguration();
+
+            // force metadata generation then init
+            cfg.setForceServiceProviderMetadataGeneration(true);
+            saml2Client.reinit(new VertxWebContext(routingContext, null)); // TODO: maybe null as context?
+            cfg.setForceServiceProviderMetadataGeneration(false);
+
+            blockingCode.complete(saml2Client.getServiceProviderMetadataResolver().getMetadata());
+
+          }, result);
+        }
+      });
+
+    return result;
+  }
+
+  private Future<SAML2Client> findSaml2Client(RoutingContext routingContext, boolean generateMissingConfig) {
+
+    String tenantId = OkapiHelper.okapiHeaders(routingContext).getTenant();
 
     final Clients clients = config.getClients();
     assertNotNull("clients", clients);
 
-    // logic
-    final Client client = clients.findClient(SAML2Client.class);
-    assertNotNull("client", client);
-    assertTrue(client instanceof SAML2Client, "only indirect clients are allowed on the callback url");
+    Future<SAML2Client> result = Future.future();
 
-    return (SAML2Client) client;
+    try {
+      final Client client = clients.findClient(tenantId);
+      if (client != null && client instanceof SAML2Client) {
+        result.complete((SAML2Client) client);
+      } else {
+        result.fail("No client loaded or not a SAML2 client.");
+      }
+    } catch (TechnicalException ex) {
+
+      // Client not loaded, try to load from configuration
+      SamlClientLoader.loadFromConfiguration(routingContext, generateMissingConfig)
+        .setHandler(clientResult -> {
+          if (clientResult.failed()) {
+            result.fail(clientResult.cause());
+          } else {
+            SAML2Client loadedClient = clientResult.result();
+
+            List<Client> registeredClients = clients.getClients();
+            if (registeredClients == null) {
+              clients.setClients(loadedClient);
+            } else {
+              registeredClients.add(loadedClient);
+            }
+            // TODO: need manual reinit?
+            // clients.reinit();
+            result.complete(loadedClient);
+          }
+        });
+    }
+
+    return result;
+  }
+
+  /**
+   * A HACK for disable HTTPS security checks. DO NOT USE IN PRODUCTION!
+   * https://stackoverflow.com/a/2893932
+   */
+  private void trustAllCertificates() {
+    // Create a trust manager that does not validate certificate chains
+    TrustManager[] trustAllCerts = new TrustManager[]{
+      new X509TrustManager() {
+        public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+          return new X509Certificate[0];
+        }
+
+        public void checkClientTrusted(
+          java.security.cert.X509Certificate[] certs, String authType) {
+        }
+
+        public void checkServerTrusted(
+          java.security.cert.X509Certificate[] certs, String authType) {
+        }
+      }
+    };
+
+    // Install the all-trusting trust manager
+    try {
+      SSLContext sc = SSLContext.getInstance("SSL");
+      sc.init(null, trustAllCerts, new java.security.SecureRandom());
+      HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+    } catch (GeneralSecurityException e) {
+    }
   }
 
 }
