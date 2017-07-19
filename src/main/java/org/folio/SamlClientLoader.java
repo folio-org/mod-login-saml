@@ -28,7 +28,6 @@ public class SamlClientLoader {
     OkapiHeaders okapiHeaders = OkapiHelper.okapiHeaders(routingContext);
     String okapiUrl = okapiHeaders.getUrl();
     String tenantId = okapiHeaders.getTenant();
-    //String token = okapiHeaders.getToken();
 
     ConfigurationsClient.getConfiguration(routingContext)
       .compose(samlConfiguration -> { // TODO: compose?
@@ -203,7 +202,7 @@ public class SamlClientLoader {
   }
 
   private static String buildCallbackUrl(String okapiUrl, String tenantId) {
-    return okapiUrl + "/_/invoke/tenant/" + CommonHelper.urlEncode(tenantId) + "/saml-callback";
+    return okapiUrl + "/_/invoke/tenant/" + CommonHelper.urlEncode(tenantId) + MainVerticle.CALLBACK_ENDPOINT;
   }
 
 

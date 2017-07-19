@@ -23,7 +23,6 @@ import org.pac4j.saml.client.SAML2Client;
 import org.pac4j.saml.client.SAML2ClientConfiguration;
 import org.pac4j.saml.credentials.SAML2Credentials;
 import org.pac4j.vertx.VertxWebContext;
-import org.pac4j.vertx.auth.Pac4jAuthProvider;
 import org.pac4j.vertx.context.session.VertxSessionStore;
 import org.pac4j.vertx.http.DefaultHttpActionAdapter;
 
@@ -39,16 +38,11 @@ import static org.pac4j.core.util.CommonHelper.assertNotNull;
 
 public class MainVerticle extends AbstractVerticle {
 
-  private static String OKAPI_URL_HEADER = "X-Okapi-URL";
-  private static String OKAPI_TOKEN_HEADER = "X-Okapi-Token";
-  private static String OKAPI_TENANT_HEADER = "X-Okapi-Tenant";
-  private static String OKAPI_PERMISSIONS_HEADER = "X-Okapi-Permissions";
-
+  public static final String CALLBACK_ENDPOINT = "/saml-callback";
   private final Logger log = LoggerFactory.getLogger(MainVerticle.class);
 
   private SessionStore<VertxWebContext> sessionStore;
-  //  private final Handler<RoutingContext> protectedIndexRenderer = DemoHandlers.protectedIndexHandler(sessionStore);
-  private final Pac4jAuthProvider authProvider = new Pac4jAuthProvider(); // We don't need to instantiate this on demand
+  // private final Pac4jAuthProvider authProvider = new Pac4jAuthProvider(); // We don't need to instantiate this on demand
   private Config config = null;
 
   @Override
@@ -111,8 +105,8 @@ public class MainVerticle extends AbstractVerticle {
 
     router.get("/saml-regenerate").handler(this::regenerateHandler);
     router.get("/saml-login").handler(this::loginHandler);
-    router.post("/saml-callback").handler(BodyHandler.create().setMergeFormAttributes(true));
-    router.post("/saml-callback").handler(this::callbackHandler);
+    router.post(CALLBACK_ENDPOINT).handler(BodyHandler.create().setMergeFormAttributes(true));
+    router.post(CALLBACK_ENDPOINT).handler(this::callbackHandler);
 
 
     vertx.createHttpServer()
@@ -129,61 +123,61 @@ public class MainVerticle extends AbstractVerticle {
   }
 
 
-  // TODO: let user rich login page if no config present? (IdP doesn't even know us)
   private void loginHandler(RoutingContext routingContext) {
     VertxWebContext vertxWebContext = new VertxWebContext(routingContext, null);
-    // do not allow login, if config is missing
-    findSaml2Client(routingContext, false).setHandler(samlClientHandler -> {
 
-      HttpAction action;
-      if (samlClientHandler.succeeded()) {
-        SAML2Client saml2Client = samlClientHandler.result();
-        try {
-          action = saml2Client.redirect(vertxWebContext); // highly blocking
-        } catch (HttpAction httpAction) {
-          action = httpAction;
+    findSaml2Client(routingContext, false)     // do not allow login, if config is missing
+      .setHandler(samlClientHandler -> {
+        HttpAction action;
+        if (samlClientHandler.succeeded()) {
+          SAML2Client saml2Client = samlClientHandler.result();
+          try {
+            action = saml2Client.redirect(vertxWebContext); // highly blocking
+          } catch (HttpAction httpAction) {
+            action = httpAction;
+          }
+          new DefaultHttpActionAdapter().adapt(action.getCode(), vertxWebContext);
+
+        } else {
+          log.warn("Login called but cannot load client to handle", samlClientHandler.cause());
+          routingContext.response()
+            .setStatusCode(500)
+            .end(samlClientHandler.cause().getMessage());
         }
-        new DefaultHttpActionAdapter().adapt(action.getCode(), vertxWebContext);
-
-      } else {
-        log.warn("Login called but cannot load client to handle", samlClientHandler.cause());
-        routingContext.response()
-          .setStatusCode(500)
-          .end(samlClientHandler.cause().getMessage());
-      }
-    });
+      });
   }
 
   private void callbackHandler(RoutingContext routingContext) {
     final VertxWebContext webContext = VertxUtils.createWebContext(routingContext);
 
-    // How can someone rich this point if no stored configuration? Obviously an error.
-    findSaml2Client(routingContext, false).setHandler(samlClientHandler -> {
 
-      HttpAction action;
-      if (samlClientHandler.failed()) {
-        action = HttpAction.status(samlClientHandler.cause().getMessage(), 500, webContext);
-      } else {
-        try {
-          SAML2Client client = samlClientHandler.result();
-          SAML2Credentials credentials = client.getCredentials(webContext);
-          log.debug("credentials: {}", credentials);
+    findSaml2Client(routingContext, false) // How can someone rich this point if no stored configuration? Obviously an error.
+      .setHandler(samlClientHandler -> {
 
-          final CommonProfile profile = client.getUserProfile(credentials, webContext);
-          log.debug("profile: {}", profile);
+        HttpAction action;
+        if (samlClientHandler.failed()) {
+          action = HttpAction.status(samlClientHandler.cause().getMessage(), 500, webContext);
+        } else {
+          try {
+            SAML2Client client = samlClientHandler.result();
+            SAML2Credentials credentials = client.getCredentials(webContext);
+            log.debug("credentials: {}", credentials);
 
-          HttpServerResponse response = routingContext.response();
-          response.putHeader("content-type", "text/plain");
-          response.end("Minden kiraly! Ide johet a JWT token kiadas, stb. Credentials: " + credentials + " profile" + profile);
+            final CommonProfile profile = client.getUserProfile(credentials, webContext);
+            log.debug("profile: {}", profile);
 
-          action = HttpAction.ok("Logged in", webContext, "Logged in. Credentials: " + credentials + " Profile:" + profile);
+            HttpServerResponse response = routingContext.response();
+            response.putHeader("content-type", "text/plain");
+            response.end("Successful authentication. Authtoken will be returnet here. Credentials: " + credentials + " profile" + profile);
 
-        } catch (HttpAction httpAction) {
-          action = httpAction;
+            action = HttpAction.ok("Logged in", webContext, "Logged in. Credentials: " + credentials + " Profile:" + profile);
+
+          } catch (HttpAction httpAction) {
+            action = httpAction;
+          }
         }
-      }
-      new DefaultHttpActionAdapter().adapt(action.getCode(), webContext);
-    });
+        new DefaultHttpActionAdapter().adapt(action.getCode(), webContext);
+      });
   }
 
   private void regenerateHandler(RoutingContext routingContext) {
