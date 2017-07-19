@@ -1,7 +1,13 @@
-package org.folio;
+package org.folio.util;
 
 import io.vertx.ext.web.RoutingContext;
+import org.folio.util.model.OkapiHeaders;
 
+/**
+ * Okapi utils
+ *
+ * @author rsass
+ */
 public class OkapiHelper {
 
 

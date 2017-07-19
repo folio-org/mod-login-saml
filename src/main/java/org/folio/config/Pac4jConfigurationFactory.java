@@ -24,6 +24,8 @@ import org.pac4j.core.config.ConfigFactory;
 
 /**
  * Instantiates an empty configuration object for Pac4j.
+ *
+ * @author rsass
  */
 public class Pac4jConfigurationFactory implements ConfigFactory {
 
@@ -43,6 +45,5 @@ public class Pac4jConfigurationFactory implements ConfigFactory {
     Config config = new Config(clients);
     return config;
   }
-
 
 }

@@ -1,4 +1,4 @@
-package org.folio;
+package org.folio.config;
 
 import com.google.common.base.Strings;
 import io.vertx.core.CompositeFuture;
@@ -7,6 +7,10 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.folio.MainVerticle;
+import org.folio.util.OkapiHelper;
+import org.folio.util.VertxUtils;
+import org.folio.util.model.OkapiHeaders;
 import org.pac4j.core.util.CommonHelper;
 import org.pac4j.saml.client.SAML2Client;
 import org.pac4j.saml.client.SAML2ClientConfiguration;
@@ -17,8 +21,13 @@ import java.net.MalformedURLException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
-import static org.folio.ConfigurationsClient.*;
+import static org.folio.config.ConfigurationsClient.*;
 
+/**
+ * Load Pac4j {@link SAML2Client} from configuration
+ *
+ * @author rsass
+ */
 public class SamlClientLoader {
 
   public static Future<SAML2Client> loadFromConfiguration(RoutingContext routingContext, boolean generateMissingKeyStore) {

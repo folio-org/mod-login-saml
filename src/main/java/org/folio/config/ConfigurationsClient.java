@@ -1,4 +1,4 @@
-package org.folio;
+package org.folio.config;
 
 
 import com.google.common.base.Strings;
@@ -9,13 +9,22 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
+import org.folio.config.model.SamlConfiguration;
+import org.folio.util.OkapiHelper;
+import org.folio.util.VertxUtils;
+import org.folio.util.model.OkapiHeaders;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
 
-import static org.folio.OkapiHeaders.OKAPI_TENANT_HEADER;
-import static org.folio.OkapiHeaders.OKAPI_TOKEN_HEADER;
+import static org.folio.util.model.OkapiHeaders.OKAPI_TENANT_HEADER;
+import static org.folio.util.model.OkapiHeaders.OKAPI_TOKEN_HEADER;
 
+/**
+ * Connect to mod-configuration via Okapi
+ *
+ * @author rsass
+ */
 public class ConfigurationsClient {
 
   private static final Logger log = LoggerFactory.getLogger(ConfigurationsClient.class);
@@ -71,6 +80,7 @@ public class ConfigurationsClient {
 
             try {
               JsonObject entries = responseBuffer.bodyAsJsonObject(); //{"configs": [],"total_records": 0}
+              // TODO: entries.mapTo()
               JsonArray configs = entries.getJsonArray("configs");
               configs
                 .forEach(entry -> {

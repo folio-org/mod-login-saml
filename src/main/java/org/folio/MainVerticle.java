@@ -11,7 +11,11 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.SessionHandler;
 import io.vertx.ext.web.sstore.LocalSessionStore;
+import org.folio.config.ConfigurationsClient;
 import org.folio.config.Pac4jConfigurationFactory;
+import org.folio.config.SamlClientLoader;
+import org.folio.util.OkapiHelper;
+import org.folio.util.VertxUtils;
 import org.pac4j.core.client.Client;
 import org.pac4j.core.client.Clients;
 import org.pac4j.core.config.Config;
@@ -36,6 +40,11 @@ import java.util.List;
 
 import static org.pac4j.core.util.CommonHelper.assertNotNull;
 
+/**
+ * Main entry point of module
+ *
+ * @author rsass
+ */
 public class MainVerticle extends AbstractVerticle {
 
   public static final String CALLBACK_ENDPOINT = "/saml-callback";

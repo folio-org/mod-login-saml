@@ -1,5 +1,13 @@
-package org.folio;
+package org.folio.config.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+/**
+ * POJO for strongly typed configuration client
+ *
+ * @author rsass
+ */
+@JsonIgnoreProperties()
 public class SamlConfiguration {
 
   private String idpUrl;

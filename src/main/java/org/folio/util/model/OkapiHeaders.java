@@ -1,5 +1,10 @@
-package org.folio;
+package org.folio.util.model;
 
+/**
+ * POJO for Okapi headers parsing
+ *
+ * @author rsass
+ */
 public class OkapiHeaders {
 
   public static String OKAPI_URL_HEADER = "X-Okapi-URL";
