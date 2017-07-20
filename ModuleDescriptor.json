@@ -10,7 +10,7 @@
           "methods": [
             "GET"
           ],
-          "pathPattern": "/saml-login",
+          "pathPattern": "/saml/login",
           "modulePermissions": [
             "configuration.entries.collection.get"
           ]
@@ -19,7 +19,7 @@
           "methods": [
             "POST"
           ],
-          "pathPattern": "/saml-callback",
+          "pathPattern": "/saml/callback",
           "modulePermissions": [
             "configuration.entries.collection.get"
           ]
@@ -28,7 +28,7 @@
           "methods": [
             "GET"
           ],
-          "pathPattern": "/saml-regenerate",
+          "pathPattern": "/saml/regenerate",
           "modulePermissions": [
             "configuration.entries.collection.get",
             "configuration.entries.item.post",
@@ -39,7 +39,7 @@
           "methods": [
             "GET"
           ],
-          "pathPattern": "/saml-config-check",
+          "pathPattern": "/saml/check",
           "modulePermissions": [
             "configuration.entries.collection.get"
           ]

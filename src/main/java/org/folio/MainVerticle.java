@@ -9,9 +9,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
-import io.vertx.ext.web.handler.SessionHandler;
 import io.vertx.ext.web.sstore.SessionStore;
-import org.folio.config.ConfigurationsClient;
 import org.folio.config.Pac4jConfigurationFactory;
 import org.folio.config.SamlClientLoader;
 import org.folio.session.NoopSessionHandler;
@@ -47,7 +45,10 @@ import static org.pac4j.core.util.CommonHelper.assertNotNull;
  */
 public class MainVerticle extends AbstractVerticle {
 
-  public static final String CALLBACK_ENDPOINT = "/saml-callback";
+  public static final String CALLBACK_ENDPOINT = "/saml/callback";
+  public static final String LOGIN_ENDPOINT = "/saml/login";
+  public static final String REGENERATE_ENDPOINT = "/saml/regenerate";
+  public static final String CHECK_ENDPOINT = "/saml/check";
   private final Logger log = LoggerFactory.getLogger(MainVerticle.class);
   private Config config = null;
 
@@ -58,51 +59,23 @@ public class MainVerticle extends AbstractVerticle {
     JsonObject verticleConfig = config();
     log.debug("Loaded configuration {}", verticleConfig.encode());
 
+    //////////////////////////
     trustAllCertificates(); // TODO: DO NOT USE IN PRODUCTION!
+    //////////////////////////
 
     SessionStore localSessionStore = new NoopSessionStore();
-    SessionHandler sessionHandler = new NoopSessionHandler(localSessionStore);
-
     this.config = new Pac4jConfigurationFactory(verticleConfig, vertx, localSessionStore).build();
+
     final Router router = Router.router(vertx);
-
-    router.route().handler(sessionHandler);
-
-    router.get("/").handler(rc -> {
-      HttpServerResponse response = rc.response();
-      response.putHeader("content-type", "text/html");
-      response.setChunked(true);
-      response.write("<html><body>");
-      response.write("<a href=\"/saml-login\">/saml-login</a><br>");
-      response.write("<a href=\"/saml-regenerate\">/regenerate</a>");
-      response.end("</body></html>");
-    });
-
-
-    // TODO: remove, this is a testing endpoint
-    router.get("/saml-config-check").handler(rc -> {
-      ConfigurationsClient.getConfiguration(rc)
-        .setHandler(configuration -> {
-          if (configuration.failed()) {
-            log.warn("Failed to retrive configuration. ", configuration.cause());
-            rc.response()
-              .setStatusCode(500)
-              .end("Failed to retrive configuration: " + configuration.cause().getMessage());
-          } else {
-            rc.response()
-              .setStatusCode(200)
-              .putHeader("Content-Type", "application/json")
-              .end(JsonObject.mapFrom(configuration.result()).encodePrettily());
-          }
-        });
-    });
-
-    router.get("/saml-regenerate").handler(this::regenerateHandler);
-    router.get("/saml-login").handler(this::loginHandler);
+    router.route().handler(new NoopSessionHandler(localSessionStore));
+    // routing rules
+    router.get(CHECK_ENDPOINT).handler(this::checkHandler);
+    router.get(REGENERATE_ENDPOINT).handler(this::regenerateHandler);
+    router.get(LOGIN_ENDPOINT).handler(this::loginHandler);
     router.post(CALLBACK_ENDPOINT).handler(BodyHandler.create().setMergeFormAttributes(true));
     router.post(CALLBACK_ENDPOINT).handler(this::callbackHandler);
 
-
+    // start HTTP server
     vertx.createHttpServer()
       .requestHandler(router::accept)
       .listen(8080, "0.0.0.0", listenHandler -> {
@@ -114,6 +87,27 @@ public class MainVerticle extends AbstractVerticle {
         }
       });
 
+  }
+
+  /**
+   * Check that client can be loaded, SAML-Login button can be displayed.
+   */
+  private void checkHandler(RoutingContext routingContext) {
+
+    findSaml2Client(routingContext, false)
+      .setHandler(samlClientHandler -> {
+        if (samlClientHandler.failed()) {
+          routingContext.response()
+            .setStatusCode(200)
+            .putHeader("Content-Type", "text/plain")
+            .end("false");
+        } else {
+          routingContext.response()
+            .setStatusCode(200)
+            .putHeader("Content-Type", "text/plain")
+            .end("true");
+        }
+      });
   }
 
 
@@ -152,6 +146,7 @@ public class MainVerticle extends AbstractVerticle {
         } else {
           try {
             SAML2Client client = samlClientHandler.result();
+
             SAML2Credentials credentials = client.getCredentials(webContext);
             log.debug("credentials: {}", credentials);
 
