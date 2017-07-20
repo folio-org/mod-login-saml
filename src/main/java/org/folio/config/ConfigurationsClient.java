@@ -54,11 +54,11 @@ public class ConfigurationsClient {
 
     Future<SamlConfiguration> future = Future.future();
 
-    String query = "(module==" + MODULE_NAME + " AND config_name==" + CONFIG_NAME + ")";
+    String query = "(module==" + MODULE_NAME + " AND configName==" + CONFIG_NAME + ")";
 
     WebClient webClient = WebClient.create(VertxUtils.getVertxFromContextOrNew());
     webClient.getAbs(okapiHeaders.getUrl() + CONFIGURATIONS_ENTRIES_ENDPOINT_URL)
-      .addQueryParam("query", query) // TODO: check - query params automatically urlencoded
+      .addQueryParam("query", query)
       .putHeader("Content-Type", "application/json")
       .putHeader("Accept", "application/json")
       .putHeader(OKAPI_TENANT_HEADER, okapiHeaders.getTenant())
@@ -80,7 +80,6 @@ public class ConfigurationsClient {
 
             try {
               JsonObject entries = responseBuffer.bodyAsJsonObject(); //{"configs": [],"total_records": 0}
-              // TODO: entries.mapTo()
               JsonArray configs = entries.getJsonArray("configs");
               configs
                 .forEach(entry -> {
@@ -144,7 +143,7 @@ public class ConfigurationsClient {
     JsonObject requestBody = new JsonObject();
     requestBody
       .put("module", MODULE_NAME)
-      .put("config_name", CONFIG_NAME)
+      .put("configName", CONFIG_NAME)
       .put("code", code)
       .put("value", value);
 
@@ -227,7 +226,7 @@ public class ConfigurationsClient {
       return Future.failedFuture("Missing Token");
     }
 
-    String query = "(module==" + MODULE_NAME + " AND config_name==" + CONFIG_NAME + " AND code== " + code + ")";
+    String query = "(module==" + MODULE_NAME + " AND configName==" + CONFIG_NAME + " AND code== " + code + ")";
 
     WebClient webClient = WebClient.create(VertxUtils.getVertxFromContextOrNew());
     webClient.getAbs(okapiHeaders.getUrl() + CONFIGURATIONS_ENTRIES_ENDPOINT_URL)

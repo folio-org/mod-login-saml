@@ -10,16 +10,17 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.SessionHandler;
-import io.vertx.ext.web.sstore.LocalSessionStore;
+import io.vertx.ext.web.sstore.SessionStore;
 import org.folio.config.ConfigurationsClient;
 import org.folio.config.Pac4jConfigurationFactory;
 import org.folio.config.SamlClientLoader;
+import org.folio.session.NoopSessionHandler;
+import org.folio.session.NoopSessionStore;
 import org.folio.util.OkapiHelper;
 import org.folio.util.VertxUtils;
 import org.pac4j.core.client.Client;
 import org.pac4j.core.client.Clients;
 import org.pac4j.core.config.Config;
-import org.pac4j.core.context.session.SessionStore;
 import org.pac4j.core.exception.HttpAction;
 import org.pac4j.core.exception.TechnicalException;
 import org.pac4j.core.profile.CommonProfile;
@@ -27,7 +28,6 @@ import org.pac4j.saml.client.SAML2Client;
 import org.pac4j.saml.client.SAML2ClientConfiguration;
 import org.pac4j.saml.credentials.SAML2Credentials;
 import org.pac4j.vertx.VertxWebContext;
-import org.pac4j.vertx.context.session.VertxSessionStore;
 import org.pac4j.vertx.http.DefaultHttpActionAdapter;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -49,39 +49,24 @@ public class MainVerticle extends AbstractVerticle {
 
   public static final String CALLBACK_ENDPOINT = "/saml-callback";
   private final Logger log = LoggerFactory.getLogger(MainVerticle.class);
-
-  private SessionStore<VertxWebContext> sessionStore;
-  // private final Pac4jAuthProvider authProvider = new Pac4jAuthProvider(); // We don't need to instantiate this on demand
   private Config config = null;
 
   @Override
   public void start(Future<Void> startFuture) throws Exception {
 
 
-    JsonObject inheritedConfig = config();
-    inheritedConfig.put("baseUrl", "http://localhost:8080");
-
+    JsonObject verticleConfig = config();
+    log.debug("Loaded configuration {}", verticleConfig.encode());
 
     trustAllCertificates(); // TODO: DO NOT USE IN PRODUCTION!
 
-    LocalSessionStore vertxSessionStore = LocalSessionStore.create(vertx);
-    sessionStore = new VertxSessionStore(vertxSessionStore);
-    SessionHandler sessionHandler = SessionHandler.create(vertxSessionStore);
+    SessionStore localSessionStore = new NoopSessionStore();
+    SessionHandler sessionHandler = new NoopSessionHandler(localSessionStore);
 
-    log.debug("Loaded configuration {}", inheritedConfig.encode());
-    this.config = new Pac4jConfigurationFactory(inheritedConfig, vertx, vertxSessionStore).build();
-
+    this.config = new Pac4jConfigurationFactory(verticleConfig, vertx, localSessionStore).build();
     final Router router = Router.router(vertx);
 
-
-    // TODO:
-    // java.lang.IllegalStateException: Session required for use of getSessionAttribute
-    // pl IndirectClient-ben: context.getSessionAttribute(getName() + ATTEMPTED_AUTHENTICATION_SUFFIX);
-    // ... viszont ugy nez ki, hogy CookieHandler nélkül is megy, mert így boldog, hogy van session-je... az mondiegy, hogy nem csinál vele semmit
-
-    //    router.route().handler(CookieHandler.create());
     router.route().handler(sessionHandler);
-    //    router.route().handler(UserSessionHandler.create(authProvider));
 
     router.get("/").handler(rc -> {
       HttpServerResponse response = rc.response();
@@ -133,7 +118,7 @@ public class MainVerticle extends AbstractVerticle {
 
 
   private void loginHandler(RoutingContext routingContext) {
-    VertxWebContext vertxWebContext = new VertxWebContext(routingContext, null);
+    VertxWebContext vertxWebContext = VertxUtils.createWebContext(routingContext);
 
     findSaml2Client(routingContext, false)     // do not allow login, if config is missing
       .setHandler(samlClientHandler -> {
@@ -146,7 +131,6 @@ public class MainVerticle extends AbstractVerticle {
             action = httpAction;
           }
           new DefaultHttpActionAdapter().adapt(action.getCode(), vertxWebContext);
-
         } else {
           log.warn("Login called but cannot load client to handle", samlClientHandler.cause());
           routingContext.response()
@@ -163,9 +147,8 @@ public class MainVerticle extends AbstractVerticle {
     findSaml2Client(routingContext, false) // How can someone rich this point if no stored configuration? Obviously an error.
       .setHandler(samlClientHandler -> {
 
-        HttpAction action;
         if (samlClientHandler.failed()) {
-          action = HttpAction.status(samlClientHandler.cause().getMessage(), 500, webContext);
+          routingContext.response().setStatusCode(500).end(samlClientHandler.cause().getMessage());
         } else {
           try {
             SAML2Client client = samlClientHandler.result();
@@ -177,15 +160,12 @@ public class MainVerticle extends AbstractVerticle {
 
             HttpServerResponse response = routingContext.response();
             response.putHeader("content-type", "text/plain");
-            response.end("Successful authentication. Authtoken will be returnet here. Credentials: " + credentials + " profile" + profile);
-
-            action = HttpAction.ok("Logged in", webContext, "Logged in. Credentials: " + credentials + " Profile:" + profile);
+            response.end("Successful authentication. A valid JWT will be returned here. \n\nCredentials: " + credentials + "\n\nProfile" + profile);
 
           } catch (HttpAction httpAction) {
-            action = httpAction;
+            new DefaultHttpActionAdapter().adapt(httpAction.getCode(), webContext);
           }
         }
-        new DefaultHttpActionAdapter().adapt(action.getCode(), webContext);
       });
   }
 
@@ -222,7 +202,7 @@ public class MainVerticle extends AbstractVerticle {
 
             // force metadata generation then init
             cfg.setForceServiceProviderMetadataGeneration(true);
-            saml2Client.reinit(new VertxWebContext(routingContext, null)); // TODO: maybe null as context?
+            saml2Client.reinit(VertxUtils.createWebContext(routingContext));
             cfg.setForceServiceProviderMetadataGeneration(false);
 
             blockingCode.complete(saml2Client.getServiceProviderMetadataResolver().getMetadata());

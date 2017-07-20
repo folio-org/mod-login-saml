@@ -35,8 +35,8 @@ public class SamlClientLoader {
     Future<SAML2Client> result = Future.future();
 
     OkapiHeaders okapiHeaders = OkapiHelper.okapiHeaders(routingContext);
-    String okapiUrl = okapiHeaders.getUrl();
-    String tenantId = okapiHeaders.getTenant();
+    final String okapiUrl = okapiHeaders.getUrl();
+    final String tenantId = okapiHeaders.getTenant();
 
     ConfigurationsClient.getConfiguration(routingContext)
       .compose(samlConfiguration -> { // TODO: compose?
