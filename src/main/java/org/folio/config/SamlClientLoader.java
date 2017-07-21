@@ -7,7 +7,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.folio.MainVerticle;
+import org.folio.rest.impl.SamlAPI;
 import org.folio.util.OkapiHelper;
 import org.folio.util.VertxUtils;
 import org.folio.util.model.OkapiHeaders;
@@ -211,7 +211,7 @@ public class SamlClientLoader {
   }
 
   private static String buildCallbackUrl(String okapiUrl, String tenantId) {
-    return okapiUrl + "/_/invoke/tenant/" + CommonHelper.urlEncode(tenantId) + MainVerticle.CALLBACK_ENDPOINT;
+    return okapiUrl + "/_/invoke/tenant/" + CommonHelper.urlEncode(tenantId) + SamlAPI.CALLBACK_ENDPOINT;
   }
 
 

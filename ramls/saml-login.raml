@@ -1,0 +1,83 @@
+#%RAML 0.8
+title: Login
+version: v1
+baseUri: https://github.com/qultoltd/mod-login-saml
+
+documentation:
+  - title: mod-login-saml API
+    content: This module provides an SAML-based login mechanism to authenticate user in FOLIO through SSO credentials
+
+/saml:
+  /regenerate:
+    get:
+      description: Regenerate the metadata XML
+      responses:
+        200:
+          body:
+            application/xml:
+        500:
+          description: "Internal server error"
+          body:
+            text/plain:
+              example: "Internal server error"
+  /login:
+    get:
+      description: Handles the login with sending a form or a redirect as a response
+      responses:
+        200:
+          description: "Return with HTML page in case POST_BINDING is used"
+          body:
+            text/html:
+        302:
+          description: "Redirect in case REDIRECT_BINDING is used"
+          body:
+            text/plain:
+              example: "http://localhost:9130"
+        500:
+          description: "Internal server error"
+          body:
+            text/plain:
+              example: "Internal server error"
+  /callback:
+    post:
+      description: Send callback to OKAPI after SSO authentication
+      body:
+        application/x-www-form-urlencoded
+      responses:
+        200:
+          description: "Generate JWT token and set cookie"
+          body:
+            text/plain:
+        401:
+          description: "Unauthorized"
+          body:
+            text/html:
+              example: "Unauthorized"
+        403:
+          description: "Unauthorized"
+          body:
+            text/html:
+              example: "Unauthorized"
+        500:
+          description: "Internal server error"
+          body:
+            text/html:
+              example: "Internal server error"
+  /check:
+    get:
+      description: Decides if SSO login is configured properly, returns true or false
+      responses:
+        200:
+          body:
+            text/plain:
+              example: "true"
+        404:
+          description: Module is not deployed
+          body:
+            text/html:
+              example: "Module is not deployed"
+        500:
+          description: "Internal server error"
+          body:
+            text/plain:
+              example: "Internal server error"

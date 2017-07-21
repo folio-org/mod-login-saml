@@ -14,13 +14,13 @@
     </license>
   </licenses>
 
-  <!--<repositories>-->
-  <!--<repository>-->
-  <!--<id>folio-nexus</id>-->
-  <!--<name>FOLIO Maven repository</name>-->
-  <!--<url>https://repository.folio.org/repository/maven-folio</url>-->
-  <!--</repository>-->
-  <!--</repositories>-->
+  <repositories>
+    <repository>
+      <id>folio-nexus</id>
+      <name>FOLIO Maven repository</name>
+      <url>https://repository.folio.org/repository/maven-folio</url>
+    </repository>
+  </repositories>
 
 
   <properties>
@@ -28,12 +28,18 @@
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
 
-    <!--<folio.domain-models-runtime.version>12.1.3</folio.domain-models-runtime.version>&lt;!&ndash;&ndash;&gt;-->
+    <folio.domain-models-runtime.version>13.0.1</folio.domain-models-runtime.version>
 
     <vertx.version>3.4.1</vertx.version>
-    <!--<vertx.version>3.3.3</vertx.version>-->
     <pac4j.version>2.0.0</pac4j.version>
     <vertx-pac4j.version>3.0.0</vertx-pac4j.version>
+
+
+    <!--<vertx.version>3.3.3</vertx.version>-->
+    <!--<pac4j.version>2.0.0</pac4j.version>-->
+    <!--<vertx-pac4j.version>2.1.0</vertx-pac4j.version>-->
+
+    <ramlfiles_path>${basedir}/ramls</ramlfiles_path>
 
   </properties>
 
@@ -41,35 +47,23 @@
   <dependencies>
 
     <!-- not sure we need the whole runtime -->
-    <!--<dependency>-->
-    <!--<groupId>org.folio</groupId>-->
-    <!--<artifactId>domain-models-runtime</artifactId>-->
-    <!--<version>${folio.domain-models-runtime.version}</version>-->
-    <!--</dependency>-->
+    <dependency>
+      <groupId>org.folio</groupId>
+      <artifactId>domain-models-runtime</artifactId>
+      <version>${folio.domain-models-runtime.version}</version>
+    </dependency>
 
     <!--<dependency>-->
     <!--<groupId>org.folio</groupId>-->
     <!--<artifactId>mod-configuration-client</artifactId>-->
     <!--<version>1.0.2</version>-->
     <!--</dependency>-->
-    <!-- pac4j brings newer jackson than mod-configuration-client, but not brings annottations -->
+    <!-- pac4j brings newer jackson than mod-configuration-client, but not brings annotations -->
     <!--<dependency>-->
     <!--<groupId>com.fasterxml.jackson.core</groupId>-->
     <!--<artifactId>jackson-annotations</artifactId>-->
     <!--<version>2.7.4</version>-->
     <!--</dependency>-->
-
-    <dependency>
-      <groupId>io.vertx</groupId>
-      <artifactId>vertx-core</artifactId>
-      <version>${vertx.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>io.vertx</groupId>
-      <artifactId>vertx-web</artifactId>
-      <version>${vertx.version}</version>
-    </dependency>
 
     <dependency>
       <groupId>io.vertx</groupId>
@@ -83,22 +77,65 @@
       <version>${vertx-pac4j.version}</version>
     </dependency>
 
+
     <dependency>
       <groupId>org.pac4j</groupId>
       <artifactId>pac4j-saml</artifactId>
       <version>${pac4j.version}</version>
+      <exclusions>
+        <exclusion>
+          <artifactId>commons-lang</artifactId>
+          <groupId>commons-lang</groupId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
-    <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
-      <version>1.2.3</version>
-    </dependency>
-
+    <!--<dependency>-->
+    <!--<groupId>ch.qos.logback</groupId>-->
+    <!--<artifactId>logback-classic</artifactId>-->
+    <!--<version>1.2.3</version>-->
+    <!--</dependency>-->
 
   </dependencies>
 
+  <!-- Overriding versions coming from RMB -->
+  <dependencyManagement>
+    <dependencies>
 
+      <dependency>
+        <groupId>io.vertx</groupId>
+        <artifactId>vertx-core</artifactId>
+        <version>${vertx.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.vertx</groupId>
+        <artifactId>vertx-web</artifactId>
+        <version>${vertx.version}</version>
+      </dependency>
+
+
+      <dependency>
+        <groupId>io.vertx</groupId>
+        <artifactId>vertx-unit</artifactId>
+        <version>${vertx.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.vertx</groupId>
+        <artifactId>vertx-dropwizard-metrics</artifactId>
+        <version>${vertx.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.vertx</groupId>
+        <artifactId>vertx-mysql-postgresql-client</artifactId>
+        <version>${vertx.version}</version>
+      </dependency>
+    </dependencies>
+
+
+  </dependencyManagement>
   <build>
     <plugins>
       <plugin>
@@ -110,6 +147,129 @@
           <encoding>UTF-8</encoding>
         </configuration>
       </plugin>
+
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>1.6.0</version>
+        <executions>
+          <execution>
+            <id>generate_interfaces</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>java</goal>
+            </goals>
+            <configuration>
+              <mainClass>org.folio.rest.tools.GenerateRunner</mainClass>
+              <!-- <executable>java</executable> -->
+              <cleanupDaemonThreads>false</cleanupDaemonThreads>
+              <systemProperties>
+                <systemProperty>
+                  <key>project.basedir</key>
+                  <value>${basedir}</value>
+                </systemProperty>
+                <systemProperty>
+                  <key>raml_files</key>
+                  <value>${ramlfiles_path}</value>
+                </systemProperty>
+              </systemProperties>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>aspectj-maven-plugin</artifactId>
+        <version>1.8</version>
+        <configuration>
+          <verbose>true</verbose>
+          <showWeaveInfo>false</showWeaveInfo>
+          <complianceLevel>1.8</complianceLevel>
+          <includes>
+            <include>**/impl/*.java</include>
+            <include>**/*.aj</include>
+          </includes>
+          <aspectDirectory>src/main/java/org/folio/rest/annotations</aspectDirectory>
+          <XaddSerialVersionUID>true</XaddSerialVersionUID>
+          <showWeaveInfo>true</showWeaveInfo>
+          <aspectLibraries>
+            <aspectLibrary>
+              <groupId>org.folio</groupId>
+              <artifactId>domain-models-api-aspects</artifactId>
+            </aspectLibrary>
+          </aspectLibraries>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+          </execution>
+        </executions>
+        <dependencies>
+          <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjrt</artifactId>
+            <version>1.8.9</version>
+          </dependency>
+          <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjtools</artifactId>
+            <version>1.8.9</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+
+      <plugin>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>3.0.1</version>
+        <executions>
+          <execution>
+            <id>copy-resources</id>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${basedir}/target/classes/apidocs/raml</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>${ramlfiles_path}</directory>
+                  <filtering>true</filtering>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>2.3</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <manifestEntries>
+                    <Main-Class>org.folio.rest.RestLauncher</Main-Class>
+                    <Main-Verticle>org.folio.rest.RestVerticle</Main-Verticle>
+                  </manifestEntries>
+                </transformer>
+              </transformers>
+              <artifactSet/>
+              <outputFile>${project.build.directory}/${project.artifactId}-fat.jar</outputFile>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
     </plugins>
   </build>
 

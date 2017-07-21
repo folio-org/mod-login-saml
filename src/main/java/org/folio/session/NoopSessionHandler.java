@@ -48,6 +48,7 @@ public class NoopSessionHandler implements SessionHandler {
 
   @Override
   public void handle(RoutingContext rc) {
+    System.out.println("Registering session....");
     Session session = sessionStore.createSession(0);
     rc.setSession(session);
     rc.next();

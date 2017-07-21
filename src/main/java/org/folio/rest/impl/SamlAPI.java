@@ -1,17 +1,16 @@
-package org.folio;
+package org.folio.rest.impl;
 
-import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Future;
+import io.vertx.core.*;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.sstore.SessionStore;
 import org.folio.config.Pac4jConfigurationFactory;
 import org.folio.config.SamlClientLoader;
+import org.folio.rest.jaxrs.resource.SamlResource;
+import org.folio.rest.jaxrs.resource.support.ResponseWrapper;
 import org.folio.session.NoopSessionHandler;
 import org.folio.session.NoopSessionStore;
 import org.folio.util.OkapiHelper;
@@ -32,9 +31,12 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import java.security.GeneralSecurityException;
 import java.security.cert.X509Certificate;
 import java.util.List;
+import java.util.Map;
 
 import static org.pac4j.core.util.CommonHelper.assertNotNull;
 
@@ -43,49 +45,52 @@ import static org.pac4j.core.util.CommonHelper.assertNotNull;
  *
  * @author rsass
  */
-public class MainVerticle extends AbstractVerticle {
+public class SamlAPI implements SamlResource {
 
   public static final String CALLBACK_ENDPOINT = "/saml/callback";
   public static final String LOGIN_ENDPOINT = "/saml/login";
   public static final String REGENERATE_ENDPOINT = "/saml/regenerate";
   public static final String CHECK_ENDPOINT = "/saml/check";
-  private final Logger log = LoggerFactory.getLogger(MainVerticle.class);
+  private final Logger log = LoggerFactory.getLogger(SamlAPI.class);
   private Config config = null;
+  private Vertx vertx;
 
-  @Override
-  public void start(Future<Void> startFuture) throws Exception {
+  public void init(Vertx vertx, Context context, Handler<AsyncResult<Boolean>> handler) {
 
 
-    JsonObject verticleConfig = config();
-    log.debug("Loaded configuration {}", verticleConfig.encode());
+    System.out.println("SamlAPI init()");
 
+    this.vertx = vertx;
     //////////////////////////
     trustAllCertificates(); // TODO: DO NOT USE IN PRODUCTION!
     //////////////////////////
 
     SessionStore localSessionStore = new NoopSessionStore();
-    this.config = new Pac4jConfigurationFactory(verticleConfig, vertx, localSessionStore).build();
+    //todo: null
+    this.config = new Pac4jConfigurationFactory(null, vertx, localSessionStore).build();
 
     final Router router = Router.router(vertx);
     router.route().handler(new NoopSessionHandler(localSessionStore));
+
+
     // routing rules
-    router.get(CHECK_ENDPOINT).handler(this::checkHandler);
-    router.get(REGENERATE_ENDPOINT).handler(this::regenerateHandler);
-    router.get(LOGIN_ENDPOINT).handler(this::loginHandler);
-    router.post(CALLBACK_ENDPOINT).handler(BodyHandler.create().setMergeFormAttributes(true));
-    router.post(CALLBACK_ENDPOINT).handler(this::callbackHandler);
+//    router.get(CHECK_ENDPOINT).handler(this::checkHandler);
+//    router.get(REGENERATE_ENDPOINT).handler(this::regenerateHandler);
+//    router.get(LOGIN_ENDPOINT).handler(this::loginHandler);
+//    router.post(CALLBACK_ENDPOINT).handler(BodyHandler.create().setMergeFormAttributes(true));
+//    router.post(CALLBACK_ENDPOINT).handler(this::callbackHandler);
 
     // start HTTP server
-    vertx.createHttpServer()
-      .requestHandler(router::accept)
-      .listen(8080, "0.0.0.0", listenHandler -> {
-        if (listenHandler.failed()) {
-          startFuture.fail(listenHandler.cause());
-        } else {
-          log.info("HTTP server listening on port {}", listenHandler.result().actualPort());
-          startFuture.complete();
-        }
-      });
+//    vertx.createHttpServer()
+//      .requestHandler(router::accept)
+//      .listen(8080, "0.0.0.0", listenHandler -> {
+//        if (listenHandler.failed()) {
+//          handler.handle(Future.failedFuture(listenHandler.cause()));
+//        } else {
+//          log.info("HTTP server listening on port {}", listenHandler.result().actualPort());
+//          handler.handle(Future.succeededFuture(true));
+//        }
+//      });
 
   }
 
@@ -282,4 +287,30 @@ public class MainVerticle extends AbstractVerticle {
     }
   }
 
+//  public SamlAPI(Vertx vertx, String tenantId) {
+//    System.out.println("-----SamlAPI constructor------");
+//  }
+//
+
+  @Override
+  public void getSamlRegenerate(Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+
+  }
+
+  @Override
+  public void getSamlLogin(Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+
+  }
+
+  @Override
+  public void postSamlCallback(Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+
+  }
+
+  @Override
+  public void getSamlCheck(Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+
+
+    asyncResultHandler.handle(Future.succeededFuture(ResponseWrapper.status(200).type(MediaType.TEXT_PLAIN).entity("true").build()));
+  }
 }
