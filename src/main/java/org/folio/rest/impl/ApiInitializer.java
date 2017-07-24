@@ -4,7 +4,6 @@ package org.folio.rest.impl;
 import io.vertx.core.*;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.sstore.SessionStore;
-import org.folio.config.Pac4jConfigurationFactory;
 import org.folio.rest.resource.interfaces.InitAPI;
 import org.folio.session.NoopSessionHandler;
 import org.folio.session.NoopSessionStore;
@@ -31,7 +30,7 @@ public class ApiInitializer implements InitAPI {
 
     SessionStore localSessionStore = new NoopSessionStore();
     //todo: null
-    this.config = new Pac4jConfigurationFactory(null, vertx, localSessionStore).build();
+//    this.config = new Pac4jConfigurationFactory(null, vertx, localSessionStore).build();
 
     this.router = Router.router(vertx);
     router.route().handler(new NoopSessionHandler(localSessionStore));

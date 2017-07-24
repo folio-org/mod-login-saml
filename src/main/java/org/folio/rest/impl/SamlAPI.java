@@ -7,7 +7,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.sstore.SessionStore;
-import org.folio.config.Pac4jConfigurationFactory;
+import org.folio.config.Pac4jConfigurationHolder;
 import org.folio.config.SamlClientLoader;
 import org.folio.rest.jaxrs.resource.SamlResource;
 import org.folio.rest.jaxrs.resource.support.ResponseWrapper;
@@ -67,7 +67,9 @@ public class SamlAPI implements SamlResource {
 
     SessionStore localSessionStore = new NoopSessionStore();
     //todo: null
-    this.config = new Pac4jConfigurationFactory(null, vertx, localSessionStore).build();
+//    this.config = new Pac4jConfigurationFactory(null, vertx, localSessionStore).build();
+
+    this.config = Pac4jConfigurationHolder.getInstance().getConfig();
 
     final Router router = Router.router(vertx);
     router.route().handler(new NoopSessionHandler(localSessionStore));
@@ -310,7 +312,19 @@ public class SamlAPI implements SamlResource {
   @Override
   public void getSamlCheck(Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
 
+    Pac4jConfigurationHolder holder = Pac4jConfigurationHolder.getInstance();
 
+    if (holder == null) {
+      log.error("holder is null");
+    } else {
+      Config config = holder.getConfig();
+      if (config == null) {
+        log.error("config is null");
+      } else {
+//        SessionStore sessionStore =
+        log.info("Clients: " + config.getClients());
+      }
+    }
     asyncResultHandler.handle(Future.succeededFuture(ResponseWrapper.status(200).type(MediaType.TEXT_PLAIN).entity("true").build()));
   }
 }
