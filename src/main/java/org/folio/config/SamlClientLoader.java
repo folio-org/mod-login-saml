@@ -48,7 +48,7 @@ public class SamlClientLoader {
         final String keystorePassword = samlConfiguration.getKeystorePassword();
         final String privateKeyPassword = samlConfiguration.getPrivateKeyPassword();
 
-        final Vertx vertx = VertxUtils.getVertxFromContextOrNew();
+        final Vertx vertx = routingContext.vertx();
 
         if (Strings.isNullOrEmpty(idpUrl)) {
           clientInstantiationFuture.fail("There is no IdP configuration stored!");
@@ -136,7 +136,7 @@ public class SamlClientLoader {
    */
   private static Future<Buffer> storeKeystore(RoutingContext rc, String keystoreFileName, String keystorePassword, String privateKeyPassword) {
 
-    Vertx vertx = VertxUtils.getVertxFromContextOrNew();
+    Vertx vertx = rc.vertx();
     Future<Buffer> future = Future.future();
 
     // read generated jks file

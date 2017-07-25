@@ -11,7 +11,6 @@ import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import org.folio.config.model.SamlConfiguration;
 import org.folio.util.OkapiHelper;
-import org.folio.util.VertxUtils;
 import org.folio.util.model.OkapiHeaders;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +21,8 @@ import static org.folio.util.model.OkapiHeaders.OKAPI_TOKEN_HEADER;
 
 /**
  * Connect to mod-configuration via Okapi
+ * <p>
+ * TODO: replace with OkapiClient
  *
  * @author rsass
  */
@@ -56,7 +57,7 @@ public class ConfigurationsClient {
 
     String query = "(module==" + MODULE_NAME + " AND configName==" + CONFIG_NAME + ")";
 
-    WebClient webClient = WebClient.create(VertxUtils.getVertxFromContextOrNew());
+    WebClient webClient = WebClient.create(routingContext.vertx());
     webClient.getAbs(okapiHeaders.getUrl() + CONFIGURATIONS_ENTRIES_ENDPOINT_URL)
       .addQueryParam("query", query)
       .putHeader("Content-Type", "application/json")
@@ -155,7 +156,7 @@ public class ConfigurationsClient {
         String configId = checkHandler.result();
         if (configId == null) {
           // not-existing config
-          WebClient webClient = WebClient.create(VertxUtils.getVertxFromContextOrNew());
+          WebClient webClient = WebClient.create(rc.vertx());
           webClient.postAbs(okapiHeaders.getUrl() + CONFIGURATIONS_ENTRIES_ENDPOINT_URL)
             .putHeader("Content-Type", "application/json")
             .putHeader("Accept", "application/json")
@@ -179,7 +180,7 @@ public class ConfigurationsClient {
             });
         } else {
           //existing config
-          WebClient webClient = WebClient.create(VertxUtils.getVertxFromContextOrNew());
+          WebClient webClient = WebClient.create(rc.vertx());
           webClient.putAbs(okapiHeaders.getUrl() + CONFIGURATIONS_ENTRIES_ENDPOINT_URL + "/" + configId)
             .putHeader("Content-Type", "application/json")
             .putHeader("Accept", "application/json")
@@ -228,7 +229,7 @@ public class ConfigurationsClient {
 
     String query = "(module==" + MODULE_NAME + " AND configName==" + CONFIG_NAME + " AND code== " + code + ")";
 
-    WebClient webClient = WebClient.create(VertxUtils.getVertxFromContextOrNew());
+    WebClient webClient = WebClient.create(rc.vertx());
     webClient.getAbs(okapiHeaders.getUrl() + CONFIGURATIONS_ENTRIES_ENDPOINT_URL)
       .addQueryParam("query", query)
       .putHeader("Content-Type", "application/json")

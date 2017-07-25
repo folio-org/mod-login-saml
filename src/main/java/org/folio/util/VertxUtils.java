@@ -1,7 +1,5 @@
 package org.folio.util;
 
-import io.vertx.core.Context;
-import io.vertx.core.Vertx;
 import io.vertx.ext.web.RoutingContext;
 import org.pac4j.vertx.VertxWebContext;
 
@@ -12,11 +10,6 @@ import org.pac4j.vertx.VertxWebContext;
  * @author rsass
  */
 public class VertxUtils {
-
-  public static Vertx getVertxFromContextOrNew() {
-    Context context = Vertx.currentContext();
-    return context != null ? context.owner() : Vertx.vertx();
-  }
 
   /**
    * Create a Pac4j {@link VertxWebContext} from {@link RoutingContext} with {@code null} SessionStore
