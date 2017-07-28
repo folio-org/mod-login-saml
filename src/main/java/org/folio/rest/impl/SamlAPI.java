@@ -7,9 +7,9 @@ import io.vertx.ext.web.RoutingContext;
 import org.folio.config.SamlClientLoader;
 import org.folio.config.SamlConfigHolder;
 import org.folio.rest.jaxrs.resource.SamlResource;
-import org.folio.rest.jaxrs.resource.support.ResponseWrapper;
-import org.folio.rest.tools.utils.OutStream;
+import org.folio.rest.tools.utils.BinaryOutStream;
 import org.folio.session.NoopSession;
+import org.folio.util.HttpActionMapper;
 import org.folio.util.OkapiHelper;
 import org.folio.util.VertxUtils;
 import org.pac4j.core.client.Client;
@@ -18,14 +18,14 @@ import org.pac4j.core.config.Config;
 import org.pac4j.core.exception.HttpAction;
 import org.pac4j.core.exception.TechnicalException;
 import org.pac4j.core.profile.CommonProfile;
+import org.pac4j.core.redirect.RedirectAction;
 import org.pac4j.saml.client.SAML2Client;
 import org.pac4j.saml.client.SAML2ClientConfiguration;
 import org.pac4j.saml.credentials.SAML2Credentials;
 import org.pac4j.vertx.VertxWebContext;
-import org.pac4j.vertx.http.DefaultHttpActionAdapter;
 
-import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
@@ -38,19 +38,15 @@ import static org.pac4j.core.util.CommonHelper.assertNotNull;
  */
 public class SamlAPI implements SamlResource {
 
-  public static final String CALLBACK_ENDPOINT = "/saml/callback";
-  public static final String LOGIN_ENDPOINT = "/saml/login";
-  public static final String REGENERATE_ENDPOINT = "/saml/regenerate";
-  public static final String CHECK_ENDPOINT = "/saml/check";
-  private final Logger log = LoggerFactory.getLogger(SamlAPI.class);
-//  private Config config = null;
-
+  private static final Logger log = LoggerFactory.getLogger(SamlAPI.class);
 
   /**
    * Check that client can be loaded, SAML-Login button can be displayed.
    */
-  private void getSamlCheck(RoutingContext routingContext, Handler<AsyncResult<Response>> asyncResultHandler) {
+  @Override
+  public void getSamlCheck(RoutingContext routingContext, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
 
+    log.info("check");
     findSaml2Client(routingContext, false)
       .setHandler(samlClientHandler -> {
         if (samlClientHandler.failed()) {
@@ -61,47 +57,46 @@ public class SamlAPI implements SamlResource {
       });
   }
 
+  @Override
+  public void getSamlLogin(RoutingContext routingContext, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
 
-  private void getSamlLogin(RoutingContext routingContext, Handler<AsyncResult<Response>> asyncResultHandler) {
-
-    routingContext.setSession(new NoopSession()); // registering fake session
-
-    VertxWebContext vertxWebContext = VertxUtils.createWebContext(routingContext);
+    registerFakeSession(routingContext);
 
     findSaml2Client(routingContext, false)     // do not allow login, if config is missing
       .setHandler(samlClientHandler -> {
-        HttpAction action;
+        Response response;
         if (samlClientHandler.succeeded()) {
           SAML2Client saml2Client = samlClientHandler.result();
           try {
-            action = saml2Client.redirect(vertxWebContext); // highly blocking
+            RedirectAction redirectAction = saml2Client.getRedirectAction(VertxUtils.createWebContext(routingContext));
+            if (redirectAction.getType().equals(RedirectAction.RedirectType.REDIRECT)) {
+              response = GetSamlLoginResponse.withMovedTemporarily(redirectAction.getLocation()); // 302
+            } else {
+              response = GetSamlLoginResponse.withHtmlOK(redirectAction.getContent()); // 200 -> html form
+            }
           } catch (HttpAction httpAction) {
-            action = httpAction;
+            response = HttpActionMapper.toResponse(httpAction);
           }
-          new DefaultHttpActionAdapter().adapt(action.getCode(), vertxWebContext);
-          // TODO: need to call async result handler?
         } else {
           log.warn("Login called but cannot load client to handle", samlClientHandler.cause());
-          asyncResultHandler.handle(Future.succeededFuture(GetSamlLoginResponse.withPlainInternalServerError("Login called but cannot load client to handle")));
-//          routingContext.response()
-//            .setStatusCode(500)
-//            .end(samlClientHandler.cause().getMessage());
+          response = GetSamlLoginResponse.withPlainInternalServerError("Login called but cannot load client to handle");
         }
+        asyncResultHandler.handle(Future.succeededFuture(response));
       });
   }
 
-  private void postSamlCallback(RoutingContext routingContext, Handler<AsyncResult<Response>> asyncResultHandler) {
-
-    routingContext.setSession(new NoopSession()); // registering fake session
+  @Override
+  public void postSamlCallback(RoutingContext routingContext, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+    registerFakeSession(routingContext);
 
     final VertxWebContext webContext = VertxUtils.createWebContext(routingContext);
-
 
     findSaml2Client(routingContext, false) // How can someone rich this point if no stored configuration? Obviously an error.
       .setHandler(samlClientHandler -> {
 
+        Response response;
         if (samlClientHandler.failed()) {
-          routingContext.response().setStatusCode(500).end(samlClientHandler.cause().getMessage());
+          response = PostSamlCallbackResponse.withPlainInternalServerError(samlClientHandler.cause().getMessage());
         } else {
           try {
             SAML2Client client = samlClientHandler.result();
@@ -109,44 +104,39 @@ public class SamlAPI implements SamlResource {
             SAML2Credentials credentials = client.getCredentials(webContext);
             log.debug("credentials: {}", credentials);
 
+
             final CommonProfile profile = client.getUserProfile(credentials, webContext);
             log.debug("profile: {}", profile);
 
-//            HttpServerResponse response = routingContext.response();
-//            response.putHeader("content-type", "text/plain");
-//            response.end("Successful authentication. A valid JWT will be returned here. \n\nCredentials: " + credentials + "\n\nProfile" + profile);
             String message = "Successful authentication. A valid JWT will be returned here. \n\nCredentials: " + credentials + "\n\nProfile" + profile;
-            asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withPlainOK(message)));
+            response = PostSamlCallbackResponse.withPlainOK(message);
 
           } catch (HttpAction httpAction) {
-            new DefaultHttpActionAdapter().adapt(httpAction.getCode(), webContext);
-            // todo: need co call asyncResultHandler?
+            response = HttpActionMapper.toResponse(httpAction);
           }
         }
+        asyncResultHandler.handle(Future.succeededFuture(response));
       });
   }
 
-  private void getSamlRegenerate(RoutingContext routingContext, Handler<AsyncResult<Response>> asyncResultHandler) {
-    //HttpServerResponse response = routingContext.response();
+  @Override
+  public void getSamlRegenerate(RoutingContext routingContext, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+
     regenerateSaml2Config(routingContext)
       .setHandler(regenerationHandler -> {
         if (regenerationHandler.failed()) {
           log.warn("Cannot regenerate SAML2 metadata.", regenerationHandler.cause());
-//          response.setStatusCode(404).end("Cannot regenerate SAML2 matadata. Internal error was: " + regenerationHandler.cause().getMessage());
           String message = "Cannot regenerate SAML2 matadata. Internal error was: " + regenerationHandler.cause().getMessage();
           asyncResultHandler.handle(Future.succeededFuture(GetSamlRegenerateResponse.withPlainInternalServerError(message)));
         } else {
           String metadata = regenerationHandler.result();
-//          response.headers().add("content-type", "application/xml");
-//          response.end(metadata);
 
-          OutStream outStream = new OutStream();
-          outStream.setData(metadata);
+          BinaryOutStream outStream = new BinaryOutStream();
+          outStream.setData(metadata.getBytes(StandardCharsets.UTF_8));
           asyncResultHandler.handle(Future.succeededFuture(GetSamlRegenerateResponse.withXmlOK(outStream)));
         }
       });
   }
-
 
   private Future<String> regenerateSaml2Config(RoutingContext routingContext) {
 
@@ -210,8 +200,6 @@ public class SamlAPI implements SamlResource {
             } else {
               registeredClients.add(loadedClient);
             }
-            // TODO: need manual reinit?
-            // clients.reinit();
             result.complete(loadedClient);
           }
         });
@@ -220,42 +208,14 @@ public class SamlAPI implements SamlResource {
     return result;
   }
 
-
-  @Override
-  public void getSamlRegenerate(Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
-
+  /**
+   * Registers a no-op session. Pac4j want to access session variablas and fails if there is no session.
+   *
+   * @param routingContext the current routing context
+   */
+  private void registerFakeSession(RoutingContext routingContext) {
+    routingContext.setSession(new NoopSession());
   }
 
-  @Override
-  public void getSamlLogin(Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
 
-  }
-
-  @Override
-  public void postSamlCallback(Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
-
-  }
-
-  @Override
-  public void getSamlCheck(Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
-
-
-//    asyncResultHandler.handle(Future.succeededFuture(GetSamlCheckResponse.withPlainOK("true");));
-
-
-    SamlConfigHolder holder = SamlConfigHolder.getInstance();
-
-    if (holder == null) {
-      log.error("holder is null");
-    } else {
-      Config config = holder.getConfig();
-      if (config == null) {
-        log.error("config is null");
-      } else {
-//        SessionStore sessionStore =
-        log.info("Clients: " + config.getClients());
-      }
-    }
-    asyncResultHandler.handle(Future.succeededFuture(ResponseWrapper.status(200).type(MediaType.TEXT_PLAIN).entity("true").build()));
-  }
 }

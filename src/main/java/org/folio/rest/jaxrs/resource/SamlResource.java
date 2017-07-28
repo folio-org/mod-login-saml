@@ -8,6 +8,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 import io.vertx.core.Context;
+import io.vertx.ext.web.RoutingContext;
 import org.folio.rest.annotations.Validate;
 
 @Path("saml")
@@ -21,6 +22,8 @@ public interface SamlResource {
      *      The Vertx Context Object <code>io.vertx.core.Context</code> 
      * @param asyncResultHandler
      *     A <code>Handler<AsyncResult<Response>>></code> handler {@link io.vertx.core.Handler} which must be called as follows - Note the 'GetPatronsResponse' should be replaced with '[nameOfYourFunction]Response': (example only) <code>asyncResultHandler.handle(io.vertx.core.Future.succeededFuture(GetPatronsResponse.withJsonOK( new ObjectMapper().readValue(reply.result().body().toString(), Patron.class))));</code> in the final callback (most internal callback) of the function.
+     * @param routingContext
+     *     RoutingContext of the request. Note that the RMB framework handles all routing.This should only be used if a third party add-on to vertx needs the RC as input 
      */
     @GET
     @Path("regenerate")
@@ -29,7 +32,7 @@ public interface SamlResource {
         "text/plain"
     })
     @Validate
-    void getSamlRegenerate(java.util.Map<String, String>okapiHeaders, io.vertx.core.Handler<io.vertx.core.AsyncResult<Response>>asyncResultHandler, Context vertxContext)
+    void getSamlRegenerate(RoutingContext routingContext, java.util.Map<String, String>okapiHeaders, io.vertx.core.Handler<io.vertx.core.AsyncResult<Response>>asyncResultHandler, Context vertxContext)
         throws Exception
     ;
 
@@ -40,6 +43,8 @@ public interface SamlResource {
      *      The Vertx Context Object <code>io.vertx.core.Context</code> 
      * @param asyncResultHandler
      *     A <code>Handler<AsyncResult<Response>>></code> handler {@link io.vertx.core.Handler} which must be called as follows - Note the 'GetPatronsResponse' should be replaced with '[nameOfYourFunction]Response': (example only) <code>asyncResultHandler.handle(io.vertx.core.Future.succeededFuture(GetPatronsResponse.withJsonOK( new ObjectMapper().readValue(reply.result().body().toString(), Patron.class))));</code> in the final callback (most internal callback) of the function.
+     * @param routingContext
+     *     RoutingContext of the request. Note that the RMB framework handles all routing.This should only be used if a third party add-on to vertx needs the RC as input 
      */
     @GET
     @Path("login")
@@ -48,7 +53,7 @@ public interface SamlResource {
         "text/plain"
     })
     @Validate
-    void getSamlLogin(java.util.Map<String, String>okapiHeaders, io.vertx.core.Handler<io.vertx.core.AsyncResult<Response>>asyncResultHandler, Context vertxContext)
+    void getSamlLogin(RoutingContext routingContext, java.util.Map<String, String>okapiHeaders, io.vertx.core.Handler<io.vertx.core.AsyncResult<Response>>asyncResultHandler, Context vertxContext)
         throws Exception
     ;
 
@@ -59,15 +64,16 @@ public interface SamlResource {
      *      The Vertx Context Object <code>io.vertx.core.Context</code> 
      * @param asyncResultHandler
      *     A <code>Handler<AsyncResult<Response>>></code> handler {@link io.vertx.core.Handler} which must be called as follows - Note the 'GetPatronsResponse' should be replaced with '[nameOfYourFunction]Response': (example only) <code>asyncResultHandler.handle(io.vertx.core.Future.succeededFuture(GetPatronsResponse.withJsonOK( new ObjectMapper().readValue(reply.result().body().toString(), Patron.class))));</code> in the final callback (most internal callback) of the function.
+     * @param routingContext
+     *     RoutingContext of the request. Note that the RMB framework handles all routing.This should only be used if a third party add-on to vertx needs the RC as input 
      */
     @POST
     @Path("callback")
     @Produces({
-        "text/html",
         "text/plain"
     })
     @Validate
-    void postSamlCallback(java.util.Map<String, String>okapiHeaders, io.vertx.core.Handler<io.vertx.core.AsyncResult<Response>>asyncResultHandler, Context vertxContext)
+    void postSamlCallback(RoutingContext routingContext, java.util.Map<String, String>okapiHeaders, io.vertx.core.Handler<io.vertx.core.AsyncResult<Response>>asyncResultHandler, Context vertxContext)
         throws Exception
     ;
 
@@ -78,6 +84,8 @@ public interface SamlResource {
      *      The Vertx Context Object <code>io.vertx.core.Context</code> 
      * @param asyncResultHandler
      *     A <code>Handler<AsyncResult<Response>>></code> handler {@link io.vertx.core.Handler} which must be called as follows - Note the 'GetPatronsResponse' should be replaced with '[nameOfYourFunction]Response': (example only) <code>asyncResultHandler.handle(io.vertx.core.Future.succeededFuture(GetPatronsResponse.withJsonOK( new ObjectMapper().readValue(reply.result().body().toString(), Patron.class))));</code> in the final callback (most internal callback) of the function.
+     * @param routingContext
+     *     RoutingContext of the request. Note that the RMB framework handles all routing.This should only be used if a third party add-on to vertx needs the RC as input 
      */
     @GET
     @Path("check")
@@ -86,7 +94,7 @@ public interface SamlResource {
         "text/plain"
     })
     @Validate
-    void getSamlCheck(java.util.Map<String, String>okapiHeaders, io.vertx.core.Handler<io.vertx.core.AsyncResult<Response>>asyncResultHandler, Context vertxContext)
+    void getSamlCheck(RoutingContext routingContext, java.util.Map<String, String>okapiHeaders, io.vertx.core.Handler<io.vertx.core.AsyncResult<Response>>asyncResultHandler, Context vertxContext)
         throws Exception
     ;
 
@@ -159,14 +167,13 @@ public interface SamlResource {
         }
 
         /**
-         * Redirect in case REDIRECT_BINDING is used e.g. http://localhost:9130
+         * Redirect in case REDIRECT_BINDING is used
          * 
-         * @param entity
-         *     http://localhost:9130
+         * @param location
+         *     
          */
-        public static SamlResource.GetSamlLoginResponse withPlainMovedTemporarily(String entity) {
-            Response.ResponseBuilder responseBuilder = Response.status(302).header("Content-Type", "text/plain");
-            responseBuilder.entity(entity);
+        public static SamlResource.GetSamlLoginResponse withMovedTemporarily(String location) {
+            Response.ResponseBuilder responseBuilder = Response.status(302).header("Location", location);
             return new SamlResource.GetSamlLoginResponse(responseBuilder.build());
         }
 
@@ -245,8 +252,8 @@ public interface SamlResource {
          * @param entity
          *     Unauthorized
          */
-        public static SamlResource.PostSamlCallbackResponse withHtmlUnauthorized(String entity) {
-            Response.ResponseBuilder responseBuilder = Response.status(401).header("Content-Type", "text/html");
+        public static SamlResource.PostSamlCallbackResponse withPlainUnauthorized(String entity) {
+            Response.ResponseBuilder responseBuilder = Response.status(401).header("Content-Type", "text/plain");
             responseBuilder.entity(entity);
             return new SamlResource.PostSamlCallbackResponse(responseBuilder.build());
         }
@@ -257,8 +264,8 @@ public interface SamlResource {
          * @param entity
          *     Unauthorized
          */
-        public static SamlResource.PostSamlCallbackResponse withHtmlForbidden(String entity) {
-            Response.ResponseBuilder responseBuilder = Response.status(403).header("Content-Type", "text/html");
+        public static SamlResource.PostSamlCallbackResponse withPlainForbidden(String entity) {
+            Response.ResponseBuilder responseBuilder = Response.status(403).header("Content-Type", "text/plain");
             responseBuilder.entity(entity);
             return new SamlResource.PostSamlCallbackResponse(responseBuilder.build());
         }
@@ -269,8 +276,8 @@ public interface SamlResource {
          * @param entity
          *     Internal server error
          */
-        public static SamlResource.PostSamlCallbackResponse withHtmlInternalServerError(String entity) {
-            Response.ResponseBuilder responseBuilder = Response.status(500).header("Content-Type", "text/html");
+        public static SamlResource.PostSamlCallbackResponse withPlainInternalServerError(String entity) {
+            Response.ResponseBuilder responseBuilder = Response.status(500).header("Content-Type", "text/plain");
             responseBuilder.entity(entity);
             return new SamlResource.PostSamlCallbackResponse(responseBuilder.build());
         }

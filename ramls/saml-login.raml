@@ -30,9 +30,8 @@ documentation:
             text/html:
         302:
           description: "Redirect in case REDIRECT_BINDING is used"
-          body:
-            text/plain:
-              example: "http://localhost:9130"
+          headers:
+            Location:
         500:
           description: "Internal server error"
           body:
@@ -51,17 +50,17 @@ documentation:
         401:
           description: "Unauthorized"
           body:
-            text/html:
+            text/plain:
               example: "Unauthorized"
         403:
           description: "Unauthorized"
           body:
-            text/html:
+            text/plain:
               example: "Unauthorized"
         500:
           description: "Internal server error"
           body:
-            text/html:
+            text/plain:
               example: "Internal server error"
   /check:
     get:

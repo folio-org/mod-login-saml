@@ -21,8 +21,6 @@ import static org.folio.util.model.OkapiHeaders.OKAPI_TOKEN_HEADER;
 
 /**
  * Connect to mod-configuration via Okapi
- * <p>
- * TODO: replace with OkapiClient
  *
  * @author rsass
  */
@@ -41,6 +39,7 @@ public class ConfigurationsClient {
 
   public static Future<SamlConfiguration> getConfiguration(RoutingContext routingContext) {
 
+
     OkapiHeaders okapiHeaders = OkapiHelper.okapiHeaders(routingContext);
 
     if (Strings.isNullOrEmpty(okapiHeaders.getUrl())) {
@@ -56,6 +55,8 @@ public class ConfigurationsClient {
     Future<SamlConfiguration> future = Future.future();
 
     String query = "(module==" + MODULE_NAME + " AND configName==" + CONFIG_NAME + ")";
+
+    // TODO: replace with OkapiClient (automatic header forwarding, etc)
 
     WebClient webClient = WebClient.create(routingContext.vertx());
     webClient.getAbs(okapiHeaders.getUrl() + CONFIGURATIONS_ENTRIES_ENDPOINT_URL)
@@ -125,7 +126,6 @@ public class ConfigurationsClient {
   public static Future<Void> storeEntry(RoutingContext rc, String code, String value) {
 
     Assert.hasText(code, "config entry CODE is mandatory");
-    // Assert.notNull(value); // TODO ??
 
     final OkapiHeaders okapiHeaders = OkapiHelper.okapiHeaders(rc);
 

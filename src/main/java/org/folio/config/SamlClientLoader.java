@@ -7,7 +7,6 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.folio.rest.impl.SamlAPI;
 import org.folio.util.OkapiHelper;
 import org.folio.util.VertxUtils;
 import org.folio.util.model.OkapiHeaders;
@@ -30,6 +29,8 @@ import static org.folio.config.ConfigurationsClient.*;
  */
 public class SamlClientLoader {
 
+  public static final String CALLBACK_ENDPOINT = "/saml/callback";
+
   public static Future<SAML2Client> loadFromConfiguration(RoutingContext routingContext, boolean generateMissingKeyStore) {
 
     Future<SAML2Client> result = Future.future();
@@ -39,7 +40,7 @@ public class SamlClientLoader {
     final String tenantId = okapiHeaders.getTenant();
 
     ConfigurationsClient.getConfiguration(routingContext)
-      .compose(samlConfiguration -> { // TODO: compose?
+      .compose(samlConfiguration -> {
 
         final Future<SAML2Client> clientInstantiationFuture = Future.future();
 
@@ -211,7 +212,7 @@ public class SamlClientLoader {
   }
 
   private static String buildCallbackUrl(String okapiUrl, String tenantId) {
-    return okapiUrl + "/_/invoke/tenant/" + CommonHelper.urlEncode(tenantId) + SamlAPI.CALLBACK_ENDPOINT;
+    return okapiUrl + "/_/invoke/tenant/" + CommonHelper.urlEncode(tenantId) + CALLBACK_ENDPOINT;
   }
 
 
