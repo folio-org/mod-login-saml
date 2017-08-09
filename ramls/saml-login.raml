@@ -43,10 +43,16 @@ documentation:
       body:
         application/x-www-form-urlencoded
       responses:
-        200:
+        302:
           description: "Generate JWT token and set cookie"
-          body:
-            text/plain:
+          headers:
+            Set-Cookie:
+            x-okapi-token:
+            Location:
+        400:
+          description: "Bad request"
+          headers:
+            Location:
         401:
           description: "Unauthorized"
           body:

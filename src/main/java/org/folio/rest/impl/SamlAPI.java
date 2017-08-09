@@ -1,9 +1,16 @@
 package org.folio.rest.impl;
 
-import io.vertx.core.*;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
-import io.vertx.ext.web.RoutingContext;
+import static org.pac4j.core.util.CommonHelper.*;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import javax.ws.rs.core.Response;
+
 import org.folio.config.SamlClientLoader;
 import org.folio.config.SamlConfigHolder;
 import org.folio.rest.jaxrs.resource.SamlResource;
@@ -12,39 +19,47 @@ import org.folio.session.NoopSession;
 import org.folio.util.HttpActionMapper;
 import org.folio.util.OkapiHelper;
 import org.folio.util.VertxUtils;
+import org.folio.util.model.OkapiHeaders;
 import org.pac4j.core.client.Client;
 import org.pac4j.core.client.Clients;
 import org.pac4j.core.config.Config;
 import org.pac4j.core.exception.HttpAction;
 import org.pac4j.core.exception.TechnicalException;
-import org.pac4j.core.profile.CommonProfile;
 import org.pac4j.core.redirect.RedirectAction;
 import org.pac4j.saml.client.SAML2Client;
 import org.pac4j.saml.client.SAML2ClientConfiguration;
 import org.pac4j.saml.credentials.SAML2Credentials;
 import org.pac4j.vertx.VertxWebContext;
 
-import javax.ws.rs.core.Response;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
-
-import static org.pac4j.core.util.CommonHelper.assertNotNull;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Context;
+import io.vertx.core.Future;
+import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.json.JsonObject;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
+import io.vertx.ext.web.RoutingContext;
 
 /**
  * Main entry point of module
- *
  * @author rsass
  */
 public class SamlAPI implements SamlResource {
 
   private static final Logger log = LoggerFactory.getLogger(SamlAPI.class);
 
+  // TODO temporary workaround
+  private String stripesURL = "http://localhost:3000";
+
   /**
    * Check that client can be loaded, SAML-Login button can be displayed.
    */
   @Override
-  public void getSamlCheck(RoutingContext routingContext, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+  public void getSamlCheck(RoutingContext routingContext, Map<String, String> okapiHeaders,
+    Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
 
     log.info("check");
     findSaml2Client(routingContext, false)
@@ -58,11 +73,12 @@ public class SamlAPI implements SamlResource {
   }
 
   @Override
-  public void getSamlLogin(RoutingContext routingContext, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+  public void getSamlLogin(RoutingContext routingContext, Map<String, String> okapiHeaders,
+    Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
 
     registerFakeSession(routingContext);
 
-    findSaml2Client(routingContext, false)     // do not allow login, if config is missing
+    findSaml2Client(routingContext, false) // do not allow login, if config is missing
       .setHandler(samlClientHandler -> {
         Response response;
         if (samlClientHandler.succeeded()) {
@@ -86,12 +102,15 @@ public class SamlAPI implements SamlResource {
   }
 
   @Override
-  public void postSamlCallback(RoutingContext routingContext, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+  public void postSamlCallback(RoutingContext routingContext, Map<String, String> okapiHeaders,
+    Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+
     registerFakeSession(routingContext);
 
     final VertxWebContext webContext = VertxUtils.createWebContext(routingContext);
 
-    findSaml2Client(routingContext, false) // How can someone rich this point if no stored configuration? Obviously an error.
+    findSaml2Client(routingContext, false) // How can someone reach this point if no stored configuration? Obviously an
+                                           // error.
       .setHandler(samlClientHandler -> {
 
         Response response;
@@ -104,30 +123,129 @@ public class SamlAPI implements SamlResource {
             SAML2Credentials credentials = client.getCredentials(webContext);
             log.debug("credentials: {}", credentials);
 
+            // Get user id
+            String query = null;
+            String externalSystemId = credentials.getUserProfile().getLinkedId();
 
-            final CommonProfile profile = client.getUserProfile(credentials, webContext);
-            log.debug("profile: {}", profile);
+            try {
+              query = okapiHeaders.get(OkapiHeaders.OKAPI_URL_HEADER) + "/users?query="
+                + URLEncoder.encode("externalSystemId==\"" + externalSystemId + "\"", "UTF-8");
+            } catch (UnsupportedEncodingException exc) {
+              log.error("Failed to create url", exc);
+              asyncResultHandler
+                .handle(Future.succeededFuture(PostSamlCallbackResponse.withBadRequest(stripesURL)));
+            }
+            Future<JsonObject> future = Future.future();
+            HttpClient httpClient = routingContext.vertx().createHttpClient();
+            HttpClientRequest request = httpClient.getAbs(
+              query);
+            request.putHeader(OkapiHeaders.OKAPI_TENANT_HEADER, okapiHeaders.get(OkapiHeaders.OKAPI_TENANT_HEADER))
+              .putHeader("Accept", "application/json,text/plain");
 
-            String message = "Successful authentication. A valid JWT will be returned here. \n\nCredentials: " + credentials + "\n\nProfile" + profile;
-            response = PostSamlCallbackResponse.withPlainOK(message);
+            for (Entry<String, String> entry : okapiHeaders.entrySet()) {
+              request.putHeader(entry.getKey(), entry.getValue());
+            }
+
+            request.handler(res -> {
+              if (res.statusCode() != 200) {
+                future.fail("Got status code " + res.statusCode());
+                asyncResultHandler
+                  .handle(Future.succeededFuture(PostSamlCallbackResponse.withBadRequest(stripesURL)));
+              } else {
+                res.bodyHandler(buf -> {
+                  try {
+                    JsonObject resultObject = buf.toJsonObject();
+                    int recordCount = resultObject.getInteger("totalRecords");
+                    if (recordCount > 1) {
+                      future.fail("Bad results from username");
+                      asyncResultHandler.handle(
+                        Future
+                          .succeededFuture(PostSamlCallbackResponse.withBadRequest(stripesURL)));
+                    } else if (recordCount == 0) {
+                      log.debug("No user found by external system id " + externalSystemId);
+                      future.fail("No user found by external system id " + externalSystemId);
+                      asyncResultHandler.handle(
+                        Future.succeededFuture(PostSamlCallbackResponse
+                          .withBadRequest(stripesURL)));
+                    } else {
+                      boolean active = resultObject.getJsonArray("users").getJsonObject(0).getBoolean("active");
+                      String userId = resultObject.getJsonArray("users").getJsonObject(0).getString("id");
+                      if (!active) {
+                        log.debug("User " + externalSystemId + " is inactive");
+                      }
+
+                      // Get auth token for user id
+                      JsonObject userObject = resultObject.getJsonArray("users").getJsonObject(0);
+
+                      JsonObject payload = new JsonObject()
+                        .put("sub", userObject.getString("username"));
+                      payload.put("user_id", userId);
+
+                      Future<String> fetchTokenFuture =
+                        fetchToken(payload, okapiHeaders.get(OkapiHeaders.OKAPI_TENANT_HEADER),
+                          okapiHeaders.get(OkapiHeaders.OKAPI_URL_HEADER),
+                          okapiHeaders.get(OkapiHeaders.OKAPI_TOKEN_HEADER),
+                          vertxContext.owner());
+                      fetchTokenFuture.setHandler(fetchTokenRes -> {
+                        if (fetchTokenRes.failed()) {
+                          String errMsg = "Error fetching token: " + fetchTokenRes.cause().getLocalizedMessage();
+                          log.debug(errMsg);
+                          future.fail(errMsg);
+                          asyncResultHandler.handle(Future
+                            .succeededFuture());
+                        } else {
+                          // Append token as header to result
+                          String authToken = fetchTokenRes.result();
+                          log.debug("Auth token: ", authToken);
+                          future.complete(userObject);
+
+                          String encodedToken;
+                          try {
+                            encodedToken = URLEncoder.encode(authToken, "UTF-8");
+                          } catch (UnsupportedEncodingException exc) {
+                            encodedToken = authToken;
+                            log.warn("Could not encode token for url parameter.", exc);
+                          }
+                          asyncResultHandler.handle(
+                            Future.succeededFuture(PostSamlCallbackResponse
+                              .withMovedTemporarily("ssoToken=" + authToken,
+                                authToken,
+                                stripesURL + "/sso-landing?ssoToken="
+                                  + encodedToken + "&userId=" + userObject.getString("id"))));
+                        }
+                      });
+
+                    }
+                  } catch (Exception e) {
+                    future.fail(e);
+                    asyncResultHandler
+                      .handle(Future.succeededFuture(PostSamlCallbackResponse.withBadRequest(stripesURL)));
+                  }
+                });
+              }
+            });
+            request.end();
 
           } catch (HttpAction httpAction) {
             response = HttpActionMapper.toResponse(httpAction);
+            asyncResultHandler.handle(Future.succeededFuture(response));
           }
         }
-        asyncResultHandler.handle(Future.succeededFuture(response));
       });
   }
 
   @Override
-  public void getSamlRegenerate(RoutingContext routingContext, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+  public void getSamlRegenerate(RoutingContext routingContext, Map<String, String> okapiHeaders,
+    Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
 
     regenerateSaml2Config(routingContext)
       .setHandler(regenerationHandler -> {
         if (regenerationHandler.failed()) {
           log.warn("Cannot regenerate SAML2 metadata.", regenerationHandler.cause());
-          String message = "Cannot regenerate SAML2 matadata. Internal error was: " + regenerationHandler.cause().getMessage();
-          asyncResultHandler.handle(Future.succeededFuture(GetSamlRegenerateResponse.withPlainInternalServerError(message)));
+          String message =
+            "Cannot regenerate SAML2 matadata. Internal error was: " + regenerationHandler.cause().getMessage();
+          asyncResultHandler
+            .handle(Future.succeededFuture(GetSamlRegenerateResponse.withPlainInternalServerError(message)));
         } else {
           String metadata = regenerationHandler.result();
 
@@ -210,12 +328,30 @@ public class SamlAPI implements SamlResource {
 
   /**
    * Registers a no-op session. Pac4j want to access session variablas and fails if there is no session.
-   *
    * @param routingContext the current routing context
    */
   private void registerFakeSession(RoutingContext routingContext) {
     routingContext.setSession(new NoopSession());
   }
 
+  private Future<String> fetchToken(JsonObject payload, String tenant, String okapiURL, String requestToken,
+    Vertx vertx) {
+    Future<String> future = Future.future();
+    HttpClient client = vertx.createHttpClient();
+    HttpClientRequest request = client.postAbs(okapiURL + "/token");
+    request.putHeader(OkapiHeaders.OKAPI_TOKEN_HEADER, requestToken);
+    request.putHeader(OkapiHeaders.OKAPI_TENANT_HEADER, tenant);
+    request.handler(response -> {
+      if (response.statusCode() < 200 || response.statusCode() > 299) {
+        future.fail("Got response " + response.statusCode() + " fetching token");
+      } else {
+        String token = response.getHeader(OkapiHeaders.OKAPI_TOKEN_HEADER);
+        log.debug("Got token " + token + " from authz");
+        future.complete(token);
+      }
+    });
+    request.end(new JsonObject().put("payload", payload).encode());
+    return future;
+  }
 
 }

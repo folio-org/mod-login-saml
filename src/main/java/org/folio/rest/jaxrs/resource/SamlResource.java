@@ -237,12 +237,26 @@ public interface SamlResource {
         /**
          * Generate JWT token and set cookie
          * 
-         * @param entity
+         * @param xOkapiToken
+         *     
+         * @param setCookie
+         *     
+         * @param location
          *     
          */
-        public static SamlResource.PostSamlCallbackResponse withPlainOK(String entity) {
-            Response.ResponseBuilder responseBuilder = Response.status(200).header("Content-Type", "text/plain");
-            responseBuilder.entity(entity);
+        public static SamlResource.PostSamlCallbackResponse withMovedTemporarily(String setCookie, String xOkapiToken, String location) {
+            Response.ResponseBuilder responseBuilder = Response.status(302).header("Set-Cookie", setCookie).header("x-okapi-token", xOkapiToken).header("Location", location);
+            return new SamlResource.PostSamlCallbackResponse(responseBuilder.build());
+        }
+
+        /**
+         * Bad request
+         * 
+         * @param location
+         *     
+         */
+        public static SamlResource.PostSamlCallbackResponse withBadRequest(String location) {
+            Response.ResponseBuilder responseBuilder = Response.status(400).header("Location", location);
             return new SamlResource.PostSamlCallbackResponse(responseBuilder.build());
         }
 

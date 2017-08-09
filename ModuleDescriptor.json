@@ -21,7 +21,9 @@
           ],
           "pathPattern": "/saml/callback",
           "modulePermissions": [
-            "configuration.entries.collection.get"
+            "auth.signtoken",
+            "configuration.entries.collection.get",
+            "users.collection.get"
           ]
         },
         {
