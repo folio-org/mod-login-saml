@@ -6,3 +6,4 @@ bin/
 *.jks
 .classpath
 .project
+src/main/java/org/folio/rest/jaxrs
