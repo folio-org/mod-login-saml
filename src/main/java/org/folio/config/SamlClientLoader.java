@@ -80,10 +80,10 @@ public class SamlClientLoader {
                       if (keyfileStorageHandler.succeeded()) {
                         // storeKeystore is deleting JKS file, recreate client from byteArray
                         Buffer keystoreBytes = keyfileStorageHandler.result();
-                        ByteArrayResource keysotreResource = new ByteArrayResource(keystoreBytes.getBytes());
+                        ByteArrayResource keystoreResource = new ByteArrayResource(keystoreBytes.getBytes());
                         try {
                           UrlResource idpUrlResource = new UrlResource(idpUrl);
-                          SAML2Client reinitedSaml2Client = configureSaml2Client(okapiUrl, tenantId, actualKeystorePassword, actualPrivateKeyPassword, idpUrlResource, keysotreResource);
+                          SAML2Client reinitedSaml2Client = configureSaml2Client(okapiUrl, tenantId, actualKeystorePassword, actualPrivateKeyPassword, idpUrlResource, keystoreResource);
 
                           clientInstantiationFuture.complete(reinitedSaml2Client);
                         } catch (MalformedURLException e) {
@@ -108,10 +108,10 @@ public class SamlClientLoader {
                 clientInstantiationFuture.fail(resultHandler.cause());
               } else {
                 Buffer keystoreBytes = resultHandler.result();
-                ByteArrayResource keysotreResource = new ByteArrayResource(keystoreBytes.getBytes());
+                ByteArrayResource keystoreResource = new ByteArrayResource(keystoreBytes.getBytes());
                 try {
                   UrlResource idpUrlResource = new UrlResource(idpUrl);
-                  SAML2Client saml2Client = configureSaml2Client(okapiUrl, tenantId, keystorePassword, privateKeyPassword, idpUrlResource, keysotreResource);
+                  SAML2Client saml2Client = configureSaml2Client(okapiUrl, tenantId, keystorePassword, privateKeyPassword, idpUrlResource, keystoreResource);
 
                   clientInstantiationFuture.complete(saml2Client);
                 } catch (MalformedURLException e) {
@@ -192,9 +192,9 @@ public class SamlClientLoader {
     return assembleSaml2Client(okapiUrl, tenantId, cfg);
   }
 
-  private static SAML2Client configureSaml2Client(String okapiUrl, String tenantId, String keystorePassword, String privateKeyPassword, UrlResource idpUrlResource, ByteArrayResource keysotreResource) {
+  private static SAML2Client configureSaml2Client(String okapiUrl, String tenantId, String keystorePassword, String privateKeyPassword, UrlResource idpUrlResource, ByteArrayResource keystoreResource) {
 
-    final SAML2ClientConfiguration byteArrayCfg = new SAML2ClientConfiguration(keysotreResource,
+    final SAML2ClientConfiguration byteArrayCfg = new SAML2ClientConfiguration(keystoreResource,
       keystorePassword,
       privateKeyPassword,
       idpUrlResource);
@@ -208,6 +208,8 @@ public class SamlClientLoader {
     saml2Client.setName(tenantId);
     saml2Client.setIncludeClientNameInCallbackUrl(false);
     saml2Client.setCallbackUrl(buildCallbackUrl(okapiUrl, tenantId));
+//    saml2Client.setRedirectActionBuilder(RedirectActionBuilder rab);
+
     return saml2Client;
   }
 

@@ -1,18 +1,18 @@
 package org.folio.rest.impl;
 
-import static org.pac4j.core.util.CommonHelper.*;
-
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
-import javax.ws.rs.core.Response;
-
+import io.vertx.core.*;
+import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.json.JsonObject;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
+import io.vertx.ext.auth.PRNG;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.Session;
+import io.vertx.ext.web.sstore.impl.SessionImpl;
 import org.folio.config.SamlClientLoader;
 import org.folio.config.SamlConfigHolder;
+import org.folio.rest.jaxrs.model.SamlCheck;
 import org.folio.rest.jaxrs.resource.SamlResource;
 import org.folio.rest.tools.utils.BinaryOutStream;
 import org.folio.session.NoopSession;
@@ -30,53 +30,58 @@ import org.pac4j.saml.client.SAML2Client;
 import org.pac4j.saml.client.SAML2ClientConfiguration;
 import org.pac4j.saml.credentials.SAML2Credentials;
 import org.pac4j.vertx.VertxWebContext;
+import org.springframework.util.StringUtils;
 
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Context;
-import io.vertx.core.Future;
-import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientRequest;
-import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
-import io.vertx.ext.web.RoutingContext;
+import javax.ws.rs.core.Response;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import static org.pac4j.core.util.CommonHelper.assertNotNull;
 
 /**
  * Main entry point of module
+ *
  * @author rsass
  */
 public class SamlAPI implements SamlResource {
 
   private static final Logger log = LoggerFactory.getLogger(SamlAPI.class);
 
-  // TODO temporary workaround
-  private String stripesURL = "http://localhost:3000";
-
   /**
    * Check that client can be loaded, SAML-Login button can be displayed.
    */
   @Override
   public void getSamlCheck(RoutingContext routingContext, Map<String, String> okapiHeaders,
-    Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+                           Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
 
     log.info("check");
     findSaml2Client(routingContext, false)
       .setHandler(samlClientHandler -> {
         if (samlClientHandler.failed()) {
-          asyncResultHandler.handle(Future.succeededFuture(GetSamlCheckResponse.withPlainOK("false")));
+          asyncResultHandler.handle(Future.succeededFuture(GetSamlCheckResponse.withJsonOK(new SamlCheck().withActive(false))));
         } else {
-          asyncResultHandler.handle(Future.succeededFuture(GetSamlCheckResponse.withPlainOK("true")));
+          asyncResultHandler.handle(Future.succeededFuture(GetSamlCheckResponse.withJsonOK(new SamlCheck().withActive(true))));
         }
       });
   }
 
   @Override
   public void getSamlLogin(RoutingContext routingContext, Map<String, String> okapiHeaders,
-    Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+                           Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
 
-    registerFakeSession(routingContext);
+
+    String stripesUrl = "http://localhost:3000"; // TODO: get this from param
+
+
+    // register non-persistent session (this request only) to overWrite relayState
+    Session session = new SessionImpl(new PRNG(vertxContext.owner()));
+    session.put("samlRelayState", stripesUrl);
+    routingContext.setSession(session);
+
 
     findSaml2Client(routingContext, false) // do not allow login, if config is missing
       .setHandler(samlClientHandler -> {
@@ -101,16 +106,25 @@ public class SamlAPI implements SamlResource {
       });
   }
 
+
   @Override
   public void postSamlCallback(RoutingContext routingContext, Map<String, String> okapiHeaders,
-    Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+                               Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
 
     registerFakeSession(routingContext);
 
     final VertxWebContext webContext = VertxUtils.createWebContext(routingContext);
 
+    // There is no better way to get RelayState.
+    final String stripesURL = webContext.getRequestParameter("RelayState");
+    if (!StringUtils.hasText(stripesURL)) {
+      asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withBadRequest("Stripes URL is missing!")));
+      return;
+    }
+
+
     findSaml2Client(routingContext, false) // How can someone reach this point if no stored configuration? Obviously an
-                                           // error.
+      // error.
       .setHandler(samlClientHandler -> {
 
         Response response;
@@ -236,7 +250,7 @@ public class SamlAPI implements SamlResource {
 
   @Override
   public void getSamlRegenerate(RoutingContext routingContext, Map<String, String> okapiHeaders,
-    Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+                                Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
 
     regenerateSaml2Config(routingContext)
       .setHandler(regenerationHandler -> {
@@ -328,6 +342,7 @@ public class SamlAPI implements SamlResource {
 
   /**
    * Registers a no-op session. Pac4j want to access session variablas and fails if there is no session.
+   *
    * @param routingContext the current routing context
    */
   private void registerFakeSession(RoutingContext routingContext) {
@@ -335,7 +350,7 @@ public class SamlAPI implements SamlResource {
   }
 
   private Future<String> fetchToken(JsonObject payload, String tenant, String okapiURL, String requestToken,
-    Vertx vertx) {
+                                    Vertx vertx) {
     Future<String> future = Future.future();
     HttpClient client = vertx.createHttpClient();
     HttpClientRequest request = client.postAbs(okapiURL + "/token");

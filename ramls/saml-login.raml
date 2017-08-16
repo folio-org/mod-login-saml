@@ -7,6 +7,9 @@ documentation:
   - title: mod-login-saml API
     content: This module provides an SAML-based login mechanism to authenticate user in FOLIO through SSO credentials
 
+schemas:
+  - SamlCheck: !include schemas/SamlCheck.json
+
 /saml:
   /regenerate:
     get:
@@ -74,8 +77,8 @@ documentation:
       responses:
         200:
           body:
-            text/plain:
-              example: "true"
+            application/json:
+              schema: SamlCheck
         404:
           description: Module is not deployed
           body:
