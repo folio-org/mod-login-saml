@@ -3,14 +3,13 @@ package org.folio.config;
 
 import com.google.common.base.Strings;
 import io.vertx.core.Future;
+import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import org.folio.config.model.SamlConfiguration;
-import org.folio.util.OkapiHelper;
 import org.folio.util.model.OkapiHeaders;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,10 +36,7 @@ public class ConfigurationsClient {
   public static final String MODULE_NAME = "LOGIN-SAML";
   public static final String CONFIG_NAME = "saml";
 
-  public static Future<SamlConfiguration> getConfiguration(RoutingContext routingContext) {
-
-
-    OkapiHeaders okapiHeaders = OkapiHelper.okapiHeaders(routingContext);
+  public static Future<SamlConfiguration> getConfiguration(OkapiHeaders okapiHeaders, Vertx vertx) {
 
     if (Strings.isNullOrEmpty(okapiHeaders.getUrl())) {
       return Future.failedFuture("Missing Okapi URL");
@@ -58,7 +54,7 @@ public class ConfigurationsClient {
 
     // TODO: replace with OkapiClient (automatic header forwarding, etc)
 
-    WebClient webClient = WebClient.create(routingContext.vertx());
+    WebClient webClient = WebClient.create(vertx);
     webClient.getAbs(okapiHeaders.getUrl() + CONFIGURATIONS_ENTRIES_ENDPOINT_URL)
       .addQueryParam("query", query)
       .putHeader("Content-Type", "application/json")
@@ -123,11 +119,9 @@ public class ConfigurationsClient {
   }
 
 
-  public static Future<Void> storeEntry(RoutingContext rc, String code, String value) {
+  public static Future<Void> storeEntry(OkapiHeaders okapiHeaders, Vertx vertx, String code, String value) {
 
     Assert.hasText(code, "config entry CODE is mandatory");
-
-    final OkapiHeaders okapiHeaders = OkapiHelper.okapiHeaders(rc);
 
     if (Strings.isNullOrEmpty(okapiHeaders.getUrl())) {
       return Future.failedFuture("Missing Okapi URL");
@@ -149,14 +143,14 @@ public class ConfigurationsClient {
       .put("value", value);
 
     // decide to POST or PUT
-    checkEntry(rc, code).setHandler(checkHandler -> {
+    checkEntry(okapiHeaders, vertx, code).setHandler(checkHandler -> {
       if (checkHandler.failed()) {
         result.fail(checkHandler.cause());
       } else {
         String configId = checkHandler.result();
         if (configId == null) {
           // not-existing config
-          WebClient webClient = WebClient.create(rc.vertx());
+          WebClient webClient = WebClient.create(vertx);
           webClient.postAbs(okapiHeaders.getUrl() + CONFIGURATIONS_ENTRIES_ENDPOINT_URL)
             .putHeader("Content-Type", "application/json")
             .putHeader("Accept", "application/json")
@@ -180,7 +174,7 @@ public class ConfigurationsClient {
             });
         } else {
           //existing config
-          WebClient webClient = WebClient.create(rc.vertx());
+          WebClient webClient = WebClient.create(vertx);
           webClient.putAbs(okapiHeaders.getUrl() + CONFIGURATIONS_ENTRIES_ENDPOINT_URL + "/" + configId)
             .putHeader("Content-Type", "application/json")
             .putHeader("Accept", "application/json")
@@ -213,10 +207,9 @@ public class ConfigurationsClient {
   /**
    * Complete future with found config entry id, or null, if not found
    */
-  public static Future<String> checkEntry(RoutingContext rc, String code) {
+  public static Future<String> checkEntry(OkapiHeaders okapiHeaders, Vertx vertx, String code) {
     Future<String> result = Future.future();
 
-    OkapiHeaders okapiHeaders = OkapiHelper.okapiHeaders(rc);
     if (Strings.isNullOrEmpty(okapiHeaders.getUrl())) {
       return Future.failedFuture("Missing Okapi URL");
     }
@@ -229,7 +222,7 @@ public class ConfigurationsClient {
 
     String query = "(module==" + MODULE_NAME + " AND configName==" + CONFIG_NAME + " AND code== " + code + ")";
 
-    WebClient webClient = WebClient.create(rc.vertx());
+    WebClient webClient = WebClient.create(vertx);
     webClient.getAbs(okapiHeaders.getUrl() + CONFIGURATIONS_ENTRIES_ENDPOINT_URL)
       .addQueryParam("query", query)
       .putHeader("Content-Type", "application/json")

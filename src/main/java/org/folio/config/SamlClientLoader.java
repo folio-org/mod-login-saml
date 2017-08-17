@@ -39,7 +39,7 @@ public class SamlClientLoader {
     final String okapiUrl = okapiHeaders.getUrl();
     final String tenantId = okapiHeaders.getTenant();
 
-    ConfigurationsClient.getConfiguration(routingContext)
+    ConfigurationsClient.getConfiguration(okapiHeaders, routingContext.vertx())
       .compose(samlConfiguration -> {
 
         final Future<SAML2Client> clientInstantiationFuture = Future.future();
@@ -76,7 +76,7 @@ public class SamlClientLoader {
                   if (samlClientInitHandler.failed()) {
                     clientInstantiationFuture.fail(samlClientInitHandler.cause());
                   } else {
-                    storeKeystore(routingContext, keystoreFileName, actualKeystorePassword, actualPrivateKeyPassword).setHandler(keyfileStorageHandler -> {
+                    storeKeystore(okapiHeaders, vertx, keystoreFileName, actualKeystorePassword, actualPrivateKeyPassword).setHandler(keyfileStorageHandler -> {
                       if (keyfileStorageHandler.succeeded()) {
                         // storeKeystore is deleting JKS file, recreate client from byteArray
                         Buffer keystoreBytes = keyfileStorageHandler.result();
@@ -135,9 +135,9 @@ public class SamlClientLoader {
    * Store KeyStore (as Base64 string), KeyStorePassword and PrivateKeyPassword in mod-configuration,
    * complete returned future with original file bytes.
    */
-  private static Future<Buffer> storeKeystore(RoutingContext rc, String keystoreFileName, String keystorePassword, String privateKeyPassword) {
+  private static Future<Buffer> storeKeystore(OkapiHeaders okapiHeaders, Vertx vertx, String keystoreFileName, String keystorePassword, String privateKeyPassword) {
 
-    Vertx vertx = rc.vertx();
+
     Future<Buffer> future = Future.future();
 
     // read generated jks file
@@ -156,9 +156,9 @@ public class SamlClientLoader {
 
           // store in mod-configuration with passwords, wait for all operations to finish
           CompositeFuture.all(
-            ConfigurationsClient.storeEntry(rc, KEYSTORE_FILE_CODE, encodedBytes.toString(StandardCharsets.UTF_8)),
-            ConfigurationsClient.storeEntry(rc, KEYSTORE_PASSWORD_CODE, keystorePassword),
-            ConfigurationsClient.storeEntry(rc, KEYSTORE_PRIVATEKEY_PASSWORD_CODE, privateKeyPassword)
+            ConfigurationsClient.storeEntry(okapiHeaders, vertx, KEYSTORE_FILE_CODE, encodedBytes.toString(StandardCharsets.UTF_8)),
+            ConfigurationsClient.storeEntry(okapiHeaders, vertx, KEYSTORE_PASSWORD_CODE, keystorePassword),
+            ConfigurationsClient.storeEntry(okapiHeaders, vertx, KEYSTORE_PRIVATEKEY_PASSWORD_CODE, privateKeyPassword)
           ).setHandler(allConfiguratiuonsStoredHandler -> {
             if (allConfiguratiuonsStoredHandler.failed()) {
               future.fail(allConfiguratiuonsStoredHandler.cause());
