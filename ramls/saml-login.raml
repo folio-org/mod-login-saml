@@ -9,6 +9,7 @@ documentation:
 
 schemas:
   - SamlCheck: !include schemas/SamlCheck.json
+  - SamlLogin: !include schemas/SamlLogin.json
 
 /saml:
   /regenerate:
@@ -30,11 +31,8 @@ schemas:
         200:
           description: "Return with HTML page in case POST_BINDING is used"
           body:
-            text/html:
-        302:
-          description: "Redirect in case REDIRECT_BINDING is used"
-          headers:
-            Location:
+            application/json:
+              schema: SamlLogin
         500:
           description: "Internal server error"
           body:

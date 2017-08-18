@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "type": "object",
+  "properties": {
+    "bindingMethod": {
+      "required": true,
+      "type": "string",
+      "enum": [
+        "POST",
+        "GET"
+      ]
+    },
+    "location": {
+      "required": true,
+      "type": "string"
+    },
+    "samlRequest": {
+      "required": false,
+      "type": "string"
+    },
+    "relayState": {
+      "required": false,
+      "type": "string"
+    }
+  }
+}

@@ -3,6 +3,7 @@ package org.folio.rest.impl;
 import io.vertx.core.*;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -13,6 +14,7 @@ import io.vertx.ext.web.sstore.impl.SessionImpl;
 import org.folio.config.SamlClientLoader;
 import org.folio.config.SamlConfigHolder;
 import org.folio.rest.jaxrs.model.SamlCheck;
+import org.folio.rest.jaxrs.model.SamlLogin;
 import org.folio.rest.jaxrs.resource.SamlResource;
 import org.folio.rest.tools.utils.BinaryOutStream;
 import org.folio.session.NoopSession;
@@ -90,11 +92,9 @@ public class SamlAPI implements SamlResource {
           SAML2Client saml2Client = samlClientHandler.result();
           try {
             RedirectAction redirectAction = saml2Client.getRedirectAction(VertxUtils.createWebContext(routingContext));
-            if (redirectAction.getType().equals(RedirectAction.RedirectType.REDIRECT)) {
-              response = GetSamlLoginResponse.withMovedTemporarily(redirectAction.getLocation()); // 302
-            } else {
-              response = GetSamlLoginResponse.withHtmlOK(redirectAction.getContent()); // 200 -> html form
-            }
+            String responseJsonString = redirectAction.getContent();
+            SamlLogin dto = Json.decodeValue(responseJsonString, SamlLogin.class);
+            response = GetSamlLoginResponse.withJsonOK(dto);
           } catch (HttpAction httpAction) {
             response = HttpActionMapper.toResponse(httpAction);
           }

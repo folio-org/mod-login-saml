@@ -188,6 +188,7 @@ public class SamlClientLoader {
       actualPrivateKeyPassword,
       idpUrl);
     cfg.setMaximumAuthenticationLifetime(18000);
+    // cfg.setDestinationBindingType(SAMLConstants.SAML2_REDIRECT_BINDING_URI); // TODO: configuration
 
     return assembleSaml2Client(okapiUrl, tenantId, cfg);
   }
@@ -199,6 +200,7 @@ public class SamlClientLoader {
       privateKeyPassword,
       idpUrlResource);
     byteArrayCfg.setMaximumAuthenticationLifetime(18000);
+    // byteArrayCfg.setDestinationBindingType(SAMLConstants.SAML2_REDIRECT_BINDING_URI); // TODO: configuration
 
     return assembleSaml2Client(okapiUrl, tenantId, byteArrayCfg);
   }
@@ -208,7 +210,7 @@ public class SamlClientLoader {
     saml2Client.setName(tenantId);
     saml2Client.setIncludeClientNameInCallbackUrl(false);
     saml2Client.setCallbackUrl(buildCallbackUrl(okapiUrl, tenantId));
-//    saml2Client.setRedirectActionBuilder(RedirectActionBuilder rab);
+    saml2Client.setRedirectActionBuilder(new JsonReponseSaml2RedirectActionBuilder(saml2Client));
 
     return saml2Client;
   }
