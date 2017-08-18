@@ -15,6 +15,7 @@ import org.folio.config.SamlClientLoader;
 import org.folio.config.SamlConfigHolder;
 import org.folio.rest.jaxrs.model.SamlCheck;
 import org.folio.rest.jaxrs.model.SamlLogin;
+import org.folio.rest.jaxrs.model.SamlLoginRequest;
 import org.folio.rest.jaxrs.resource.SamlResource;
 import org.folio.rest.tools.utils.BinaryOutStream;
 import org.folio.session.NoopSession;
@@ -72,12 +73,10 @@ public class SamlAPI implements SamlResource {
   }
 
   @Override
-  public void getSamlLogin(RoutingContext routingContext, Map<String, String> okapiHeaders,
-                           Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+  public void postSamlLogin(SamlLoginRequest requestEntity, RoutingContext routingContext, Map<String, String> okapiHeaders,
+                            Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
 
-
-    String stripesUrl = "http://localhost:3000"; // TODO: get this from param
-
+    String stripesUrl = requestEntity.getStripesUrl();
 
     // register non-persistent session (this request only) to overWrite relayState
     Session session = new SessionImpl(new PRNG(vertxContext.owner()));
@@ -94,13 +93,13 @@ public class SamlAPI implements SamlResource {
             RedirectAction redirectAction = saml2Client.getRedirectAction(VertxUtils.createWebContext(routingContext));
             String responseJsonString = redirectAction.getContent();
             SamlLogin dto = Json.decodeValue(responseJsonString, SamlLogin.class);
-            response = GetSamlLoginResponse.withJsonOK(dto);
+            response = PostSamlLoginResponse.withJsonOK(dto);
           } catch (HttpAction httpAction) {
             response = HttpActionMapper.toResponse(httpAction);
           }
         } else {
           log.warn("Login called but cannot load client to handle", samlClientHandler.cause());
-          response = GetSamlLoginResponse.withPlainInternalServerError("Login called but cannot load client to handle");
+          response = PostSamlLoginResponse.withPlainInternalServerError("Login called but cannot load client to handle");
         }
         asyncResultHandler.handle(Future.succeededFuture(response));
       });

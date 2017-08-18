@@ -10,6 +10,7 @@ documentation:
 schemas:
   - SamlCheck: !include schemas/SamlCheck.json
   - SamlLogin: !include schemas/SamlLogin.json
+  - SamlLoginRequest: !include schemas/SamlLoginRequest.json
 
 /saml:
   /regenerate:
@@ -25,7 +26,10 @@ schemas:
             text/plain:
               example: "Internal server error"
   /login:
-    get:
+    post:
+      body:
+        application/json:
+          schema: SamlLoginRequest
       description: Handles the login with sending a form or a redirect as a response
       responses:
         200:
