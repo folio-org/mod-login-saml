@@ -42,6 +42,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -65,7 +66,7 @@ public class SamlAPI implements SamlResource {
                            Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
 
     log.info("check");
-    findSaml2Client(routingContext, false)
+    findSaml2Client(routingContext, false, false)
       .setHandler(samlClientHandler -> {
         if (samlClientHandler.failed()) {
           asyncResultHandler.handle(Future.succeededFuture(GetSamlCheckResponse.withJsonOK(new SamlCheck().withActive(false))));
@@ -87,7 +88,7 @@ public class SamlAPI implements SamlResource {
     routingContext.setSession(session);
 
 
-    findSaml2Client(routingContext, false) // do not allow login, if config is missing
+    findSaml2Client(routingContext, false, false) // do not allow login, if config is missing
       .setHandler(samlClientHandler -> {
         Response response;
         if (samlClientHandler.succeeded()) {
@@ -124,7 +125,7 @@ public class SamlAPI implements SamlResource {
 
     final URI stripesBaseUrl = UrlUtil.parseBaseUrl(originalUrl);
 
-    findSaml2Client(routingContext, false) // How can someone reach this point if no stored configuration? Obviously an
+    findSaml2Client(routingContext, false, false) // How can someone reach this point if no stored configuration? Obviously an
       // error.
       .setHandler(samlClientHandler -> {
 
@@ -276,7 +277,7 @@ public class SamlAPI implements SamlResource {
     Future<String> result = Future.future();
     final Vertx vertx = routingContext.vertx();
 
-    findSaml2Client(routingContext, true) // generate KeyStore if missing
+    findSaml2Client(routingContext, true, true) // generate KeyStore if missing
       .setHandler(handler -> {
         if (handler.failed()) {
           result.fail(handler.cause());
@@ -301,7 +302,7 @@ public class SamlAPI implements SamlResource {
     return result;
   }
 
-  private Future<SAML2Client> findSaml2Client(RoutingContext routingContext, boolean generateMissingConfig) {
+  private Future<SAML2Client> findSaml2Client(RoutingContext routingContext, boolean generateMissingConfig, boolean reloadClient) {
 
     String tenantId = OkapiHelper.okapiHeaders(routingContext).getTenant();
     Config config = SamlConfigHolder.getInstance().getConfig();
@@ -313,7 +314,15 @@ public class SamlAPI implements SamlResource {
     try {
       final Client client = clients.findClient(tenantId);
       if (client != null && client instanceof SAML2Client) {
-        result.complete((SAML2Client) client);
+        if (reloadClient) {
+          // remove client and force load it
+          List<Client> allClients = new ArrayList<>(clients.getClients()); // unmodifiable
+          allClients.remove(client);
+          clients.setClients(allClients);
+          throw new TechnicalException("Client reload forced");
+        } else {
+          result.complete((SAML2Client) client);
+        }
       } else {
         result.fail("No client loaded or not a SAML2 client.");
       }
