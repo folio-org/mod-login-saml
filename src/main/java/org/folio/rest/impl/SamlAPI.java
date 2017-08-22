@@ -21,6 +21,7 @@ import org.folio.rest.tools.utils.BinaryOutStream;
 import org.folio.session.NoopSession;
 import org.folio.util.HttpActionMapper;
 import org.folio.util.OkapiHelper;
+import org.folio.util.UrlUtil;
 import org.folio.util.VertxUtils;
 import org.folio.util.model.OkapiHeaders;
 import org.pac4j.core.client.Client;
@@ -33,10 +34,12 @@ import org.pac4j.saml.client.SAML2Client;
 import org.pac4j.saml.client.SAML2ClientConfiguration;
 import org.pac4j.saml.credentials.SAML2Credentials;
 import org.pac4j.vertx.VertxWebContext;
-import org.springframework.util.StringUtils;
 
+import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriBuilder;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -115,12 +118,11 @@ public class SamlAPI implements SamlResource {
     final VertxWebContext webContext = VertxUtils.createWebContext(routingContext);
 
     // There is no better way to get RelayState.
-    final String stripesURL = webContext.getRequestParameter("RelayState");
-    if (!StringUtils.hasText(stripesURL)) {
-      asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withBadRequest("Stripes URL is missing!")));
-      return;
-    }
+    final String relayState = webContext.getRequestParameter("RelayState");
 
+    final URI originalUrl = new URI(relayState); // throws exception if invalid -> automatic bad request response.
+
+    final URI stripesBaseUrl = UrlUtil.parseBaseUrl(originalUrl);
 
     findSaml2Client(routingContext, false) // How can someone reach this point if no stored configuration? Obviously an
       // error.
@@ -208,9 +210,18 @@ public class SamlAPI implements SamlResource {
                             String encodedToken;
                             try {
                               encodedToken = URLEncoder.encode(authToken, "UTF-8");
+
+                              final String location = UriBuilder.fromUri(stripesBaseUrl)
+                                .path("sso-landing")
+                                .queryParam("ssoToken", encodedToken)
+                                .queryParam("fwd", originalUrl.getPath())
+                                .build()
+                                .toString();
+
+                              final String cookie = new NewCookie("ssoToken", authToken, "", originalUrl.getHost(), "", 3600, false).toString();
+
                               asyncResultHandler.handle(
-                                Future.succeededFuture(PostSamlCallbackResponse.withMovedTemporarily("ssoToken=" + authToken,
-                                  authToken, stripesURL + "/sso-landing?ssoToken=" + encodedToken + "&userId=" + userObject.getString("id"))));
+                                Future.succeededFuture(PostSamlCallbackResponse.withMovedTemporarily(cookie, authToken, location)));
                             } catch (UnsupportedEncodingException exc) {
                               String message = "Could not encode token for url parameter.";
                               log.warn(message, exc);
@@ -222,7 +233,7 @@ public class SamlAPI implements SamlResource {
                     }
                   } catch (Exception e) {
                     asyncResultHandler
-                      .handle(Future.succeededFuture(PostSamlCallbackResponse.withBadRequest(stripesURL)));
+                      .handle(Future.succeededFuture(PostSamlCallbackResponse.withBadRequest(e.getMessage())));
                   }
                 });
               }
@@ -236,6 +247,7 @@ public class SamlAPI implements SamlResource {
         }
       });
   }
+
 
   @Override
   public void getSamlRegenerate(RoutingContext routingContext, Map<String, String> okapiHeaders,
