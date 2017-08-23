@@ -56,18 +56,19 @@ schemas:
             Location:
         400:
           description: "Bad request"
-          headers:
-            Location:
+          body:
+            text/plain:
+              example: "Bad request"
         401:
           description: "Unauthorized"
           body:
             text/plain:
               example: "Unauthorized"
         403:
-          description: "Unauthorized"
+          description: "Forbidden"
           body:
             text/plain:
-              example: "Unauthorized"
+              example: "Forbidden"
         500:
           description: "Internal server error"
           body:

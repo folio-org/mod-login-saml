@@ -14,6 +14,7 @@ import io.vertx.ext.web.sstore.impl.SessionImpl;
 import org.folio.config.SamlClientLoader;
 import org.folio.config.SamlConfigHolder;
 import org.folio.config.model.SamlClientComposite;
+import org.folio.config.model.SamlConfiguration;
 import org.folio.rest.jaxrs.model.SamlCheck;
 import org.folio.rest.jaxrs.model.SamlLogin;
 import org.folio.rest.jaxrs.model.SamlLoginRequest;
@@ -51,6 +52,7 @@ import java.util.Map.Entry;
 public class SamlAPI implements SamlResource {
 
   private static final Logger log = LoggerFactory.getLogger(SamlAPI.class);
+  public static final String QUOTATION_MARK_CHARACTER = "\"";
 
   /**
    * Check that client can be loaded, SAML-Login button can be displayed.
@@ -129,27 +131,42 @@ public class SamlAPI implements SamlResource {
             Future.succeededFuture(PostSamlCallbackResponse.withPlainInternalServerError(samlClientHandler.cause().getMessage())));
         } else {
           try {
-            SAML2Client client = samlClientHandler.result().getClient();
+            final SamlClientComposite samlClientComposite = samlClientHandler.result();
+            final SAML2Client client = samlClientComposite.getClient();
+            final SamlConfiguration configuration = samlClientComposite.getConfiguration();
+            String userPropertyName = configuration.getUserProperty() == null ? "externalSystemId" : configuration.getUserProperty();
+            String samlAttributeName = configuration.getSamlAttribute() == null ? "UserID" : configuration.getSamlAttribute();
+
 
             SAML2Credentials credentials = client.getCredentials(webContext);
             log.debug("credentials: {}", credentials);
 
             // Get user id
-            String query = null;
-            String externalSystemId = ((List) credentials.getUserProfile().getAttribute("UserID")).get(0).toString();
-
-            try {
-              query = okapiHeaders.get(OkapiHeaders.OKAPI_URL_HEADER) + "/users?query="
-                + URLEncoder.encode("externalSystemId==\"" + externalSystemId + "\"", "UTF-8");
-            } catch (UnsupportedEncodingException exc) {
-              log.error("Failed to create url", exc);
-              asyncResultHandler.handle(
-                Future.succeededFuture(PostSamlCallbackResponse.withPlainInternalServerError(exc.getMessage())));
+            //String query = null;
+            List samlAttributeList = (List) credentials.getUserProfile().getAttribute(samlAttributeName);
+            if (samlAttributeList == null || samlAttributeList.isEmpty()) {
+              asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withPlainBadRequest("SAML attribute doesn't exist: " + samlAttributeName)));
               return;
             }
+            String samlAttributeValue = samlAttributeList.get(0).toString();
+
+            String cql = new StringBuilder()
+              .append(userPropertyName)
+              .append("==")
+              .append(QUOTATION_MARK_CHARACTER).append(samlAttributeValue).append(QUOTATION_MARK_CHARACTER)
+              .toString();
+
+            String userQueryUrl = UriBuilder.fromUri(okapiHeaders.get(OkapiHeaders.OKAPI_URL_HEADER))
+              .path("users")
+              .queryParam("query", cql)
+              .build()
+              .toString();
+
+            log.info("Issuing a query to URL: " + userQueryUrl);
+
+            // TODO: replace with OkapiClient
             HttpClient httpClient = routingContext.vertx().createHttpClient();
-            HttpClientRequest request = httpClient.getAbs(query)
-//              .putHeader(OkapiHeaders.OKAPI_TENANT_HEADER, okapiHeaders.get(OkapiHeaders.OKAPI_TENANT_HEADER))
+            HttpClientRequest request = httpClient.getAbs(userQueryUrl)
               .putHeader("Accept", "application/json,text/plain");
 
             // forward all Okapi headers
@@ -160,7 +177,7 @@ public class SamlAPI implements SamlResource {
             request.handler(userQueryResponse -> {
               if (userQueryResponse.statusCode() != 200) {
                 asyncResultHandler.handle(
-                  Future.succeededFuture(PostSamlCallbackResponse.withBadRequest("Cannot get user data: " + userQueryResponse.statusMessage())));
+                  Future.succeededFuture(PostSamlCallbackResponse.withPlainBadRequest("Cannot get user data: " + userQueryResponse.statusMessage())));
               } else {
                 userQueryResponse.bodyHandler(buf -> {
                   try {
@@ -168,17 +185,17 @@ public class SamlAPI implements SamlResource {
                     int recordCount = resultObject.getInteger("totalRecords");
                     if (recordCount > 1) {
                       asyncResultHandler.handle(
-                        Future.succeededFuture(PostSamlCallbackResponse.withBadRequest("More than one user record found!")));
+                        Future.succeededFuture(PostSamlCallbackResponse.withPlainBadRequest("More than one user record found!")));
                     } else if (recordCount == 0) {
-                      String message = "No user found by external system id " + externalSystemId;
+                      String message = "No user found by " + userPropertyName + " == " + samlAttributeValue;
                       log.warn(message);
                       asyncResultHandler.handle(
-                        Future.succeededFuture(PostSamlCallbackResponse.withBadRequest(message)));
+                        Future.succeededFuture(PostSamlCallbackResponse.withPlainBadRequest(message)));
                     } else {
                       boolean active = resultObject.getJsonArray("users").getJsonObject(0).getBoolean("active");
                       String userId = resultObject.getJsonArray("users").getJsonObject(0).getString("id");
                       if (!active) {
-                        log.warn("User " + externalSystemId + " is inactive");
+                        log.warn("User " + userId + " is inactive");
                       }
 
                       // Get auth token for user id
@@ -228,7 +245,7 @@ public class SamlAPI implements SamlResource {
                     }
                   } catch (Exception e) {
                     asyncResultHandler
-                      .handle(Future.succeededFuture(PostSamlCallbackResponse.withBadRequest(e.getMessage())));
+                      .handle(Future.succeededFuture(PostSamlCallbackResponse.withPlainBadRequest(e.getMessage())));
                   }
                 });
               }
