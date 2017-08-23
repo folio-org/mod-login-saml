@@ -7,6 +7,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.folio.config.model.SamlClientComposite;
 import org.folio.util.OkapiHelper;
 import org.folio.util.VertxUtils;
 import org.folio.util.model.OkapiHeaders;
@@ -33,9 +34,9 @@ public class SamlClientLoader {
 
   public static final String CALLBACK_ENDPOINT = "/saml/callback";
 
-  public static Future<SAML2Client> loadFromConfiguration(RoutingContext routingContext, boolean generateMissingKeyStore) {
+  public static Future<SamlClientComposite> loadFromConfiguration(RoutingContext routingContext, boolean generateMissingKeyStore) {
 
-    Future<SAML2Client> result = Future.future();
+    Future<SamlClientComposite> result = Future.future();
 
     OkapiHeaders okapiHeaders = OkapiHelper.okapiHeaders(routingContext);
     final String okapiUrl = okapiHeaders.getUrl();
@@ -44,7 +45,7 @@ public class SamlClientLoader {
     ConfigurationsClient.getConfiguration(okapiHeaders, routingContext.vertx())
       .compose(samlConfiguration -> {
 
-        final Future<SAML2Client> clientInstantiationFuture = Future.future();
+        final Future<SamlClientComposite> clientInstantiationFuture = Future.future();
 
         final String idpUrl = samlConfiguration.getIdpUrl();
         final String keystore = samlConfiguration.getKeystore();
@@ -88,7 +89,7 @@ public class SamlClientLoader {
                           UrlResource idpUrlResource = new UrlResource(idpUrl);
                           SAML2Client reinitedSaml2Client = configureSaml2Client(okapiUrl, tenantId, actualKeystorePassword, actualPrivateKeyPassword, idpUrlResource, keystoreResource, samlBinding);
 
-                          clientInstantiationFuture.complete(reinitedSaml2Client);
+                          clientInstantiationFuture.complete(new SamlClientComposite(reinitedSaml2Client, samlConfiguration));
                         } catch (MalformedURLException e) {
                           clientInstantiationFuture.fail(e);
                         }
@@ -116,7 +117,7 @@ public class SamlClientLoader {
                   UrlResource idpUrlResource = new UrlResource(idpUrl);
                   SAML2Client saml2Client = configureSaml2Client(okapiUrl, tenantId, keystorePassword, privateKeyPassword, idpUrlResource, keystoreResource, samlBinding);
 
-                  clientInstantiationFuture.complete(saml2Client);
+                  clientInstantiationFuture.complete(new SamlClientComposite(saml2Client, samlConfiguration));
                 } catch (MalformedURLException e) {
                   clientInstantiationFuture.fail(e);
                 }

@@ -13,6 +13,7 @@ import io.vertx.ext.web.Session;
 import io.vertx.ext.web.sstore.impl.SessionImpl;
 import org.folio.config.SamlClientLoader;
 import org.folio.config.SamlConfigHolder;
+import org.folio.config.model.SamlClientComposite;
 import org.folio.rest.jaxrs.model.SamlCheck;
 import org.folio.rest.jaxrs.model.SamlLogin;
 import org.folio.rest.jaxrs.model.SamlLoginRequest;
@@ -24,11 +25,7 @@ import org.folio.util.OkapiHelper;
 import org.folio.util.UrlUtil;
 import org.folio.util.VertxUtils;
 import org.folio.util.model.OkapiHeaders;
-import org.pac4j.core.client.Client;
-import org.pac4j.core.client.Clients;
-import org.pac4j.core.config.Config;
 import org.pac4j.core.exception.HttpAction;
-import org.pac4j.core.exception.TechnicalException;
 import org.pac4j.core.redirect.RedirectAction;
 import org.pac4j.saml.client.SAML2Client;
 import org.pac4j.saml.client.SAML2ClientConfiguration;
@@ -42,12 +39,9 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import static org.pac4j.core.util.CommonHelper.assertNotNull;
 
 /**
  * Main entry point of module
@@ -92,7 +86,7 @@ public class SamlAPI implements SamlResource {
       .setHandler(samlClientHandler -> {
         Response response;
         if (samlClientHandler.succeeded()) {
-          SAML2Client saml2Client = samlClientHandler.result();
+          SAML2Client saml2Client = samlClientHandler.result().getClient();
           try {
             RedirectAction redirectAction = saml2Client.getRedirectAction(VertxUtils.createWebContext(routingContext));
             String responseJsonString = redirectAction.getContent();
@@ -135,7 +129,7 @@ public class SamlAPI implements SamlResource {
             Future.succeededFuture(PostSamlCallbackResponse.withPlainInternalServerError(samlClientHandler.cause().getMessage())));
         } else {
           try {
-            SAML2Client client = samlClientHandler.result();
+            SAML2Client client = samlClientHandler.result().getClient();
 
             SAML2Credentials credentials = client.getCredentials(webContext);
             log.debug("credentials: {}", credentials);
@@ -282,7 +276,7 @@ public class SamlAPI implements SamlResource {
         if (handler.failed()) {
           result.fail(handler.cause());
         } else {
-          SAML2Client saml2Client = handler.result();
+          SAML2Client saml2Client = handler.result().getClient();
 
           vertx.executeBlocking(blockingCode -> {
 
@@ -308,52 +302,35 @@ public class SamlAPI implements SamlResource {
    * @param reloadClient          should we drop the loaded client and reload it with (maybe modified) configuration?
    * @return Future of loaded {@link SAML2Client} or failed future if it cannot be loaded.
    */
-  private Future<SAML2Client> findSaml2Client(RoutingContext routingContext, boolean generateMissingConfig, boolean reloadClient) {
+  private Future<SamlClientComposite> findSaml2Client(RoutingContext routingContext, boolean generateMissingConfig, boolean reloadClient) {
 
     String tenantId = OkapiHelper.okapiHeaders(routingContext).getTenant();
-    Config config = SamlConfigHolder.getInstance().getConfig();
-    final Clients clients = config.getClients();
-    assertNotNull("clients", clients);
+    SamlConfigHolder configHolder = SamlConfigHolder.getInstance();
 
-    Future<SAML2Client> result = Future.future();
+    SamlClientComposite clientComposite = configHolder.findClient(tenantId);
 
-    try {
-      final Client client = clients.findClient(tenantId);
-      if (client != null && client instanceof SAML2Client) {
-        if (reloadClient) {
-          // remove client and force load it
-          List<Client> allClients = new ArrayList<>(clients.getClients()); // unmodifiable
-          allClients.remove(client);
-          clients.setClients(allClients);
-          throw new TechnicalException("Client reload forced");
-        } else {
-          result.complete((SAML2Client) client);
-        }
-      } else {
-        result.fail("No client loaded or not a SAML2 client.");
+    if (clientComposite != null && !reloadClient) {
+      return Future.succeededFuture(clientComposite);
+    } else {
+      if (reloadClient) {
+        configHolder.removeClient(tenantId);
+        clientComposite = null;
       }
-    } catch (TechnicalException ex) {
 
-      // Client not loaded, try to load from configuration
+      Future<SamlClientComposite> result = Future.future();
       SamlClientLoader.loadFromConfiguration(routingContext, generateMissingConfig)
         .setHandler(clientResult -> {
           if (clientResult.failed()) {
             result.fail(clientResult.cause());
           } else {
-            SAML2Client loadedClient = clientResult.result();
-            
-            List<Client> registeredClients = clients.getClients();
-            if (registeredClients == null) {
-              clients.setClients(loadedClient);
-            } else {
-              registeredClients.add(loadedClient);
-            }
-            result.complete(loadedClient);
+            SamlClientComposite newClientComposite = clientResult.result();
+            configHolder.putClient(tenantId, newClientComposite);
+            result.complete(newClientComposite);
           }
         });
+      return result;
     }
 
-    return result;
   }
 
   /**
