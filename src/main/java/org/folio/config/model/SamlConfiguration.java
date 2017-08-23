@@ -14,6 +14,9 @@ public class SamlConfiguration {
   private String keystore;
   private String keystorePassword;
   private String privateKeyPassword;
+  private String samlBinding;
+  private String samlAttribute;
+  private String userProperty;
 
   public String getIdpUrl() {
     return idpUrl;
@@ -45,5 +48,29 @@ public class SamlConfiguration {
 
   public void setPrivateKeyPassword(String privateKeyPassword) {
     this.privateKeyPassword = privateKeyPassword;
+  }
+
+  public String getSamlBinding() {
+    return samlBinding;
+  }
+
+  public void setSamlBinding(String samlBinding) {
+    this.samlBinding = samlBinding;
+  }
+
+  public String getSamlAttribute() {
+    return samlAttribute;
+  }
+
+  public void setSamlAttribute(String samlAttribute) {
+    this.samlAttribute = samlAttribute;
+  }
+
+  public String getUserProperty() {
+    return userProperty;
+  }
+
+  public void setUserProperty(String userProperty) {
+    this.userProperty = userProperty;
   }
 }

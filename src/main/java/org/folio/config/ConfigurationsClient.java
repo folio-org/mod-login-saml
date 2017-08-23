@@ -31,6 +31,9 @@ public class ConfigurationsClient {
   public static final String KEYSTORE_PASSWORD_CODE = "keystore.password";
   public static final String KEYSTORE_PRIVATEKEY_PASSWORD_CODE = "keystore.privatekey.password";
   public static final String IDP_URL_CODE = "idp.url";
+  public static final String SAML_BINDING_CODE = "saml.binding";
+  public static final String SAML_ATTRIBUTE_CODE = "saml.attribute";
+  public static final String USER_PROPERTY_CODE = "user.property";
 
   public static final String CONFIGURATIONS_ENTRIES_ENDPOINT_URL = "/configurations/entries";
   public static final String MODULE_NAME = "LOGIN-SAML";
@@ -99,6 +102,15 @@ public class ConfigurationsClient {
                         break;
                       case IDP_URL_CODE:
                         conf.setIdpUrl(value);
+                        break;
+                      case SAML_BINDING_CODE:
+                        conf.setSamlBinding(value);
+                        break;
+                      case SAML_ATTRIBUTE_CODE:
+                        conf.setSamlAttribute(value);
+                        break;
+                      case USER_PROPERTY_CODE:
+                        conf.setUserProperty(value);
                         break;
                       default:
                         log.warn("Unknown SAML configuration entry. Code: {}, Value: {}", code, value);

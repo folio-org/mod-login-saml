@@ -302,6 +302,12 @@ public class SamlAPI implements SamlResource {
     return result;
   }
 
+  /**
+   * @param routingContext        the actual routing context
+   * @param generateMissingConfig if the encryption key and passwords are missing should we generate and store it?
+   * @param reloadClient          should we drop the loaded client and reload it with (maybe modified) configuration?
+   * @return Future of loaded {@link SAML2Client} or failed future if it cannot be loaded.
+   */
   private Future<SAML2Client> findSaml2Client(RoutingContext routingContext, boolean generateMissingConfig, boolean reloadClient) {
 
     String tenantId = OkapiHelper.okapiHeaders(routingContext).getTenant();
@@ -335,7 +341,7 @@ public class SamlAPI implements SamlResource {
             result.fail(clientResult.cause());
           } else {
             SAML2Client loadedClient = clientResult.result();
-
+            
             List<Client> registeredClients = clients.getClients();
             if (registeredClients == null) {
               clients.setClients(loadedClient);
