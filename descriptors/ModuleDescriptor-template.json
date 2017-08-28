@@ -1,5 +1,5 @@
 {
-  "id": "mod-login-saml",
+  "id": "${artifactId}-${version}",
   "name": "SAML login",
   "provides": [
     {
