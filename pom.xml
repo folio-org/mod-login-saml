@@ -36,23 +36,12 @@
     <vertx-pac4j.version>3.0.0</vertx-pac4j.version>
     <jackson.version>2.7.4</jackson.version>
 
-    <!--<vertx.version>3.3.3</vertx.version>-->
-    <!--<pac4j.version>2.0.0</pac4j.version>-->
-    <!--<vertx-pac4j.version>2.1.0</vertx-pac4j.version>-->
-
     <ramlfiles_path>${basedir}/ramls</ramlfiles_path>
 
   </properties>
 
 
   <dependencies>
-
-    <!-- not sure we need the whole runtime -->
-    <dependency>
-      <groupId>org.folio</groupId>
-      <artifactId>domain-models-runtime</artifactId>
-      <version>${folio.domain-models-runtime.version}</version>
-    </dependency>
 
     <!--<dependency>-->
     <!--<groupId>org.folio</groupId>-->
@@ -65,6 +54,23 @@
     <!--<artifactId>jackson-annotations</artifactId>-->
     <!--<version>2.7.4</version>-->
     <!--</dependency>-->
+
+
+    <dependency>
+      <groupId>org.folio</groupId>
+      <artifactId>domain-models-runtime</artifactId>
+      <version>${folio.domain-models-runtime.version}</version>
+      <!-- TEMP fix: verx-unit is a compile dep in RMB, and it can bring a wrong CommandFactory for vertx -->
+      <!-- if dependencies processed in wrong order. This can cause -->
+      <!-- "The command 'run' is not a valid command." -->
+      <!-- error message when running a fat jar -->
+      <exclusions>
+        <exclusion>
+          <groupId>io.vertx</groupId>
+          <artifactId>vertx-unit</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
 
     <dependency>
       <groupId>io.vertx</groupId>
