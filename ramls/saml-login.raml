@@ -5,7 +5,7 @@ baseUri: https://github.com/qultoltd/mod-login-saml
 
 documentation:
   - title: mod-login-saml API
-    content: This module provides an SAML-based login mechanism to authenticate user in FOLIO through SSO credentials
+    content: This module provides an SAML2-based login mechanism to authenticate user in FOLIO through SSO credentials
 
 schemas:
   - SamlCheck: !include schemas/SamlCheck.json
@@ -15,7 +15,7 @@ schemas:
 /saml:
   /regenerate:
     get:
-      description: Regenerate the metadata XML
+      description: Regenerate SAML configuration (keyfile and passwords). The response contains the sp-metadata.xml file
       responses:
         200:
           body:
@@ -30,7 +30,7 @@ schemas:
       body:
         application/json:
           schema: SamlLoginRequest
-      description: Handles the login with sending a form or a redirect as a response
+      description: Generates SAMLRequest and RealyState parameters for initiating a SAML login process
       responses:
         200:
           description: "Return with HTML page in case POST_BINDING is used"
@@ -44,9 +44,10 @@ schemas:
               example: "Internal server error"
   /callback:
     post:
-      description: Send callback to OKAPI after SSO authentication
+      description: Redirect browser to sso-landing page with generated token.
       body:
-        application/x-www-form-urlencoded
+        application/x-www-form-urlencoded:
+          formParameters:
       responses:
         302:
           description: "Generate JWT token and set cookie"

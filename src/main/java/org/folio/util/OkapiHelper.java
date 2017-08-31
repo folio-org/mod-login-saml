@@ -39,6 +39,6 @@ public class OkapiHelper {
     headers.setPermissions(parsedHeaders.get(OkapiHeaders.OKAPI_PERMISSIONS_HEADER));
 
     return headers;
-    
+
   }
 }
