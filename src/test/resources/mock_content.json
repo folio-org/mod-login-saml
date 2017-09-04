@@ -7,10 +7,35 @@
       "receivedData": {
         "configs": [
           {
-            "code": "hello",
-            "value": "world"
+            "id": "60eead4f-de97-437c-9cb7-09966ce50e49",
+            "module": "LOGIN-SAML",
+            "configName": "saml",
+            "code": "idp.url",
+            "value": "https://idp.ssocircle.com"
+          },
+          {
+            "id": "022d8342-fa51-44d1-8b2b-27da36e11f07",
+            "module": "LOGIN-SAML",
+            "configName": "saml",
+            "code": "keystore.file",
+            "value": "/u3+7QAAAAIAAAABAAAAAQAYc2FtbDJjbGllbnRjb25maWd1cmF0aW9uAAABXgmqUasAAAUCMIIE/jAOBgorBgEEASoCEQEBBQAEggTqAM9d1z/8cEsfS4brWTi+sTcK6/YoGpduJKVnDnFIYlNthuZ6curH714Mj3a79ZFziqbv6EGU/uOXXP7cD8S2oSEzhnkbubIokyJPNo14v9hsvapnP8oz04HDAEFO0+v1RLeoe/08VKdUqEtrdg7W6r3HIjNHfbSHZEpTCfWnyovL+NPVI8lYz38EGksp/SPWJFdOcAmMgN0a2zDI9R9WgQJ2GUYwyy3XzlKgbIj3Xe+lpo1B3nq4+WQ7UUqWBnfdW5t2a6Ld6R2dU7kly9qR906UYP+2wNsk66/ME97hCriyn3JWdhs+fjpts5ReV/Q5X7O5SMjmfYQOfgRzsjD4+Eh9Bqptg9dUvZ+7nJbqu2k+2RFEfPZdBkgQ0QsnpkkCiu9whKqKj5uInhBlNGaAokP39mKOdvYZ1l1VVoIdVY1XLkPJ0BRDrIm4MLW6B4/+cIsL9MS0/bFsgSd8UURfP9fGONzmBbwUapRu2/zBCgKM2PbV82n+TKZT1x/RXN05ARb63xIC2HFTq3LImRWf6V081M9YhMaIQLhA6IPbFnzNNwRO0i1WzHF0FJXVQjLXx1//i8k/nxeUEIIh3TtHlEpTtlmt+GDFFVgXCOt+S78VZyh7FgRmlx4V/5w7KlvzljbqS0hq2DkAGPWPCTu0PyeZcssSTqUTNYmgbwbsHhYzubOFh0pgEuN8hK3dsQf1YGBWfehspsbicwmuvSAMyBcdXd497NRmzIJU4GjCvBj+vmnpCkgkVg2SXK6aFo2SbYXUrRjDzqql3ElQ7/jlIWqnoU7J653TqN6O5uo8ZQGi2BWhldCyC/JKa0LastcRrFNjEeGk19+FRVYprKcDtFGwn4TWQtwqf9BDbXDKBtTQyIoNVFoGUd9dxPryOmUet3Ipxgqy6yoGQwlRvJ4EEyTETQRLx/foGT7JMAAOdNnSWsmyFvPkXLfzHZTSVrtOBHXj83svt5929NgVMx/HJa2aaCdkCZGs/VpRHDzJX35yyr5pzCGau0pVXRZetqKW1Yp+rfWnhwtvgnDZ+kOYLfoFSFPYtKqfMtHZih8byIW/vRLEanNY54l1tG3l0STF+VkH4QudLtZTm8mhbQJDWGOOT76VF+Yf1u1J00spDyl2HLgHHZRV3z7UfLW9kQLnkpFPmiduM8JIBx9z8cfSSuSru9TtrNmmXbXWTgFv5nzsRqZ3czWQyURujOqQJXwgKJTDNNfOnVgY7WZ+GIWAas/JBnS+V3HFCvC63rQxZohj6d+zQF5FDVbc2rceZ3ihGurTnbbl4Ebflgw9XACPipa4CqqbUEuhuNwzgr2/h/l236PBcMW4Y1PPAEZ77x45KYjFmod83mSt9Ibxz/QgZiUkd1ZkaspJCnd/bcSkAtiptso3hyW2jt1W4ftLFdzshU1t872aW7yr+FqgDzynE1Wh9DVTd02Fu5fH2g7qDLwlp5aXRXQclVi3Y7iYSiL4KZ7fJ7bEV4ZD4XyzO9CI8owZc5/HxYcW3BmiZhONMppy7gAc+LHJgPT4GgbqD5BEll1qoxMkqC0WQCbb4pX65ZcnBfzsd5tMhvqEK3Sea3WZk4dGCeegVMzs4ziT7ybGhixM+4f1kpwaTnL0keOWHa6IQm/rLetkZATx4U+gPqgqVw9JVhdgwsn+QAdiC9YPSgWsokmhIIODhQAAAAEABVguNTA5AAACpTCCAqEwggGJoAMCAQICAQEwDQYJKoZIhvcNAQEFBQAwFDESMBAGA1UEAwwJcnNhc3MtbWFjMB4XDTE3MDgyMjExMTgzMFoXDTE4MDgyMjExMTgzMFowFDESMBAGA1UEAwwJcnNhc3MtbWFjMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAymMQp4w6fwYDxofV05joravMyR60aNWYemzWJbb720KuqpH46sXsEe+bWyeC2/HRylduKRRhtZsIQAfsLiYRWq+jG55bt4tizmP8WLZo0/niuxvBVuaV2lUYxay22JdgM0EfUoAdQ925AjDzyRZXslFTJAxCxtuZZ6gdvzJ4DPQyV+q7/m2n3cPlQhMxGezVrQ3ymJkJwIeqBcljBazXAg2OzsCiE5cd98SgYMNglxv1mtATXABlIn1MMVxObmQJ7jMk3+C1m4Kk6YmSPZFWJLMuhUHDVfR0N0pUG08rx6rsA7h2GzZOFoKyzMWeY8HWK/fxTpnyvHrvl4fPcX7lswIDAQABMA0GCSqGSIb3DQEBBQUAA4IBAQCT6o0PuH4ZpU4fP4ahSHCi0vob7F+bEy/NDIbH5rz79z7rxFjk2A4fmXoSsl56DCSuQT685FeL8D3yZdCJNrKdCw5Vp3Rv4xX1GOn0DNq9n8qMKRGAWgUKQAekHp/+8EBG5YSICDsslDPrDQTiPnVO8LXN8Rdr4zUFf+Kfpfg1XX4sDIZ0b67jOmJQ/h+s4oiuFcgbCr26DwtVO3SOJoYI4V84HYROaP7KGffDoLMIV2JpfodsbHMvzSrcNYC2jEFzym/RdhMK5RPsd/4P5eYyY0vye6WQzBnKmK7cmTjYtAtaWsJz+jfppvIHM0Tk1DyP34qyM2YYngl49bKkEC1hocbn4gFApIceJxZDg9mQ0EGlUZ0="
+          },
+          {
+            "id": "6dc15218-ed83-49e0-85ab-bb891e3f42c9",
+            "module": "LOGIN-SAML",
+            "configName": "saml",
+            "code": "keystore.password",
+            "value": "iOzPffanq1xj"
+          },
+          {
+            "id": "b5662280-81cc-462e-bb84-726e47cb58e4",
+            "module": "LOGIN-SAML",
+            "configName": "saml",
+            "code": "keystore.privatekey.password",
+            "value": "iOzPffanq1xj"
           }
-        ]
+        ],
+        "totalRecords": 4
       },
       "receivedPath": "",
       "sendData": {}

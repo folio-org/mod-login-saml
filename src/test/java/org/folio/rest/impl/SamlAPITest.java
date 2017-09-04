@@ -24,8 +24,9 @@ import static org.hamcrest.Matchers.equalTo;
 @RunWith(VertxUnitRunner.class)
 public class SamlAPITest {
 
-  private final Header TEH = new Header("X-Okapi-Tenant", "saml-test");
-  private final Header TOH = new Header("X-Okapi-Token", "mandatory");
+  private final Header TENANT_HEADER = new Header("X-Okapi-Tenant", "saml-test");
+  private final Header TOKEN_HEADER = new Header("X-Okapi-Token", "saml-test");
+  private final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", "http://localhost:9130");
 
   public static final int PORT = 8081;
   private Vertx vertx;
@@ -68,14 +69,14 @@ public class SamlAPITest {
 
     // good
     given()
-      .header(TEH)
-      .header(TOH)
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
       .get("/saml/check")
       .then()
       .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlCheck.json"))
-      .body("active", equalTo(false)) //TODO: fill mock to be this active
+      .body("active", equalTo(Boolean.TRUE))
       .statusCode(200);
-
 
   }
 
