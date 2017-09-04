@@ -1,0 +1,94 @@
+package org.folio.rest.impl;
+
+import io.restassured.RestAssured;
+import io.restassured.http.Header;
+import io.vertx.core.DeploymentOptions;
+import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.unit.TestContext;
+import io.vertx.ext.unit.junit.VertxUnitRunner;
+import org.folio.rest.RestVerticle;
+import org.folio.rest.tools.client.test.HttpClientMock2;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
+import static io.restassured.RestAssured.given;
+import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
+import static org.hamcrest.Matchers.equalTo;
+
+/**
+ * @author rsass
+ */
+@RunWith(VertxUnitRunner.class)
+public class SamlAPITest {
+
+  private final Header TEH = new Header("X-Okapi-Tenant", "saml-test");
+  private final Header TOH = new Header("X-Okapi-Token", "mandatory");
+
+  public static final int PORT = 8081;
+  private Vertx vertx;
+
+
+  @Before
+  public void setUp(TestContext context) throws Exception {
+    vertx = Vertx.vertx();
+
+
+    DeploymentOptions options = new DeploymentOptions()
+      .setConfig(new JsonObject().put("http.port", PORT)
+        .put(HttpClientMock2.MOCK_MODE, "true")
+      );
+
+
+    vertx.deployVerticle(new RestVerticle(),
+      options,
+      context.asyncAssertSuccess());
+
+    RestAssured.port = PORT;
+    RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
+
+  }
+
+  @After
+  public void tearDown(TestContext context) throws Exception {
+    vertx.close(context.asyncAssertSuccess());
+  }
+
+  @Test
+  public void checkEndpointTests() {
+
+
+    // bad
+    given()
+      .get("/saml/check")
+      .then()
+      .statusCode(400);
+
+    // good
+    given()
+      .header(TEH)
+      .header(TOH)
+      .get("/saml/check")
+      .then()
+      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlCheck.json"))
+      .body("active", equalTo(false)) //TODO: fill mock to be this active
+      .statusCode(200);
+
+
+  }
+
+  @Test
+  public void healthEndpointTests() {
+
+    // good
+    given()
+      .get("/admin/health")
+      .then()
+      .statusCode(200);
+
+  }
+
+
+}

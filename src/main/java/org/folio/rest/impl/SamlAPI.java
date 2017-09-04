@@ -58,7 +58,6 @@ public class SamlAPI implements SamlResource {
   public void getSamlCheck(RoutingContext routingContext, Map<String, String> okapiHeaders,
                            Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
 
-    log.info("check");
     findSaml2Client(routingContext, false, false)
       .setHandler(samlClientHandler -> {
         if (samlClientHandler.failed()) {
