@@ -77,7 +77,6 @@ public class SamlAPITest {
       .header(OKAPI_URL_HEADER)
       .get("/saml/check")
       .then()
-      .log().all()
       .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlCheck.json"))
       .body("active", equalTo(Boolean.TRUE))
       .statusCode(200);
