@@ -77,8 +77,6 @@ public class ConfigurationsClient {
             SamlConfiguration conf = new SamlConfiguration();
             JsonObject responseBody = response.getBody();
 
-            System.out.println("Response body: " + responseBody.toString());
-
             JsonArray configs = responseBody.getJsonArray("configs"); //{"configs": [],"total_records": 0}
             configs.forEach(entry -> {
               if (entry instanceof JsonObject) {

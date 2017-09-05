@@ -89,6 +89,7 @@ public class SamlAPI implements SamlResource {
             RedirectAction redirectAction = saml2Client.getRedirectAction(VertxUtils.createWebContext(routingContext));
             String responseJsonString = redirectAction.getContent();
             SamlLogin dto = Json.decodeValue(responseJsonString, SamlLogin.class);
+            routingContext.response().headers().clear(); // saml2Client sets Content-Type: text/html header
             response = PostSamlLoginResponse.withJsonOK(dto);
           } catch (HttpAction httpAction) {
             response = HttpActionMapper.toResponse(httpAction);
