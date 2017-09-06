@@ -48,5 +48,19 @@
         }
       ]
     }
+  ],
+  "requires": [
+    {
+      "id": "authtoken",
+      "version": "1.0"
+    },
+    {
+      "id": "users",
+      "version": "14.0"
+    },
+    {
+      "id": "configuration",
+      "version": "2.0"
+    }
   ]
 }
