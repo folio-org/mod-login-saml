@@ -226,7 +226,7 @@ public class SamlAPI implements SamlResource {
 
           BinaryOutStream outStream = new BinaryOutStream();
           outStream.setData(metadata.getBytes(StandardCharsets.UTF_8));
-          asyncResultHandler.handle(Future.succeededFuture(GetSamlRegenerateResponse.withXmlOK(outStream)));
+          asyncResultHandler.handle(Future.succeededFuture(GetSamlRegenerateResponse.withXmlOK("attachment; filename=sp-metadata.xml", outStream)));
         }
       });
   }
