@@ -69,7 +69,6 @@ public class ConfigurationsClient {
       headers.put(OkapiHeaders.OKAPI_TOKEN_HEADER, okapiHeaders.getToken());
 
       HttpClientInterface httpClient = HttpClientFactory.getHttpClient(okapiHeaders.getUrl(), okapiHeaders.getTenant());
-      // TODO: set headers?
       httpClient.setDefaultHeaders(headers);
       httpClient.request(CONFIGURATIONS_ENTRIES_ENDPOINT_URL + "?query=" + encodedQuery) // this is ugly :/
         .whenComplete((Response response, Throwable throwable) -> {

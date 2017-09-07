@@ -10,7 +10,6 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.folio.rest.RestVerticle;
 import org.folio.rest.tools.client.test.HttpClientMock2;
-import org.folio.util.ClasspathResourceStringLoader;
 import org.folio.util.TestingClasspathResolver;
 import org.junit.After;
 import org.junit.Before;
@@ -19,12 +18,12 @@ import org.junit.runner.RunWith;
 import org.w3c.dom.ls.LSResourceResolver;
 
 import java.io.IOException;
+import java.net.URLEncoder;
 
 import static io.restassured.RestAssured.given;
 import static io.restassured.internal.matcher.xml.XmlXsdMatcher.matchesXsdInClasspath;
 import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.startsWith;
+import static org.hamcrest.Matchers.*;
 
 /**
  * @author rsass
@@ -142,18 +141,21 @@ public class SamlAPITest {
   @Test
   public void callbackEndpointTests() throws IOException {
 
-    final String samlResponse = ClasspathResourceStringLoader.loadAsString("SAMLResponse2.txt");
 
+    final String testPath = "/test/path";
 
     given()
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
       .header(OKAPI_URL_HEADER)
-      .formParam("SAMLResponse", samlResponse)
-      .formParam("RelayState", STRIPES_URL)
+      .formParam("SAMLResponse", "saml-response")
+      .formParam("RelayState", STRIPES_URL + testPath)
       .post("/saml/callback")
       .then()
-      .statusCode(500);
+      .statusCode(302)
+      .header("Location", containsString(URLEncoder.encode(testPath, "UTF-8")))
+      .header("x-okapi-token", "saml-token")
+      .cookie("ssoToken", "saml-token");
 
   }
 

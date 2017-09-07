@@ -15,7 +15,7 @@ import java.util.Arrays;
 public class SAML2ClientMock extends SAML2Client {
 
   private static final Logger log = LoggerFactory.getLogger(SAML2ClientMock.class);
-  public static final String ADMIN_USER_ID = "admin-user-id";
+  public static final String SAML_USER_ID = "saml-user-id";
 
   public SAML2ClientMock(final SAML2ClientConfiguration cfg) {
     super(cfg);
@@ -27,7 +27,7 @@ public class SAML2ClientMock extends SAML2Client {
     log.info("Mocking SAML2Client retrieveCredentials...");
     SAML2Credentials cred = new SAML2Credentials(null, null, null, this.getName(), "1");
     CommonProfile userProfile = new CommonProfile();
-    userProfile.addAttribute("UserID", Arrays.asList(ADMIN_USER_ID));
+    userProfile.addAttribute("UserID", Arrays.asList(SAML_USER_ID));
     cred.setUserProfile(userProfile);
     return cred;
   }

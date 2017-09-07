@@ -39,6 +39,32 @@
       },
       "receivedPath": "",
       "sendData": {}
+    },
+    {
+      "url": "/users?query=externalSystemId%3D%3D%22saml-user-id%22",
+      "method": "get",
+      "status": 200,
+      "receivedData": {
+        "totalRecords": 1,
+        "users": [
+          {
+            "id": "saml-user",
+            "username": "samluser",
+            "active": true
+          }
+        ]
+      }
+    },
+    {
+      "url": "/token",
+      "method": "post",
+      "status": 200,
+      "headers": [
+        {
+          "name": "x-okapi-token",
+          "value": "saml-token"
+        }
+      ]
     }
   ]
 }
