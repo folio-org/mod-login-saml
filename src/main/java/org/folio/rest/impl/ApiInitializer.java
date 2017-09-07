@@ -20,8 +20,6 @@ public class ApiInitializer implements InitAPI {
   @Override
   public void init(Vertx vertx, Context context, Handler<AsyncResult<Boolean>> handler) {
 
-    log.info("Init...");
-
     //////////////////////////
     trustAllCertificates(); // TODO: DO NOT USE IN PRODUCTION!
     //////////////////////////

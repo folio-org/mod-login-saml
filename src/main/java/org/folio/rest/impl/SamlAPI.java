@@ -1,6 +1,7 @@
 package org.folio.rest.impl;
 
 import io.vertx.core.*;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -13,11 +14,12 @@ import org.folio.config.SamlClientLoader;
 import org.folio.config.SamlConfigHolder;
 import org.folio.config.model.SamlClientComposite;
 import org.folio.config.model.SamlConfiguration;
-import org.folio.okapi.common.OkapiClient;
 import org.folio.rest.jaxrs.model.SamlCheck;
 import org.folio.rest.jaxrs.model.SamlLogin;
 import org.folio.rest.jaxrs.model.SamlLoginRequest;
 import org.folio.rest.jaxrs.resource.SamlResource;
+import org.folio.rest.tools.client.HttpClientFactory;
+import org.folio.rest.tools.client.interfaces.HttpClientInterface;
 import org.folio.rest.tools.utils.BinaryOutStream;
 import org.folio.session.NoopSession;
 import org.folio.util.HttpActionMapper;
@@ -31,6 +33,7 @@ import org.pac4j.saml.client.SAML2Client;
 import org.pac4j.saml.client.SAML2ClientConfiguration;
 import org.pac4j.saml.credentials.SAML2Credentials;
 import org.pac4j.vertx.VertxWebContext;
+import org.springframework.util.StringUtils;
 
 import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
@@ -58,7 +61,6 @@ public class SamlAPI implements SamlResource {
   public void getSamlCheck(RoutingContext routingContext, Map<String, String> okapiHeaders,
                            Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
 
-    log.info("check");
     findSaml2Client(routingContext, false, false)
       .setHandler(samlClientHandler -> {
         if (samlClientHandler.failed()) {
@@ -90,6 +92,7 @@ public class SamlAPI implements SamlResource {
             RedirectAction redirectAction = saml2Client.getRedirectAction(VertxUtils.createWebContext(routingContext));
             String responseJsonString = redirectAction.getContent();
             SamlLogin dto = Json.decodeValue(responseJsonString, SamlLogin.class);
+            routingContext.response().headers().clear(); // saml2Client sets Content-Type: text/html header
             response = PostSamlLoginResponse.withJsonOK(dto);
           } catch (HttpAction httpAction) {
             response = HttpActionMapper.toResponse(httpAction);
@@ -140,69 +143,83 @@ public class SamlAPI implements SamlResource {
             }
             final String samlAttributeValue = samlAttributeList.get(0).toString();
 
-            final String usersCql = new StringBuilder()
-              .append(userPropertyName)
-              .append("==")
-              .append(QUOTATION_MARK_CHARACTER).append(samlAttributeValue).append(QUOTATION_MARK_CHARACTER)
-              .toString();
+            final String usersCql = userPropertyName +
+              "=="
+              + QUOTATION_MARK_CHARACTER + samlAttributeValue + QUOTATION_MARK_CHARACTER;
 
             final String userQuery = UriBuilder.fromPath("/users").queryParam("query", usersCql).build().toString();
 
-            // TODO: workaround OkapiClient(routingContext) not sending Accept header
-            HashMap<String, String> okapiClientRequestHeaders = new HashMap<>(okapiHeaders);
-            okapiClientRequestHeaders.put("Accept", "application/json,text/plain");
+            OkapiHeaders parsedHeaders = OkapiHelper.okapiHeaders(okapiHeaders);
 
-            OkapiClient usersClient = new OkapiClient(okapiHeaders.get(OkapiHeaders.OKAPI_URL_HEADER), vertxContext.owner(), okapiClientRequestHeaders);
-            usersClient.get(userQuery, okapiClientResponse -> {
-              if (okapiClientResponse.failed()) {
-                asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withPlainInternalServerError(okapiClientResponse.cause().getMessage())));
-              } else {
-                JsonObject resultObject = new JsonObject(okapiClientResponse.result());
+            Map<String, String> headers = new HashMap<>();
+            headers.put(OkapiHeaders.OKAPI_TOKEN_HEADER, parsedHeaders.getToken());
 
-                int recordCount = resultObject.getInteger("totalRecords");
-                if (recordCount > 1) {
-                  asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withPlainBadRequest("More than one user record found!")));
-                } else if (recordCount == 0) {
-                  String message = "No user found by " + userPropertyName + " == " + samlAttributeValue;
-                  log.warn(message);
-                  asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withPlainBadRequest(message)));
-                } else {
+            HttpClientInterface usersClient = HttpClientFactory.getHttpClient(parsedHeaders.getUrl(), parsedHeaders.getTenant());
+            usersClient.setDefaultHeaders(headers);
+            usersClient.request(userQuery)
+              .whenComplete((userQueryResponse, ex) -> {
+                if (!org.folio.rest.tools.client.Response.isSuccess(userQueryResponse.getCode())) {
+                  asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withPlainInternalServerError(userQueryResponse.getError().toString())));
+                } else { // success
+                  JsonObject resultObject = userQueryResponse.getBody();
 
-                  final JsonObject userObject = resultObject.getJsonArray("users").getJsonObject(0);
-                  String userId = userObject.getString("id");
-                  if (!userObject.getBoolean("active")) {
-                    log.warn("User " + userId + " is inactive!"); // TODO: should we deny login from an inactive account?
+                  int recordCount = resultObject.getInteger("totalRecords");
+                  if (recordCount > 1) {
+                    asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withPlainBadRequest("More than one user record found!")));
+                  } else if (recordCount == 0) {
+                    String message = "No user found by " + userPropertyName + " == " + samlAttributeValue;
+                    log.warn(message);
+                    asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withPlainBadRequest(message)));
+                  } else {
+
+                    final JsonObject userObject = resultObject.getJsonArray("users").getJsonObject(0);
+                    String userId = userObject.getString("id");
+                    if (!userObject.getBoolean("active")) {
+                      log.warn("User " + userId + " is inactive!"); // TODO: should we deny login from an inactive account?
+                    }
+
+                    JsonObject payload = new JsonObject().put("payload", new JsonObject().put("sub", userObject.getString("username")).put("user_id", userId));
+
+
+                    HttpClientInterface tokenClient = HttpClientFactory.getHttpClient(parsedHeaders.getUrl(), parsedHeaders.getTenant());
+                    tokenClient.setDefaultHeaders(headers);
+                    try {
+                      tokenClient.request(HttpMethod.POST, payload.toString(), "/token", null)
+                        .whenComplete((tokenResponse, tokenError) -> {
+                          if (!org.folio.rest.tools.client.Response.isSuccess(tokenResponse.getCode())) {
+                            asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withPlainInternalServerError(tokenResponse.getError().toString())));
+                          } else {
+                            final String authToken = tokenResponse.getHeaders().get(OkapiHeaders.OKAPI_TOKEN_HEADER);
+
+                            final String location = UriBuilder.fromUri(stripesBaseUrl)
+                              .path("sso-landing")
+                              .queryParam("ssoToken", authToken)
+                              .queryParam("fwd", originalUrl.getPath())
+                              .build()
+                              .toString();
+
+                            final String cookie = new NewCookie("ssoToken", authToken, "", originalUrl.getHost(), "", 3600, false).toString();
+
+                            asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withMovedTemporarily(cookie, authToken, location)));
+
+                          }
+                        });
+                    } catch (Exception httpClientEx) {
+                      asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withPlainInternalServerError(httpClientEx.getMessage())));
+                    }
+
                   }
 
-                  JsonObject payload = new JsonObject().put("payload", new JsonObject().put("sub", userObject.getString("username")).put("user_id", userId));
-
-                  OkapiClient tokenClient = new OkapiClient(okapiHeaders.get(OkapiHeaders.OKAPI_URL_HEADER), vertxContext.owner(), okapiClientRequestHeaders);
-                  tokenClient.post("/token", payload.toString(), tokenResponse -> {
-                    if (tokenResponse.failed()) {
-                      asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withPlainInternalServerError(tokenResponse.cause().getMessage())));
-                    } else {
-                      // we don't need response, only the token header.
-                      final String authToken = tokenClient.getRespHeaders().get(OkapiHeaders.OKAPI_TOKEN_HEADER);
-                      // log.info("Auth token: " + authToken);
-
-                      final String location = UriBuilder.fromUri(stripesBaseUrl)
-                        .path("sso-landing")
-                        .queryParam("ssoToken", authToken)
-                        .queryParam("fwd", originalUrl.getPath())
-                        .build()
-                        .toString();
-
-                      final String cookie = new NewCookie("ssoToken", authToken, "", originalUrl.getHost(), "", 3600, false).toString();
-
-                      asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withMovedTemporarily(cookie, authToken, location)));
-
-                    }
-                  });
                 }
-              }
-            });
+              });
+
+
           } catch (HttpAction httpAction) {
             asyncResultHandler.handle(Future.succeededFuture(HttpActionMapper.toResponse(httpAction)));
+          } catch (Exception ex) {
+            ex.printStackTrace();
+            String message = StringUtils.hasText(ex.getMessage()) ? ex.getMessage() : "Unknown error: " + ex.getClass().getName();
+            asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withPlainInternalServerError(message)));
           }
         }
       });
@@ -271,6 +288,7 @@ public class SamlAPI implements SamlResource {
 
     String tenantId = OkapiHelper.okapiHeaders(routingContext).getTenant();
     SamlConfigHolder configHolder = SamlConfigHolder.getInstance();
+
 
     SamlClientComposite clientComposite = configHolder.findClient(tenantId);
 

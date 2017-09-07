@@ -7,7 +7,9 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.folio.config.model.SAML2ClientMock;
 import org.folio.config.model.SamlClientComposite;
+import org.folio.rest.tools.client.test.HttpClientMock2;
 import org.folio.util.OkapiHelper;
 import org.folio.util.VertxUtils;
 import org.folio.util.model.OkapiHeaders;
@@ -209,6 +211,8 @@ public class SamlClientLoader {
 
   private static SAML2Client assembleSaml2Client(String okapiUrl, String tenantId, SAML2ClientConfiguration cfg, String samlBinding) {
 
+    boolean mock = System.getProperty(HttpClientMock2.MOCK_MODE) == "true";
+
     if (StringUtils.hasText(samlBinding) && samlBinding.equals("REDIRECT")) {
       cfg.setDestinationBindingType(SAMLConstants.SAML2_REDIRECT_BINDING_URI);
     } else {
@@ -216,12 +220,12 @@ public class SamlClientLoader {
       cfg.setDestinationBindingType(SAMLConstants.SAML2_POST_BINDING_URI);
     }
 
-    SAML2Client saml2Client = new SAML2Client(cfg);
+    SAML2Client saml2Client = mock ? new SAML2ClientMock(cfg) : new SAML2Client(cfg);
     saml2Client.setName(tenantId);
     saml2Client.setIncludeClientNameInCallbackUrl(false);
     saml2Client.setCallbackUrl(buildCallbackUrl(okapiUrl, tenantId));
     saml2Client.setRedirectActionBuilder(new JsonReponseSaml2RedirectActionBuilder(saml2Client));
-
+    
     return saml2Client;
   }
 
