@@ -31,6 +31,7 @@ import org.pac4j.saml.client.SAML2Client;
 import org.pac4j.saml.client.SAML2ClientConfiguration;
 import org.pac4j.saml.credentials.SAML2Credentials;
 import org.pac4j.vertx.VertxWebContext;
+import org.springframework.util.StringUtils;
 
 import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
@@ -203,6 +204,10 @@ public class SamlAPI implements SamlResource {
             });
           } catch (HttpAction httpAction) {
             asyncResultHandler.handle(Future.succeededFuture(HttpActionMapper.toResponse(httpAction)));
+          } catch (Exception ex) {
+            ex.printStackTrace();
+            String message = StringUtils.hasText(ex.getMessage()) ? ex.getMessage() : "Unknown error: " + ex.getClass().getName();
+            asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withPlainInternalServerError(message)));
           }
         }
       });
@@ -271,6 +276,7 @@ public class SamlAPI implements SamlResource {
 
     String tenantId = OkapiHelper.okapiHeaders(routingContext).getTenant();
     SamlConfigHolder configHolder = SamlConfigHolder.getInstance();
+
 
     SamlClientComposite clientComposite = configHolder.findClient(tenantId);
 

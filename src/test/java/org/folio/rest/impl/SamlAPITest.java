@@ -10,12 +10,15 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.folio.rest.RestVerticle;
 import org.folio.rest.tools.client.test.HttpClientMock2;
+import org.folio.util.ClasspathResourceStringLoader;
 import org.folio.util.TestingClasspathResolver;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.w3c.dom.ls.LSResourceResolver;
+
+import java.io.IOException;
 
 import static io.restassured.RestAssured.given;
 import static io.restassured.internal.matcher.xml.XmlXsdMatcher.matchesXsdInClasspath;
@@ -133,6 +136,24 @@ public class SamlAPITest {
       .body(matchesXsdInClasspath("schemas/saml-schema-metadata-2.0.xsd").using(resolver))
       .body("EntityDescriptor.SPSSODescriptor.AssertionConsumerService.'@Location'", startsWith(OKAPI_URL_HEADER.getValue()))
       .statusCode(200);
+
+  }
+
+  @Test
+  public void callbackEndpointTests() throws IOException {
+
+    final String samlResponse = ClasspathResourceStringLoader.loadAsString("SAMLResponse2.txt");
+
+
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .formParam("SAMLResponse", samlResponse)
+      .formParam("RelayState", STRIPES_URL)
+      .post("/saml/callback")
+      .then()
+      .statusCode(500);
 
   }
 
