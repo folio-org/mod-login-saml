@@ -43,19 +43,6 @@
 
   <dependencies>
 
-    <!--<dependency>-->
-    <!--<groupId>org.folio</groupId>-->
-    <!--<artifactId>mod-configuration-client</artifactId>-->
-    <!--<version>1.0.2</version>-->
-    <!--</dependency>-->
-    <!-- pac4j brings newer jackson than mod-configuration-client, but not brings annotations -->
-    <!--<dependency>-->
-    <!--<groupId>com.fasterxml.jackson.core</groupId>-->
-    <!--<artifactId>jackson-annotations</artifactId>-->
-    <!--<version>2.7.4</version>-->
-    <!--</dependency>-->
-
-
     <dependency>
       <groupId>org.folio</groupId>
       <artifactId>domain-models-runtime</artifactId>
@@ -97,12 +84,6 @@
     </dependency>
 
     <dependency>
-      <groupId>org.folio.okapi</groupId>
-      <artifactId>okapi-common</artifactId>
-      <version>1.9.0</version>
-    </dependency>
-
-    <dependency>
       <groupId>io.rest-assured</groupId>
       <artifactId>rest-assured</artifactId>
       <version>3.0.3</version>
@@ -129,13 +110,7 @@
       <version>${vertx.version}</version>
       <scope>test</scope>
     </dependency>
-
-    <!--<dependency>-->
-    <!--<groupId>ch.qos.logback</groupId>-->
-    <!--<artifactId>logback-classic</artifactId>-->
-    <!--<version>1.2.3</version>-->
-    <!--</dependency>-->
-
+    
   </dependencies>
 
   <!-- Overriding versions coming from RMB -->
