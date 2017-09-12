@@ -4,12 +4,9 @@ package org.folio.config;
 import com.google.common.base.Strings;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.client.HttpResponse;
-import io.vertx.ext.web.client.WebClient;
 import org.folio.config.model.SamlConfiguration;
 import org.folio.rest.tools.client.HttpClientFactory;
 import org.folio.rest.tools.client.Response;
@@ -22,9 +19,6 @@ import org.springframework.util.Assert;
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
-
-import static org.folio.util.model.OkapiHeaders.OKAPI_TENANT_HEADER;
-import static org.folio.util.model.OkapiHeaders.OKAPI_TOKEN_HEADER;
 
 /**
  * Connect to mod-configuration via Okapi
@@ -172,23 +166,19 @@ public class ConfigurationsClient {
           storeEntryClient.setDefaultHeaders(headers);
           storeEntryClient.request(httpMethod, requestBody, endpoint, null)
             .whenComplete((storeEntryResponse, throwable) -> {
-              if (!Response.isSuccess(storeEntryResponse.getCode())) {
-                result.fail(storeEntryResponse.getError().encodePrettily());
+
+              // POST->201 created, PUT->204 no content
+              if ((httpMethod.equals(HttpMethod.POST) && storeEntryResponse.getCode() == 201)
+                || (httpMethod.equals(HttpMethod.PUT) && storeEntryResponse.getCode() == 204)) {
+
+                result.complete();
               } else {
-
-                // POST->201 created, PUT->204 no content
-                if ((httpMethod.equals(HttpMethod.POST) && storeEntryResponse.getCode() == 201)
-                  || (httpMethod.equals(HttpMethod.PUT) && storeEntryResponse.getCode() == 204)) {
-
-                  result.complete();
-                } else {
-                  result.fail("The response status is not 'created',instead "
-                    + storeEntryResponse.getCode()
-                    + " with message  "
-                    + storeEntryResponse.getError());
-                }
-
+                result.fail("The response status is not 'created',instead "
+                  + storeEntryResponse.getCode()
+                  + " with message  "
+                  + storeEntryResponse.getError());
               }
+
             });
         } catch (Exception ex) {
           result.fail(ex);
@@ -218,41 +208,34 @@ public class ConfigurationsClient {
     }
 
     String query = "(module==" + MODULE_NAME + " AND configName==" + CONFIG_NAME + " AND code== " + code + ")";
+    try {
+      String encodedQuery = URLEncoder.encode(query, "UTF-8");
 
-    WebClient webClient = WebClient.create(vertx);
-    webClient.getAbs(okapiHeaders.getUrl() + CONFIGURATIONS_ENTRIES_ENDPOINT_URL)
-      .addQueryParam("query", query)
-      .putHeader("Content-Type", "application/json")
-      .putHeader("Accept", "application/json")
-      .putHeader(OKAPI_TENANT_HEADER, okapiHeaders.getTenant())
-      .putHeader(OKAPI_TOKEN_HEADER, okapiHeaders.getToken())
-      .timeout(10000)
-      .send(handler -> {
-        if (handler.failed()) {
-          result.fail(handler.cause());
-        } else {
-          if (handler.result().statusCode() != 200) {
-            result.fail(handler.result().statusMessage());
+      Map<String, String> headers = new HashMap<>();
+      headers.put(OkapiHeaders.OKAPI_TOKEN_HEADER, okapiHeaders.getToken());
+      HttpClientInterface checkEntryClient = HttpClientFactory.getHttpClient(okapiHeaders.getUrl(), okapiHeaders.getTenant());
+      checkEntryClient.setDefaultHeaders(headers);
+      checkEntryClient.request(CONFIGURATIONS_ENTRIES_ENDPOINT_URL + "?query=" + encodedQuery)
+        .whenComplete((checkEntryResponse, throwable) -> {
+          if (checkEntryResponse.getCode() != 200) {
+            result.fail("Failed to check configuration entry: " + code
+              + "HTTP result was " + checkEntryResponse.getCode() + " " + String.valueOf(checkEntryResponse.getBody()));
           } else {
-            HttpResponse<Buffer> responseBuffer = handler.result();
-            try {
-              JsonObject entries = responseBuffer.bodyAsJsonObject(); //{"configs": [],"total_records": 0}
-              JsonArray configs = entries.getJsonArray("configs");
-              if (configs == null || configs.isEmpty()) {
-                result.complete(); // null
-              } else {
-                JsonObject entry = configs.getJsonObject(0);
-                String id = entry.getString("id");
-                result.complete(id);
-              }
-            } catch (Throwable cause) {
-              result.fail(cause);
+            JsonObject entries = checkEntryResponse.getBody();
+            JsonArray configs = entries.getJsonArray("configs");
+            if (configs == null || configs.isEmpty()) {
+              result.complete(); // null
+            } else {
+              JsonObject entry = configs.getJsonObject(0);
+              String id = entry.getString("id");
+              result.complete(id);
             }
-
           }
+        });
 
-        }
-      });
+    } catch (Exception exception) {
+      result.fail(exception);
+    }
 
     return result;
   }
