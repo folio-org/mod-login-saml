@@ -5,6 +5,7 @@ import com.google.common.base.Strings;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpResponse;
@@ -158,55 +159,41 @@ public class ConfigurationsClient {
         result.fail(checkHandler.cause());
       } else {
         String configId = checkHandler.result();
-        if (configId == null) {
-          // not-existing config
-          WebClient webClient = WebClient.create(vertx);
-          webClient.postAbs(okapiHeaders.getUrl() + CONFIGURATIONS_ENTRIES_ENDPOINT_URL)
-            .putHeader("Content-Type", "application/json")
-            .putHeader("Accept", "application/json")
-            .putHeader(OKAPI_TENANT_HEADER, okapiHeaders.getTenant())
-            .putHeader(OKAPI_TOKEN_HEADER, okapiHeaders.getToken())
-            .timeout(10000)
-            .sendJsonObject(requestBody, postResult -> {
-              if (postResult.failed()) {
-                result.fail(postResult.cause());
+
+        // not existing -> POST, existing->PUT
+        HttpMethod httpMethod = configId == null ? HttpMethod.POST : HttpMethod.PUT;
+        String endpoint = configId == null ? CONFIGURATIONS_ENTRIES_ENDPOINT_URL : CONFIGURATIONS_ENTRIES_ENDPOINT_URL + "/" + configId;
+
+        Map<String, String> headers = new HashMap<>();
+        headers.put(OkapiHeaders.OKAPI_TOKEN_HEADER, okapiHeaders.getToken());
+
+        try {
+          HttpClientInterface storeEntryClient = HttpClientFactory.getHttpClient(okapiHeaders.getUrl(), okapiHeaders.getTenant());
+          storeEntryClient.setDefaultHeaders(headers);
+          storeEntryClient.request(httpMethod, requestBody, endpoint, null)
+            .whenComplete((storeEntryResponse, throwable) -> {
+              if (!Response.isSuccess(storeEntryResponse.getCode())) {
+                result.fail(storeEntryResponse.getError().encodePrettily());
               } else {
-                // POST-> 201 created
-                if (postResult.result().statusCode() == 201) {
+
+                // POST->201 created, PUT->204 no content
+                if ((httpMethod.equals(HttpMethod.POST) && storeEntryResponse.getCode() == 201)
+                  || (httpMethod.equals(HttpMethod.PUT) && storeEntryResponse.getCode() == 204)) {
+
                   result.complete();
                 } else {
                   result.fail("The response status is not 'created',instead "
-                    + postResult.result().statusCode()
+                    + storeEntryResponse.getCode()
                     + " with message  "
-                    + postResult.result().statusMessage());
+                    + storeEntryResponse.getError());
                 }
+
               }
             });
-        } else {
-          //existing config
-          WebClient webClient = WebClient.create(vertx);
-          webClient.putAbs(okapiHeaders.getUrl() + CONFIGURATIONS_ENTRIES_ENDPOINT_URL + "/" + configId)
-            .putHeader("Content-Type", "application/json")
-            .putHeader("Accept", "application/json")
-            .putHeader(OKAPI_TENANT_HEADER, okapiHeaders.getTenant())
-            .putHeader(OKAPI_TOKEN_HEADER, okapiHeaders.getToken())
-            .timeout(10000)
-            .sendJsonObject(requestBody, postResult -> {
-              if (postResult.failed()) {
-                result.fail(postResult.cause());
-              } else {
-                // PUT -> 204 no content
-                if (postResult.result().statusCode() == 204) {
-                  result.complete();
-                } else {
-                  result.fail("The response status is not '204',instead "
-                    + postResult.result().statusCode()
-                    + " with message  "
-                    + postResult.result().statusMessage());
-                }
-              }
-            });
+        } catch (Exception ex) {
+          result.fail(ex);
         }
+
       }
     });
 
