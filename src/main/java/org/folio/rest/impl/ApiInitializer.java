@@ -20,9 +20,11 @@ public class ApiInitializer implements InitAPI {
   @Override
   public void init(Vertx vertx, Context context, Handler<AsyncResult<Boolean>> handler) {
 
-    //////////////////////////
-    trustAllCertificates(); // TODO: DO NOT USE IN PRODUCTION!
-    //////////////////////////
+    String tacEnv = System.getenv("TRUST_ALL_CERTIFICATES");
+
+    if (tacEnv != null && tacEnv.equals("true")) {
+      trustAllCertificates();
+    }
 
     handler.handle(Future.succeededFuture(true));
   }

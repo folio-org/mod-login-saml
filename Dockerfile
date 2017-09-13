@@ -4,6 +4,7 @@ ENV VERTICLE_FILE mod-login-saml-fat.jar
 
 # Set the location of the verticles
 ENV VERTICLE_HOME /usr/verticles
+ENV TRUST_ALL_CERTIFICATES false
 
 # Copy your fat jar to the container
 COPY target/$VERTICLE_FILE $VERTICLE_HOME/module.jar
