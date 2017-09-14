@@ -31,6 +31,9 @@
             "GET"
           ],
           "pathPattern": "/saml/regenerate",
+          "permissionsRequired": [
+            "login-saml.regenerate"
+          ],
           "modulePermissions": [
             "configuration.entries.collection.get",
             "configuration.entries.item.post",
@@ -47,6 +50,22 @@
           ]
         }
       ]
+    }
+  ],
+  "permissionSets": [
+    {
+      "permissionName": "login-saml.regenerate",
+      "displayName": "SAML sp-metadata regeneration",
+      "description": ""
+    },
+    {
+      "permissionName": "login-saml.all",
+      "displayName": "Login-SAML: administration",
+      "description": "",
+      "subPermissions": [
+        "login-saml.regenerate"
+      ],
+      "visible": true
     }
   ],
   "requires": [
