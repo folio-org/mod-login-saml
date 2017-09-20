@@ -109,7 +109,7 @@
       <version>${vertx.version}</version>
       <scope>test</scope>
     </dependency>
-    
+
   </dependencies>
 
   <!-- Overriding versions coming from RMB -->
