@@ -225,7 +225,7 @@ public class SamlClientLoader {
     saml2Client.setIncludeClientNameInCallbackUrl(false);
     saml2Client.setCallbackUrl(buildCallbackUrl(okapiUrl, tenantId));
     saml2Client.setRedirectActionBuilder(new JsonReponseSaml2RedirectActionBuilder(saml2Client));
-    
+
     return saml2Client;
   }
 
