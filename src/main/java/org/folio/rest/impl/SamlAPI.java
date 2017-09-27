@@ -217,7 +217,6 @@ public class SamlAPI implements SamlResource {
           } catch (HttpAction httpAction) {
             asyncResultHandler.handle(Future.succeededFuture(HttpActionMapper.toResponse(httpAction)));
           } catch (Exception ex) {
-            ex.printStackTrace();
             String message = StringUtils.hasText(ex.getMessage()) ? ex.getMessage() : "Unknown error: " + ex.getClass().getName();
             asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withPlainInternalServerError(message)));
           }
