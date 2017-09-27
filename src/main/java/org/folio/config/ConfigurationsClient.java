@@ -30,8 +30,8 @@ public class ConfigurationsClient {
   private static final Logger log = LoggerFactory.getLogger(ConfigurationsClient.class);
 
   public static final String KEYSTORE_FILE_CODE = "keystore.file";
-  public static final String KEYSTORE_PASSWORD_CODE = "keystore.password";
-  public static final String KEYSTORE_PRIVATEKEY_PASSWORD_CODE = "keystore.privatekey.password";
+  public static final String KEYSTORE_PASSWORD_CODE = "keystore.password"; // NOSONAR
+  public static final String KEYSTORE_PRIVATEKEY_PASSWORD_CODE = "keystore.privatekey.password"; // NOSONAR
   public static final String IDP_URL_CODE = "idp.url";
   public static final String SAML_BINDING_CODE = "saml.binding";
   public static final String SAML_ATTRIBUTE_CODE = "saml.attribute";
