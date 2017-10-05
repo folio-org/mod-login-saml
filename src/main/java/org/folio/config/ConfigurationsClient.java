@@ -41,7 +41,7 @@ public class ConfigurationsClient {
   public static final String MODULE_NAME = "LOGIN-SAML";
   public static final String CONFIG_NAME = "saml";
 
-  public static Future<SamlConfiguration> getConfiguration(OkapiHeaders okapiHeaders, Vertx vertx) {
+  public static Future<SamlConfiguration> getConfiguration(OkapiHeaders okapiHeaders) {
 
     if (Strings.isNullOrEmpty(okapiHeaders.getUrl())) {
       return Future.failedFuture("Missing Okapi URL");

@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-03/schema#",
+  "type": "object",
+  "properties": {
+    "idpUrl": {
+      "type": "string",
+      "format": "uri",
+      "required": true
+    },
+    "samlBinding": {
+      "type": "string",
+      "enum": [
+        "POST",
+        "REDIRECT"
+      ],
+      "required": false
+    },
+    "samlAttribute": {
+      "type": "string",
+      "required": false
+    },
+    "userProperty": {
+      "type": "string",
+      "required": false
+    },
+    "coreConfigurationChanged": {
+      "type": "boolean",
+      "description": "Indicates that there is a change in configuration that can break working of module, like IdP URL or encrityon key changed.",
+      "required": false
+    }
+  }
+}

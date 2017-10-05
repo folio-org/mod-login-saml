@@ -15,6 +15,7 @@ import org.folio.config.SamlConfigHolder;
 import org.folio.config.model.SamlClientComposite;
 import org.folio.config.model.SamlConfiguration;
 import org.folio.rest.jaxrs.model.SamlCheck;
+import org.folio.rest.jaxrs.model.SamlConfig;
 import org.folio.rest.jaxrs.model.SamlLogin;
 import org.folio.rest.jaxrs.model.SamlLoginRequest;
 import org.folio.rest.jaxrs.resource.SamlResource;
@@ -70,6 +71,7 @@ public class SamlAPI implements SamlResource {
         }
       });
   }
+
 
   @Override
   public void postSamlLogin(SamlLoginRequest requestEntity, RoutingContext routingContext, Map<String, String> okapiHeaders,
@@ -246,6 +248,50 @@ public class SamlAPI implements SamlResource {
         }
       });
   }
+
+
+  @Override
+  public void getSamlConfiguration(Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+
+    SamlConfig dto = new SamlConfig()
+      .withCoreConfigurationChanged(true)
+      .withIdpUrl(URI.create("http://hello.com"))
+      .withSamlAttribute("UserID")
+      .withSamlBinding(SamlConfig.SamlBinding.POST)
+      .withUserProperty("externalUserId");
+
+    asyncResultHandler.handle(Future.succeededFuture(GetSamlConfigurationResponse.withJsonOK(dto)));
+  }
+
+
+  @Override
+  public void putSamlConfiguration(Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+
+    SamlConfig dto = new SamlConfig()
+      .withCoreConfigurationChanged(true)
+      .withIdpUrl(URI.create("http://hello.com"))
+      .withSamlAttribute("UserID")
+      .withSamlBinding(SamlConfig.SamlBinding.POST)
+      .withUserProperty("externalUserId");
+
+    asyncResultHandler.handle(Future.succeededFuture(PutSamlConfigurationResponse.withJsonOK(dto)));
+
+
+  }
+
+  @Override
+  public void postSamlConfiguration(Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+
+    SamlConfig dto = new SamlConfig()
+      .withCoreConfigurationChanged(true)
+      .withIdpUrl(URI.create("http://hello.com"))
+      .withSamlAttribute("UserID")
+      .withSamlBinding(SamlConfig.SamlBinding.POST)
+      .withUserProperty("externalUserId");
+
+    asyncResultHandler.handle(Future.succeededFuture(PostSamlConfigurationResponse.withJsonOK(dto)));
+  }
+
 
   private Future<String> regenerateSaml2Config(RoutingContext routingContext) {
 

@@ -11,6 +11,8 @@ schemas:
   - SamlCheck: !include schemas/SamlCheck.json
   - SamlLogin: !include schemas/SamlLogin.json
   - SamlLoginRequest: !include schemas/SamlLoginRequest.json
+  - SamlConfigurationRequest: !include schemas/SamlConfigurationRequest.json
+  - SamlConfig: !include schemas/SamlConfig.json
 
 /saml:
   /regenerate:
@@ -95,3 +97,23 @@ schemas:
           body:
             text/plain:
               example: "Internal server error"
+  /configuration:
+    get:
+      responses:
+        200:
+          body:
+            application/json:
+              schema: SamlConfig
+    put:
+      description: Save SAML module configuration
+      responses:
+        200:
+          body:
+            application/json:
+              schema: SamlConfig
+    post:
+      responses:
+        200:
+          body:
+            application/json:
+              schema: SamlConfig

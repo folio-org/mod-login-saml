@@ -44,7 +44,7 @@ public class SamlClientLoader {
     final String okapiUrl = okapiHeaders.getUrl();
     final String tenantId = okapiHeaders.getTenant();
 
-    ConfigurationsClient.getConfiguration(okapiHeaders, routingContext.vertx())
+    ConfigurationsClient.getConfiguration(okapiHeaders)
       .compose(samlConfiguration -> {
 
         final Future<SamlClientComposite> clientInstantiationFuture = Future.future();
