@@ -9,6 +9,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.folio.config.model.SAML2ClientMock;
 import org.folio.config.model.SamlClientComposite;
+import org.folio.config.model.SamlConfiguration;
 import org.folio.rest.tools.client.test.HttpClientMock2;
 import org.folio.util.OkapiHelper;
 import org.folio.util.VertxUtils;
@@ -24,8 +25,6 @@ import org.springframework.util.StringUtils;
 import java.net.MalformedURLException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-
-import static org.folio.config.ConfigurationsClient.*;
 
 /**
  * Load Pac4j {@link SAML2Client} from configuration
@@ -163,9 +162,9 @@ public class SamlClientLoader {
 
           // store in mod-configuration with passwords, wait for all operations to finish
           CompositeFuture.all(
-            ConfigurationsClient.storeEntry(okapiHeaders, vertx, KEYSTORE_FILE_CODE, encodedBytes.toString(StandardCharsets.UTF_8)),
-            ConfigurationsClient.storeEntry(okapiHeaders, vertx, KEYSTORE_PASSWORD_CODE, keystorePassword),
-            ConfigurationsClient.storeEntry(okapiHeaders, vertx, KEYSTORE_PRIVATEKEY_PASSWORD_CODE, privateKeyPassword)
+            ConfigurationsClient.storeEntry(okapiHeaders, vertx, SamlConfiguration.KEYSTORE_FILE_CODE, encodedBytes.toString(StandardCharsets.UTF_8)),
+            ConfigurationsClient.storeEntry(okapiHeaders, vertx, SamlConfiguration.KEYSTORE_PASSWORD_CODE, keystorePassword),
+            ConfigurationsClient.storeEntry(okapiHeaders, vertx, SamlConfiguration.KEYSTORE_PRIVATEKEY_PASSWORD_CODE, privateKeyPassword)
           ).setHandler(allConfiguratiuonsStoredHandler -> {
             if (allConfiguratiuonsStoredHandler.failed()) {
               future.fail(allConfiguratiuonsStoredHandler.cause());

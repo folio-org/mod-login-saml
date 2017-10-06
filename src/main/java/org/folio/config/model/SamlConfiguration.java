@@ -1,21 +1,38 @@
 package org.folio.config.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * POJO for strongly typed configuration client
  *
  * @author rsass
  */
-@JsonIgnoreProperties()
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class SamlConfiguration {
 
+  public static final String KEYSTORE_FILE_CODE = "keystore.file";
+  public static final String KEYSTORE_PASSWORD_CODE = "keystore.password"; // NOSONAR
+  public static final String KEYSTORE_PRIVATEKEY_PASSWORD_CODE = "keystore.privatekey.password"; // NOSONAR
+  public static final String IDP_URL_CODE = "idp.url";
+  public static final String SAML_BINDING_CODE = "saml.binding";
+  public static final String SAML_ATTRIBUTE_CODE = "saml.attribute";
+  public static final String USER_PROPERTY_CODE = "user.property";
+
+
+  @JsonProperty(IDP_URL_CODE)
   private String idpUrl;
+  @JsonProperty(KEYSTORE_FILE_CODE)
   private String keystore;
+  @JsonProperty(KEYSTORE_PASSWORD_CODE)
   private String keystorePassword;
+  @JsonProperty(KEYSTORE_PRIVATEKEY_PASSWORD_CODE)
   private String privateKeyPassword;
+  @JsonProperty(SAML_BINDING_CODE)
   private String samlBinding;
+  @JsonProperty(SAML_ATTRIBUTE_CODE)
   private String samlAttribute;
+  @JsonProperty(USER_PROPERTY_CODE)
   private String userProperty;
 
   public String getIdpUrl() {

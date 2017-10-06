@@ -29,14 +29,6 @@ public class ConfigurationsClient {
 
   private static final Logger log = LoggerFactory.getLogger(ConfigurationsClient.class);
 
-  public static final String KEYSTORE_FILE_CODE = "keystore.file";
-  public static final String KEYSTORE_PASSWORD_CODE = "keystore.password"; // NOSONAR
-  public static final String KEYSTORE_PRIVATEKEY_PASSWORD_CODE = "keystore.privatekey.password"; // NOSONAR
-  public static final String IDP_URL_CODE = "idp.url";
-  public static final String SAML_BINDING_CODE = "saml.binding";
-  public static final String SAML_ATTRIBUTE_CODE = "saml.attribute";
-  public static final String USER_PROPERTY_CODE = "user.property";
-
   public static final String CONFIGURATIONS_ENTRIES_ENDPOINT_URL = "/configurations/entries";
   public static final String MODULE_NAME = "LOGIN-SAML";
   public static final String CONFIG_NAME = "saml";
@@ -68,46 +60,14 @@ public class ConfigurationsClient {
       httpClient.request(CONFIGURATIONS_ENTRIES_ENDPOINT_URL + "?query=" + encodedQuery) // this is ugly :/
         .whenComplete((Response response, Throwable throwable) -> {
           if (Response.isSuccess(response.getCode())) {
-            SamlConfiguration conf = new SamlConfiguration();
+
             JsonObject responseBody = response.getBody();
-
             JsonArray configs = responseBody.getJsonArray("configs"); //{"configs": [],"total_records": 0}
-            configs.forEach(entry -> {
-              if (entry instanceof JsonObject) {
-
-                JsonObject entryAsJsonObject = JsonObject.class.cast(entry);
-                String code = entryAsJsonObject.getString("code");
-                String value = entryAsJsonObject.getString("value");
-
-                switch (code) {
-                  case KEYSTORE_FILE_CODE:
-                    conf.setKeystore(value);
-                    break;
-                  case KEYSTORE_PASSWORD_CODE:
-                    conf.setKeystorePassword(value);
-                    break;
-                  case KEYSTORE_PRIVATEKEY_PASSWORD_CODE:
-                    conf.setPrivateKeyPassword(value);
-                    break;
-                  case IDP_URL_CODE:
-                    conf.setIdpUrl(value);
-                    break;
-                  case SAML_BINDING_CODE:
-                    conf.setSamlBinding(value);
-                    break;
-                  case SAML_ATTRIBUTE_CODE:
-                    conf.setSamlAttribute(value);
-                    break;
-                  case USER_PROPERTY_CODE:
-                    conf.setUserProperty(value);
-                    break;
-                  default:
-                    log.warn("Unknown SAML configuration entry. Code: {}, Value: {}", code, value);
-                }
-              }
-            });
-
-            future.complete(conf);
+            try {
+              future.complete(ConfigurationObjectMapper.map(configs, SamlConfiguration.class));
+            } catch (Exception ex) {
+              future.fail(ex);
+            }
 
           } else {
             log.warn("Cannot get configuration data: " + response.getError().toString());
