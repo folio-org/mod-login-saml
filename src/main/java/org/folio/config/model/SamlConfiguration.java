@@ -18,6 +18,7 @@ public class SamlConfiguration {
   public static final String SAML_BINDING_CODE = "saml.binding";
   public static final String SAML_ATTRIBUTE_CODE = "saml.attribute";
   public static final String USER_PROPERTY_CODE = "user.property";
+  public static final String METADATA_INVALIDATED_CODE = "metadata.invalidated";
 
 
   @JsonProperty(IDP_URL_CODE)
@@ -34,6 +35,8 @@ public class SamlConfiguration {
   private String samlAttribute;
   @JsonProperty(USER_PROPERTY_CODE)
   private String userProperty;
+  @JsonProperty(METADATA_INVALIDATED_CODE)
+  private String metadataInvalidated = "true";
 
   public String getIdpUrl() {
     return idpUrl;
@@ -89,5 +92,13 @@ public class SamlConfiguration {
 
   public void setUserProperty(String userProperty) {
     this.userProperty = userProperty;
+  }
+
+  public String getMetadataInvalidated() {
+    return metadataInvalidated;
+  }
+
+  public void setMetadataInvalidated(String metadataInvalidated) {
+    this.metadataInvalidated = metadataInvalidated;
   }
 }

@@ -5,10 +5,12 @@ import io.restassured.http.ContentType;
 import io.restassured.http.Header;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.folio.rest.RestVerticle;
+import org.folio.rest.jaxrs.model.SamlConfigRequest;
 import org.folio.rest.tools.client.test.HttpClientMock2;
 import org.folio.util.TestingClasspathResolver;
 import org.junit.After;
@@ -18,6 +20,7 @@ import org.junit.runner.RunWith;
 import org.w3c.dom.ls.LSResourceResolver;
 
 import java.io.IOException;
+import java.net.URI;
 import java.net.URLEncoder;
 
 import static io.restassured.RestAssured.given;
@@ -156,6 +159,51 @@ public class SamlAPITest {
       .header("Location", containsString(URLEncoder.encode(testPath, "UTF-8")))
       .header("x-okapi-token", "saml-token")
       .cookie("ssoToken", "saml-token");
+
+  }
+
+  @Test
+  public void getConfigurationEndpoint() {
+
+    // GET
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .header(JSON_CONTENT_TYPE_HEADER)
+      .get("/saml/configuration")
+      .then()
+      .statusCode(200)
+      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"))
+      .body("idpUrl", equalTo("https://idp.ssocircle.com"))
+      .body("samlBinding", equalTo("POST"))
+      .body("metadataInvalidated", equalTo(Boolean.FALSE));
+  }
+
+  @Test
+  public void putConfigurationEndpoint() {
+
+
+    SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
+      .withIdpUrl(URI.create("http://localhost"))
+      .withSamlAttribute("UserID")
+      .withSamlBinding(SamlConfigRequest.SamlBinding.POST)
+      .withUserProperty("externalSystemId");
+
+    String jsonString = Json.encode(samlConfigRequest);
+
+    // PUT
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .header(JSON_CONTENT_TYPE_HEADER)
+      .body(jsonString)
+      .put("/saml/configuration")
+      .then()
+      .statusCode(200)
+      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"));
+
 
   }
 

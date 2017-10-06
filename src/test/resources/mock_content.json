@@ -33,6 +33,20 @@
             "configName": "saml",
             "code": "keystore.privatekey.password",
             "value": "iOzPffanq1xj"
+          },
+          {
+            "id": "2dd0d26d-3be4-4e80-a631-f7bda5311719",
+            "module": "LOGIN-SAML",
+            "configName": "saml",
+            "code": "saml.binding",
+            "value": "POST"
+          },
+          {
+            "id": "717bf1d1-a5a3-460f-a0de-29e6b70a0027",
+            "module": "LOGIN-SAML",
+            "configName": "saml",
+            "code": "metadata.invalidated",
+            "value": "false"
           }
         ],
         "totalRecords": 4

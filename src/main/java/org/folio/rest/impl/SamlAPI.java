@@ -1,5 +1,6 @@
 package org.folio.rest.impl;
 
+import com.google.common.base.Strings;
 import io.vertx.core.*;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
@@ -10,14 +11,12 @@ import io.vertx.ext.auth.PRNG;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.Session;
 import io.vertx.ext.web.sstore.impl.SessionImpl;
+import org.folio.config.ConfigurationsClient;
 import org.folio.config.SamlClientLoader;
 import org.folio.config.SamlConfigHolder;
 import org.folio.config.model.SamlClientComposite;
 import org.folio.config.model.SamlConfiguration;
-import org.folio.rest.jaxrs.model.SamlCheck;
-import org.folio.rest.jaxrs.model.SamlConfig;
-import org.folio.rest.jaxrs.model.SamlLogin;
-import org.folio.rest.jaxrs.model.SamlLoginRequest;
+import org.folio.rest.jaxrs.model.*;
 import org.folio.rest.jaxrs.resource.SamlResource;
 import org.folio.rest.tools.client.HttpClientFactory;
 import org.folio.rest.tools.client.interfaces.HttpClientInterface;
@@ -253,23 +252,41 @@ public class SamlAPI implements SamlResource {
   @Override
   public void getSamlConfiguration(Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
 
-    SamlConfig dto = new SamlConfig()
-      .withCoreConfigurationChanged(true)
-      .withIdpUrl(URI.create("http://hello.com"))
-      .withSamlAttribute("UserID")
-      .withSamlBinding(SamlConfig.SamlBinding.POST)
-      .withUserProperty("externalUserId");
+    ConfigurationsClient.getConfiguration(OkapiHelper.okapiHeaders(okapiHeaders))
+      .setHandler(configurationResult -> {
 
-    asyncResultHandler.handle(Future.succeededFuture(GetSamlConfigurationResponse.withJsonOK(dto)));
+        AsyncResult<SamlConfig> result = configurationResult.map((config) -> {
+
+          return new SamlConfig()
+            .withIdpUrl(URI.create(config.getIdpUrl()))
+            .withSamlAttribute(config.getSamlAttribute())
+            .withSamlBinding(Strings.isNullOrEmpty(config.getSamlBinding()) ? null : SamlConfig.SamlBinding.fromValue(config.getSamlBinding()))
+            .withUserProperty(config.getUserProperty())
+            .withMetadataInvalidated(Boolean.valueOf(config.getMetadataInvalidated()));
+
+        });
+
+        if (result.failed()) {
+          log.warn("Cannot load configuration", result.cause());
+          asyncResultHandler.handle(
+            Future.succeededFuture(
+              GetSamlConfigurationResponse.withPlainInternalServerError("Cannot get configuration")));
+        } else {
+          asyncResultHandler.handle(Future.succeededFuture(GetSamlConfigurationResponse.withJsonOK(result.result())));
+        }
+
+      });
+
   }
 
 
   @Override
-  public void putSamlConfiguration(Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+  public void putSamlConfiguration(SamlConfigRequest entity, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
 
+    // TODO remove mock
     SamlConfig dto = new SamlConfig()
-      .withCoreConfigurationChanged(true)
-      .withIdpUrl(URI.create("http://hello.com"))
+      .withMetadataInvalidated(true)
+      .withIdpUrl(URI.create("http://localhost"))
       .withSamlAttribute("UserID")
       .withSamlBinding(SamlConfig.SamlBinding.POST)
       .withUserProperty("externalUserId");
@@ -278,20 +295,6 @@ public class SamlAPI implements SamlResource {
 
 
   }
-
-  @Override
-  public void postSamlConfiguration(Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
-
-    SamlConfig dto = new SamlConfig()
-      .withCoreConfigurationChanged(true)
-      .withIdpUrl(URI.create("http://hello.com"))
-      .withSamlAttribute("UserID")
-      .withSamlBinding(SamlConfig.SamlBinding.POST)
-      .withUserProperty("externalUserId");
-
-    asyncResultHandler.handle(Future.succeededFuture(PostSamlConfigurationResponse.withJsonOK(dto)));
-  }
-
 
   private Future<String> regenerateSaml2Config(RoutingContext routingContext) {
 
