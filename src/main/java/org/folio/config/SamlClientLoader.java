@@ -76,6 +76,7 @@ public class SamlClientLoader {
 
               vertx.executeBlocking(blockingHandler -> {
                   saml2Client.init(VertxUtils.createWebContext(routingContext));
+//                  saml2Client.init(null); // todo: remove web context ?
                   blockingHandler.complete();
                 },
                 samlClientInitHandler -> {
@@ -162,9 +163,10 @@ public class SamlClientLoader {
 
           // store in mod-configuration with passwords, wait for all operations to finish
           CompositeFuture.all(
-            ConfigurationsClient.storeEntry(okapiHeaders, vertx, SamlConfiguration.KEYSTORE_FILE_CODE, encodedBytes.toString(StandardCharsets.UTF_8)),
-            ConfigurationsClient.storeEntry(okapiHeaders, vertx, SamlConfiguration.KEYSTORE_PASSWORD_CODE, keystorePassword),
-            ConfigurationsClient.storeEntry(okapiHeaders, vertx, SamlConfiguration.KEYSTORE_PRIVATEKEY_PASSWORD_CODE, privateKeyPassword)
+            ConfigurationsClient.storeEntry(okapiHeaders, SamlConfiguration.KEYSTORE_FILE_CODE, encodedBytes.toString(StandardCharsets.UTF_8)),
+            ConfigurationsClient.storeEntry(okapiHeaders, SamlConfiguration.KEYSTORE_PASSWORD_CODE, keystorePassword),
+            ConfigurationsClient.storeEntry(okapiHeaders, SamlConfiguration.KEYSTORE_PRIVATEKEY_PASSWORD_CODE, privateKeyPassword),
+            ConfigurationsClient.storeEntry(okapiHeaders, SamlConfiguration.METADATA_INVALIDATED_CODE, "true") // if keystore modified, current metasata is invalid.
           ).setHandler(allConfiguratiuonsStoredHandler -> {
             if (allConfiguratiuonsStoredHandler.failed()) {
               future.fail(allConfiguratiuonsStoredHandler.cause());

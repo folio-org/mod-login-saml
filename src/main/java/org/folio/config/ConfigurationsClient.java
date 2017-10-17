@@ -2,8 +2,8 @@ package org.folio.config;
 
 
 import com.google.common.base.Strings;
+import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
-import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -18,7 +18,10 @@ import org.springframework.util.Assert;
 
 import java.net.URLEncoder;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * Connect to mod-configuration via Okapi
@@ -83,8 +86,39 @@ public class ConfigurationsClient {
     return future;
   }
 
+  public static Future<SamlConfiguration> storeEntries(OkapiHeaders headers, Map<String, String> entries) {
 
-  public static Future<Void> storeEntry(OkapiHeaders okapiHeaders, Vertx vertx, String code, String value) {
+    Objects.requireNonNull(headers);
+    Objects.requireNonNull(entries);
+
+    Future<SamlConfiguration> result = Future.future();
+
+    List<Future> futures = entries.entrySet().stream()
+      .map(entry -> ConfigurationsClient.storeEntry(headers, entry.getKey(), entry.getValue()))
+      .collect(Collectors.toList());
+
+    CompositeFuture.all(futures).setHandler(compositeEvent -> {
+      if (compositeEvent.succeeded()) {
+        ConfigurationsClient.getConfiguration(headers).setHandler(newConfigHandler -> {
+
+          if (newConfigHandler.succeeded()) {
+            result.complete(newConfigHandler.result());
+          } else {
+            result.fail(newConfigHandler.cause());
+          }
+
+        });
+      } else {
+        log.warn("Cannot save configuration entries: " + compositeEvent.cause());
+        result.fail(compositeEvent.cause());
+      }
+    });
+
+    return result;
+  }
+
+
+  public static Future<Void> storeEntry(OkapiHeaders okapiHeaders, String code, String value) {
 
     Assert.hasText(code, "config entry CODE is mandatory");
 
@@ -98,6 +132,7 @@ public class ConfigurationsClient {
       return Future.failedFuture("Missing Token");
     }
 
+
     Future<Void> result = Future.future();
 
     JsonObject requestBody = new JsonObject();
@@ -108,7 +143,7 @@ public class ConfigurationsClient {
       .put("value", value);
 
     // decide to POST or PUT
-    checkEntry(okapiHeaders, vertx, code).setHandler(checkHandler -> {
+    checkEntry(okapiHeaders, code).setHandler(checkHandler -> {
       if (checkHandler.failed()) {
         result.fail(checkHandler.cause());
       } else {
@@ -154,7 +189,7 @@ public class ConfigurationsClient {
   /**
    * Complete future with found config entry id, or null, if not found
    */
-  public static Future<String> checkEntry(OkapiHeaders okapiHeaders, Vertx vertx, String code) {
+  public static Future<String> checkEntry(OkapiHeaders okapiHeaders, String code) {
     Future<String> result = Future.future();
 
     if (Strings.isNullOrEmpty(okapiHeaders.getUrl())) {
@@ -179,7 +214,7 @@ public class ConfigurationsClient {
         .whenComplete((checkEntryResponse, throwable) -> {
           if (checkEntryResponse.getCode() != 200) {
             result.fail("Failed to check configuration entry: " + code
-              + "HTTP result was " + checkEntryResponse.getCode() + " " + String.valueOf(checkEntryResponse.getBody()));
+              + " HTTP result was " + checkEntryResponse.getCode() + " " + String.valueOf(checkEntryResponse.getBody()));
           } else {
             JsonObject entries = checkEntryResponse.getBody();
             JsonArray configs = entries.getJsonArray("configs");

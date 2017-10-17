@@ -22,10 +22,7 @@ import org.folio.rest.tools.client.HttpClientFactory;
 import org.folio.rest.tools.client.interfaces.HttpClientInterface;
 import org.folio.rest.tools.utils.BinaryOutStream;
 import org.folio.session.NoopSession;
-import org.folio.util.HttpActionMapper;
-import org.folio.util.OkapiHelper;
-import org.folio.util.UrlUtil;
-import org.folio.util.VertxUtils;
+import org.folio.util.*;
 import org.folio.util.model.OkapiHeaders;
 import org.pac4j.core.exception.HttpAction;
 import org.pac4j.core.redirect.RedirectAction;
@@ -250,7 +247,7 @@ public class SamlAPI implements SamlResource {
 
 
   @Override
-  public void getSamlConfiguration(Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+  public void getSamlConfiguration(RoutingContext rc, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
 
     ConfigurationsClient.getConfiguration(OkapiHelper.okapiHeaders(okapiHeaders))
       .setHandler(configurationResult -> {
@@ -281,18 +278,57 @@ public class SamlAPI implements SamlResource {
 
 
   @Override
-  public void putSamlConfiguration(SamlConfigRequest entity, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+  public void putSamlConfiguration(SamlConfigRequest updatedConfig, RoutingContext rc, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
 
-    // TODO remove mock
-    SamlConfig dto = new SamlConfig()
-      .withMetadataInvalidated(true)
-      .withIdpUrl(URI.create("http://localhost"))
-      .withSamlAttribute("UserID")
-      .withSamlBinding(SamlConfig.SamlBinding.POST)
-      .withUserProperty("externalUserId");
+    OkapiHeaders parsedHeaders = OkapiHelper.okapiHeaders(okapiHeaders);
+    ConfigurationsClient.getConfiguration(parsedHeaders)
+      .setHandler(configRes -> {
+        if (configRes.failed()) {
+          asyncResultHandler.handle(Future.succeededFuture(
+            PutSamlConfigurationResponse.withPlainInternalServerError(configRes.cause() != null ? configRes.cause().getMessage() : "Cannot load current configuration")));
+        } else {
 
-    asyncResultHandler.handle(Future.succeededFuture(PutSamlConfigurationResponse.withJsonOK(dto)));
+          Map<String, String> updateEntries = new HashMap<>();
 
+          SamlConfiguration config = configRes.result();
+
+          ConfigEntryUtil.valueChanged(config.getIdpUrl(), updatedConfig.getIdpUrl().toString(), idpUrl -> {
+            updateEntries.put(SamlConfiguration.IDP_URL_CODE, idpUrl);
+            updateEntries.put(SamlConfiguration.METADATA_INVALIDATED_CODE, "true");
+          });
+
+          ConfigEntryUtil.valueChanged(config.getSamlBinding(), updatedConfig.getSamlBinding().toString(), samlBindingCode ->
+            updateEntries.put(SamlConfiguration.SAML_BINDING_CODE, samlBindingCode));
+
+          ConfigEntryUtil.valueChanged(config.getSamlAttribute(), updatedConfig.getSamlAttribute(), samlAttribute ->
+            updateEntries.put(SamlConfiguration.SAML_ATTRIBUTE_CODE, samlAttribute));
+
+          ConfigEntryUtil.valueChanged(config.getUserProperty(), updatedConfig.getUserProperty(), userProperty ->
+            updateEntries.put(SamlConfiguration.USER_PROPERTY_CODE, userProperty));
+
+          findSaml2Client(rc, true, true)
+            .setHandler(event -> {
+              if (event.failed()) {
+                asyncResultHandler.handle(Future.succeededFuture(
+                  PutSamlConfigurationResponse.withPlainInternalServerError(event.cause() != null ? event.cause().getMessage() : "Cannot reload current configuration")));
+              } else {
+
+                SamlConfiguration newConf = event.result().getConfiguration();
+
+                SamlConfig dto = new SamlConfig()
+                  .withIdpUrl(URI.create(newConf.getIdpUrl()))
+                  .withSamlAttribute(newConf.getSamlAttribute())
+                  .withSamlBinding(Strings.isNullOrEmpty(newConf.getSamlBinding()) ? null : SamlConfig.SamlBinding.fromValue(newConf.getSamlBinding()))
+                  .withUserProperty(newConf.getUserProperty())
+                  .withMetadataInvalidated(Boolean.valueOf(newConf.getMetadataInvalidated()));
+
+                asyncResultHandler.handle(Future.succeededFuture(PutSamlConfigurationResponse.withJsonOK(dto)));
+
+              }
+            });
+
+        }
+      });
 
   }
 
@@ -301,7 +337,7 @@ public class SamlAPI implements SamlResource {
     Future<String> result = Future.future();
     final Vertx vertx = routingContext.vertx();
 
-    findSaml2Client(routingContext, true, true) // generate KeyStore if missing
+    findSaml2Client(routingContext, false, false) // generate KeyStore if missing
       .setHandler(handler -> {
         if (handler.failed()) {
           result.fail(handler.cause());

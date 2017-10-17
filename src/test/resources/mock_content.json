@@ -55,6 +55,73 @@
       "sendData": {}
     },
     {
+      "url": "/configurations/entries?query=%28module%3D%3DLOGIN-SAML+AND+configName%3D%3Dsaml+AND+code%3D%3D+saml.attribute%29",
+      "method": "get",
+      "status": 200,
+      "receivedData": {
+        "totalRecords": 0,
+        "configs": []
+      }
+    },
+    {
+      "url": "/configurations/entries?query=%28module%3D%3DLOGIN-SAML+AND+configName%3D%3Dsaml+AND+code%3D%3D+idp.url%29",
+      "method": "get",
+      "status": 200,
+      "receivedData": {
+        "totalRecords": 1,
+        "configs": [
+          {
+            "id": "60eead4f-de97-437c-9cb7-09966ce50e49",
+            "module": "LOGIN-SAML",
+            "configName": "saml",
+            "code": "idp.url",
+            "value": "https://idp.ssocircle.com"
+          }
+        ]
+      }
+    },
+    {
+      "url": "/configurations/entries?query=%28module%3D%3DLOGIN-SAML+AND+configName%3D%3Dsaml+AND+code%3D%3D+metadata.invalidated%29",
+      "method": "get",
+      "status": 200,
+      "receivedData": {
+        "totalRecords": 1,
+        "configs": [
+          {
+            "id": "717bf1d1-a5a3-460f-a0de-29e6b70a0027",
+            "module": "LOGIN-SAML",
+            "configName": "saml",
+            "code": "metadata.invalidated",
+            "value": "false"
+          }
+        ]
+      }
+    },
+    {
+      "url": "/configurations/entries?query=%28module%3D%3DLOGIN-SAML+AND+configName%3D%3Dsaml+AND+code%3D%3D+user.property%29",
+      "method": "get",
+      "status": 200,
+      "receivedData": {
+        "totalRecords": 0,
+        "configs": []
+      }
+    },
+    {
+      "url": "/configurations/entries",
+      "method": "post",
+      "status": 201
+    },
+    {
+      "url": "/configurations/entries/60eead4f-de97-437c-9cb7-09966ce50e49",
+      "method": "put",
+      "status": 204
+    },
+    {
+      "url": "/configurations/entries/717bf1d1-a5a3-460f-a0de-29e6b70a0027",
+      "method": "put",
+      "status": 204
+    },
+    {
       "url": "/users?query=externalSystemId%3D%3D%22saml-user-id%22",
       "method": "get",
       "status": 200,

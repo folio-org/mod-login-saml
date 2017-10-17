@@ -29,7 +29,8 @@
     <maven.compiler.target>1.8</maven.compiler.target>
 
     <folio.domain-models-runtime.version>15.0.0</folio.domain-models-runtime.version>
-    <generate_routing_context>/saml/callback,/saml/regenerate,/saml/login,/saml/check</generate_routing_context>
+    <generate_routing_context>/saml/callback,/saml/regenerate,/saml/login,/saml/check,/saml/configuration
+    </generate_routing_context>
 
     <vertx.version>3.4.1</vertx.version>
     <pac4j.version>2.0.0</pac4j.version>
