@@ -167,9 +167,13 @@ public class SamlClientLoader {
             ConfigurationsClient.storeEntry(okapiHeaders, SamlConfiguration.KEYSTORE_PASSWORD_CODE, keystorePassword),
             ConfigurationsClient.storeEntry(okapiHeaders, SamlConfiguration.KEYSTORE_PRIVATEKEY_PASSWORD_CODE, privateKeyPassword),
             ConfigurationsClient.storeEntry(okapiHeaders, SamlConfiguration.METADATA_INVALIDATED_CODE, "true") // if keystore modified, current metasata is invalid.
-          ).setHandler(allConfiguratiuonsStoredHandler -> {
-            if (allConfiguratiuonsStoredHandler.failed()) {
-              future.fail(allConfiguratiuonsStoredHandler.cause());
+          ).setHandler(allConfigurationsStoredHandler -> {
+
+            if (allConfigurationsStoredHandler.failed()) {
+              vertx.fileSystem().delete(keystoreFileName, deleteResult -> {
+                // it is already a failed operation, deleteResult is not important
+                future.fail(allConfigurationsStoredHandler.cause());
+              });
             } else {
               // delete the file
               vertx.fileSystem().delete(keystoreFileName, deleteResult -> {

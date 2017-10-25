@@ -157,13 +157,20 @@ public class ConfigurationsClient {
         headers.put(OkapiHeaders.OKAPI_TOKEN_HEADER, okapiHeaders.getToken());
 
         try {
-          HttpClientInterface storeEntryClient = HttpClientFactory.getHttpClient(okapiHeaders.getUrl(), okapiHeaders.getTenant());
+          HttpClientInterface storeEntryClient = HttpClientFactory.getHttpClient(okapiHeaders.getUrl(), okapiHeaders.getTenant(), true);
           storeEntryClient.setDefaultHeaders(headers);
           storeEntryClient.request(httpMethod, requestBody, endpoint, null)
             .whenComplete((storeEntryResponse, throwable) -> {
 
+              if (storeEntryResponse == null) {
+                if (throwable == null) {
+                  result.fail("Cannot " + httpMethod.toString() + " configuration entry");
+                } else {
+                  result.fail(throwable);
+                }
+              }
               // POST->201 created, PUT->204 no content
-              if ((httpMethod.equals(HttpMethod.POST) && storeEntryResponse.getCode() == 201)
+              else if ((httpMethod.equals(HttpMethod.POST) && storeEntryResponse.getCode() == 201)
                 || (httpMethod.equals(HttpMethod.PUT) && storeEntryResponse.getCode() == 204)) {
 
                 result.complete();
@@ -208,7 +215,7 @@ public class ConfigurationsClient {
 
       Map<String, String> headers = new HashMap<>();
       headers.put(OkapiHeaders.OKAPI_TOKEN_HEADER, okapiHeaders.getToken());
-      HttpClientInterface checkEntryClient = HttpClientFactory.getHttpClient(okapiHeaders.getUrl(), okapiHeaders.getTenant());
+      HttpClientInterface checkEntryClient = HttpClientFactory.getHttpClient(okapiHeaders.getUrl(), okapiHeaders.getTenant(), true);
       checkEntryClient.setDefaultHeaders(headers);
       checkEntryClient.request(CONFIGURATIONS_ENTRIES_ENDPOINT_URL + "?query=" + encodedQuery)
         .whenComplete((checkEntryResponse, throwable) -> {
