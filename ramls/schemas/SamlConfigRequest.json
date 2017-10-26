@@ -13,15 +13,15 @@
         "POST",
         "REDIRECT"
       ],
-      "required": false
+      "required": true
     },
     "samlAttribute": {
       "type": "string",
-      "required": false
+      "required": true
     },
     "userProperty": {
       "type": "string",
-      "required": false
+      "required": true
     }
   }
 }

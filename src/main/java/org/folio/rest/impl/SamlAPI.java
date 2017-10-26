@@ -326,7 +326,7 @@ public class SamlAPI implements SamlResource {
                       SamlConfiguration newConf = configurationLoadEvent.result().getConfiguration();
 
                       SamlConfig dto = new SamlConfig()
-                        .withIdpUrl(URI.create(newConf.getIdpUrl()))
+                        .withIdpUrl(StringUtils.hasText(newConf.getIdpUrl()) ? URI.create(newConf.getIdpUrl()) : URI.create(""))
                         .withSamlAttribute(newConf.getSamlAttribute())
                         .withSamlBinding(Strings.isNullOrEmpty(newConf.getSamlBinding()) ? null : SamlConfig.SamlBinding.fromValue(newConf.getSamlBinding()))
                         .withUserProperty(newConf.getUserProperty())
