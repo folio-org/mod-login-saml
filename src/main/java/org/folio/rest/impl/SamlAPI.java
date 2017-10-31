@@ -1,6 +1,5 @@
 package org.folio.rest.impl;
 
-import com.google.common.base.Strings;
 import io.vertx.core.*;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
@@ -260,12 +259,7 @@ public class SamlAPI implements SamlResource {
     ConfigurationsClient.getConfiguration(OkapiHelper.okapiHeaders(okapiHeaders))
       .setHandler(configurationResult -> {
 
-        AsyncResult<SamlConfig> result = configurationResult.map(config -> new SamlConfig()
-          .withIdpUrl(URI.create(config.getIdpUrl()))
-          .withSamlAttribute(config.getSamlAttribute())
-          .withSamlBinding(Strings.isNullOrEmpty(config.getSamlBinding()) ? null : SamlConfig.SamlBinding.fromValue(config.getSamlBinding()))
-          .withUserProperty(config.getUserProperty())
-          .withMetadataInvalidated(Boolean.valueOf(config.getMetadataInvalidated())));
+        AsyncResult<SamlConfig> result = configurationResult.map(this::configToDto);
 
         if (result.failed()) {
           log.warn("Cannot load configuration", result.cause());
@@ -324,13 +318,7 @@ public class SamlAPI implements SamlResource {
                     } else {
 
                       SamlConfiguration newConf = configurationLoadEvent.result().getConfiguration();
-
-                      SamlConfig dto = new SamlConfig()
-                        .withIdpUrl(StringUtils.hasText(newConf.getIdpUrl()) ? URI.create(newConf.getIdpUrl()) : URI.create(""))
-                        .withSamlAttribute(newConf.getSamlAttribute())
-                        .withSamlBinding(Strings.isNullOrEmpty(newConf.getSamlBinding()) ? null : SamlConfig.SamlBinding.fromValue(newConf.getSamlBinding()))
-                        .withUserProperty(newConf.getUserProperty())
-                        .withMetadataInvalidated(Boolean.valueOf(newConf.getMetadataInvalidated()));
+                      SamlConfig dto = configToDto(newConf);
 
                       asyncResultHandler.handle(Future.succeededFuture(PutSamlConfigurationResponse.withJsonOK(dto)));
 
@@ -420,6 +408,32 @@ public class SamlAPI implements SamlResource {
    */
   private void registerFakeSession(RoutingContext routingContext) {
     routingContext.setSession(new NoopSession());
+  }
+
+  /**
+   * Converts internal {@link SamlConfiguration} object to DTO, checks illegal values
+   */
+  private SamlConfig configToDto(SamlConfiguration config) {
+    SamlConfig samlConfig = new SamlConfig()
+      .withSamlAttribute(config.getSamlAttribute())
+      .withUserProperty(config.getUserProperty())
+      .withMetadataInvalidated(Boolean.valueOf(config.getMetadataInvalidated()));
+
+    try {
+      URI uri = URI.create(config.getIdpUrl());
+      samlConfig.setIdpUrl(uri);
+    } catch (Exception x) {
+      samlConfig.setIdpUrl(URI.create(""));
+    }
+
+    try {
+      SamlConfig.SamlBinding samlBinding = SamlConfig.SamlBinding.fromValue(config.getSamlBinding());
+      samlConfig.setSamlBinding(samlBinding);
+    } catch (Exception x) {
+      samlConfig.setSamlBinding(null);
+    }
+
+    return samlConfig;
   }
 
 }
