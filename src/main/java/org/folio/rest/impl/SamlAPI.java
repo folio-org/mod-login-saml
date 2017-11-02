@@ -245,13 +245,12 @@ public class SamlAPI implements SamlResource {
                 String metadata = regenerationHandler.result();
                 BinaryOutStream outStream = new BinaryOutStream();
                 outStream.setData(metadata.getBytes(StandardCharsets.UTF_8));
-                asyncResultHandler.handle(Future.succeededFuture(GetSamlRegenerateResponse.withXmlOK("attachment; filename=sp-metadata.xml", outStream)));
+                asyncResultHandler.handle(Future.succeededFuture(GetSamlRegenerateResponse.withXmlOK(outStream)));
               }
             });
         }
       });
   }
-
 
   @Override
   public void getSamlConfiguration(RoutingContext rc, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
