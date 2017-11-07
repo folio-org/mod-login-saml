@@ -24,7 +24,6 @@ import java.net.URI;
 import java.net.URLEncoder;
 
 import static io.restassured.RestAssured.given;
-import static io.restassured.internal.matcher.xml.XmlXsdMatcher.matchesXsdInClasspath;
 import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
 import static org.hamcrest.Matchers.*;
 
@@ -134,9 +133,12 @@ public class SamlAPITest {
       .header(OKAPI_URL_HEADER)
       .get("/saml/regenerate")
       .then()
-      .contentType(ContentType.XML)
-      .body(matchesXsdInClasspath("schemas/saml-schema-metadata-2.0.xsd").using(resolver))
-      .body("EntityDescriptor.SPSSODescriptor.AssertionConsumerService.'@Location'", startsWith(OKAPI_URL_HEADER.getValue()))
+      .contentType(ContentType.JSON)
+      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlRegenerateResponse.json"))
+      .body("fileContent", notNullValue())
+// TODO: base64decode->matchesXsd...
+//      .body("fileContent", matchesXsdInClasspath("schemas/saml-schema-metadata-2.0.xsd").using(resolver))
+//      .body("EntityDescriptor.SPSSODescriptor.AssertionConsumerService.'@Location'", startsWith(OKAPI_URL_HEADER.getValue()))
       .statusCode(200);
 
   }
@@ -217,6 +219,5 @@ public class SamlAPITest {
       .statusCode(200);
 
   }
-
 
 }

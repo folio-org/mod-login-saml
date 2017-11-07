@@ -13,6 +13,7 @@ schemas:
   - SamlLoginRequest: !include schemas/SamlLoginRequest.json
   - SamlConfigRequest: !include schemas/SamlConfigRequest.json
   - SamlConfig: !include schemas/SamlConfig.json
+  - SamlRegenerateResponse: !include schemas/SamlRegenerateResponse.json
 
 /saml:
   /regenerate:
@@ -21,7 +22,8 @@ schemas:
       responses:
         200:
           body:
-            application/xml:
+            application/json:
+              schema: SamlRegenerateResponse
         500:
           description: "Internal server error"
           body:

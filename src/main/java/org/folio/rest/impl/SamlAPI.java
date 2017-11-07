@@ -19,7 +19,6 @@ import org.folio.rest.jaxrs.model.*;
 import org.folio.rest.jaxrs.resource.SamlResource;
 import org.folio.rest.tools.client.HttpClientFactory;
 import org.folio.rest.tools.client.interfaces.HttpClientInterface;
-import org.folio.rest.tools.utils.BinaryOutStream;
 import org.folio.session.NoopSession;
 import org.folio.util.*;
 import org.folio.util.model.OkapiHeaders;
@@ -243,9 +242,22 @@ public class SamlAPI implements SamlResource {
                 asyncResultHandler.handle(Future.succeededFuture(GetSamlRegenerateResponse.withPlainInternalServerError("Cannot persist metadata invalidated flag!")));
               } else {
                 String metadata = regenerationHandler.result();
-                BinaryOutStream outStream = new BinaryOutStream();
-                outStream.setData(metadata.getBytes(StandardCharsets.UTF_8));
-                asyncResultHandler.handle(Future.succeededFuture(GetSamlRegenerateResponse.withXmlOK(outStream)));
+
+                Base64Util.encode(vertxContext, metadata)
+                  .setHandler(base64Result -> {
+                    if (base64Result.failed()) {
+                      String message = base64Result.cause() == null ? "" : base64Result.cause().getMessage();
+                      GetSamlRegenerateResponse response = GetSamlRegenerateResponse.withPlainInternalServerError("Cannot encode file content " + message);
+                      asyncResultHandler.handle(Future.succeededFuture(response));
+                    } else {
+                      SamlRegenerateResponse responseEntity = new SamlRegenerateResponse()
+                        .withFileContent(base64Result.result().toString(StandardCharsets.UTF_8));
+                      asyncResultHandler.handle(Future.succeededFuture(GetSamlRegenerateResponse.withJsonOK(responseEntity)));
+                    }
+                    
+                  });
+
+
               }
             });
         }

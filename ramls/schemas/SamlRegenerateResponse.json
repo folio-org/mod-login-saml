@@ -1,0 +1,11 @@
+{
+  "$schema": "http://json-schema.org/draft-03/schema#",
+  "type": "object",
+  "description": "Wraps sp metadata XML content (base64 encoded) in JSON.",
+  "properties": {
+    "fileContent": {
+      "required": true,
+      "type": "string"
+    }
+  }
+}
