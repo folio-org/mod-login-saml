@@ -2,8 +2,8 @@ package org.folio.config;
 
 
 import com.google.common.base.Strings;
+import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
-import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -18,7 +18,10 @@ import org.springframework.util.Assert;
 
 import java.net.URLEncoder;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * Connect to mod-configuration via Okapi
@@ -29,19 +32,11 @@ public class ConfigurationsClient {
 
   private static final Logger log = LoggerFactory.getLogger(ConfigurationsClient.class);
 
-  public static final String KEYSTORE_FILE_CODE = "keystore.file";
-  public static final String KEYSTORE_PASSWORD_CODE = "keystore.password"; // NOSONAR
-  public static final String KEYSTORE_PRIVATEKEY_PASSWORD_CODE = "keystore.privatekey.password"; // NOSONAR
-  public static final String IDP_URL_CODE = "idp.url";
-  public static final String SAML_BINDING_CODE = "saml.binding";
-  public static final String SAML_ATTRIBUTE_CODE = "saml.attribute";
-  public static final String USER_PROPERTY_CODE = "user.property";
-
   public static final String CONFIGURATIONS_ENTRIES_ENDPOINT_URL = "/configurations/entries";
   public static final String MODULE_NAME = "LOGIN-SAML";
   public static final String CONFIG_NAME = "saml";
 
-  public static Future<SamlConfiguration> getConfiguration(OkapiHeaders okapiHeaders, Vertx vertx) {
+  public static Future<SamlConfiguration> getConfiguration(OkapiHeaders okapiHeaders) {
 
     if (Strings.isNullOrEmpty(okapiHeaders.getUrl())) {
       return Future.failedFuture("Missing Okapi URL");
@@ -68,46 +63,11 @@ public class ConfigurationsClient {
       httpClient.request(CONFIGURATIONS_ENTRIES_ENDPOINT_URL + "?query=" + encodedQuery) // this is ugly :/
         .whenComplete((Response response, Throwable throwable) -> {
           if (Response.isSuccess(response.getCode())) {
-            SamlConfiguration conf = new SamlConfiguration();
+
             JsonObject responseBody = response.getBody();
-
             JsonArray configs = responseBody.getJsonArray("configs"); //{"configs": [],"total_records": 0}
-            configs.forEach(entry -> {
-              if (entry instanceof JsonObject) {
 
-                JsonObject entryAsJsonObject = JsonObject.class.cast(entry);
-                String code = entryAsJsonObject.getString("code");
-                String value = entryAsJsonObject.getString("value");
-
-                switch (code) {
-                  case KEYSTORE_FILE_CODE:
-                    conf.setKeystore(value);
-                    break;
-                  case KEYSTORE_PASSWORD_CODE:
-                    conf.setKeystorePassword(value);
-                    break;
-                  case KEYSTORE_PRIVATEKEY_PASSWORD_CODE:
-                    conf.setPrivateKeyPassword(value);
-                    break;
-                  case IDP_URL_CODE:
-                    conf.setIdpUrl(value);
-                    break;
-                  case SAML_BINDING_CODE:
-                    conf.setSamlBinding(value);
-                    break;
-                  case SAML_ATTRIBUTE_CODE:
-                    conf.setSamlAttribute(value);
-                    break;
-                  case USER_PROPERTY_CODE:
-                    conf.setUserProperty(value);
-                    break;
-                  default:
-                    log.warn("Unknown SAML configuration entry. Code: {}, Value: {}", code, value);
-                }
-              }
-            });
-
-            future.complete(conf);
+            ConfigurationObjectMapper.map(configs, SamlConfiguration.class, future);
 
           } else {
             log.warn("Cannot get configuration data: " + response.getError().toString());
@@ -123,8 +83,39 @@ public class ConfigurationsClient {
     return future;
   }
 
+  public static Future<SamlConfiguration> storeEntries(OkapiHeaders headers, Map<String, String> entries) {
 
-  public static Future<Void> storeEntry(OkapiHeaders okapiHeaders, Vertx vertx, String code, String value) {
+    Objects.requireNonNull(headers);
+    Objects.requireNonNull(entries);
+
+    Future<SamlConfiguration> result = Future.future();
+
+    List<Future> futures = entries.entrySet().stream()
+      .map(entry -> ConfigurationsClient.storeEntry(headers, entry.getKey(), entry.getValue()))
+      .collect(Collectors.toList());
+
+    CompositeFuture.all(futures).setHandler(compositeEvent -> {
+      if (compositeEvent.succeeded()) {
+        ConfigurationsClient.getConfiguration(headers).setHandler(newConfigHandler -> {
+
+          if (newConfigHandler.succeeded()) {
+            result.complete(newConfigHandler.result());
+          } else {
+            result.fail(newConfigHandler.cause());
+          }
+
+        });
+      } else {
+        log.warn("Cannot save configuration entries: " + compositeEvent.cause());
+        result.fail(compositeEvent.cause());
+      }
+    });
+
+    return result;
+  }
+
+
+  public static Future<Void> storeEntry(OkapiHeaders okapiHeaders, String code, String value) {
 
     Assert.hasText(code, "config entry CODE is mandatory");
 
@@ -138,6 +129,7 @@ public class ConfigurationsClient {
       return Future.failedFuture("Missing Token");
     }
 
+
     Future<Void> result = Future.future();
 
     JsonObject requestBody = new JsonObject();
@@ -148,7 +140,7 @@ public class ConfigurationsClient {
       .put("value", value);
 
     // decide to POST or PUT
-    checkEntry(okapiHeaders, vertx, code).setHandler(checkHandler -> {
+    checkEntry(okapiHeaders, code).setHandler(checkHandler -> {
       if (checkHandler.failed()) {
         result.fail(checkHandler.cause());
       } else {
@@ -162,13 +154,20 @@ public class ConfigurationsClient {
         headers.put(OkapiHeaders.OKAPI_TOKEN_HEADER, okapiHeaders.getToken());
 
         try {
-          HttpClientInterface storeEntryClient = HttpClientFactory.getHttpClient(okapiHeaders.getUrl(), okapiHeaders.getTenant());
+          HttpClientInterface storeEntryClient = HttpClientFactory.getHttpClient(okapiHeaders.getUrl(), okapiHeaders.getTenant(), true);
           storeEntryClient.setDefaultHeaders(headers);
           storeEntryClient.request(httpMethod, requestBody, endpoint, null)
             .whenComplete((storeEntryResponse, throwable) -> {
 
+              if (storeEntryResponse == null) {
+                if (throwable == null) {
+                  result.fail("Cannot " + httpMethod.toString() + " configuration entry");
+                } else {
+                  result.fail(throwable);
+                }
+              }
               // POST->201 created, PUT->204 no content
-              if ((httpMethod.equals(HttpMethod.POST) && storeEntryResponse.getCode() == 201)
+              else if ((httpMethod.equals(HttpMethod.POST) && storeEntryResponse.getCode() == 201)
                 || (httpMethod.equals(HttpMethod.PUT) && storeEntryResponse.getCode() == 204)) {
 
                 result.complete();
@@ -194,7 +193,7 @@ public class ConfigurationsClient {
   /**
    * Complete future with found config entry id, or null, if not found
    */
-  public static Future<String> checkEntry(OkapiHeaders okapiHeaders, Vertx vertx, String code) {
+  public static Future<String> checkEntry(OkapiHeaders okapiHeaders, String code) {
     Future<String> result = Future.future();
 
     if (Strings.isNullOrEmpty(okapiHeaders.getUrl())) {
@@ -213,13 +212,13 @@ public class ConfigurationsClient {
 
       Map<String, String> headers = new HashMap<>();
       headers.put(OkapiHeaders.OKAPI_TOKEN_HEADER, okapiHeaders.getToken());
-      HttpClientInterface checkEntryClient = HttpClientFactory.getHttpClient(okapiHeaders.getUrl(), okapiHeaders.getTenant());
+      HttpClientInterface checkEntryClient = HttpClientFactory.getHttpClient(okapiHeaders.getUrl(), okapiHeaders.getTenant(), true);
       checkEntryClient.setDefaultHeaders(headers);
       checkEntryClient.request(CONFIGURATIONS_ENTRIES_ENDPOINT_URL + "?query=" + encodedQuery)
         .whenComplete((checkEntryResponse, throwable) -> {
           if (checkEntryResponse.getCode() != 200) {
             result.fail("Failed to check configuration entry: " + code
-              + "HTTP result was " + checkEntryResponse.getCode() + " " + String.valueOf(checkEntryResponse.getBody()));
+              + " HTTP result was " + checkEntryResponse.getCode() + " " + String.valueOf(checkEntryResponse.getBody()));
           } else {
             JsonObject entries = checkEntryResponse.getBody();
             JsonArray configs = entries.getJsonArray("configs");

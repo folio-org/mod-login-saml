@@ -48,6 +48,18 @@
           "modulePermissions": [
             "configuration.entries.collection.get"
           ]
+        },
+        {
+          "methods": [
+            "GET",
+            "PUT"
+          ],
+          "pathPattern": "/saml/configuration",
+          "modulePermissions": [
+            "configuration.entries.collection.get",
+            "configuration.entries.item.post",
+            "configuration.entries.item.put"
+          ]
         }
       ]
     }

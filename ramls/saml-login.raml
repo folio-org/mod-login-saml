@@ -11,6 +11,8 @@ schemas:
   - SamlCheck: !include schemas/SamlCheck.json
   - SamlLogin: !include schemas/SamlLogin.json
   - SamlLoginRequest: !include schemas/SamlLoginRequest.json
+  - SamlConfigRequest: !include schemas/SamlConfigRequest.json
+  - SamlConfig: !include schemas/SamlConfig.json
 
 /saml:
   /regenerate:
@@ -18,8 +20,6 @@ schemas:
       description: Regenerate SAML configuration (keyfile and passwords). The response contains the sp-metadata.xml file
       responses:
         200:
-          headers:
-            Content-Disposition:
           body:
             application/xml:
         500:
@@ -92,6 +92,31 @@ schemas:
               example: "Module is not deployed"
         500:
           description: "Internal server error"
+          body:
+            text/plain:
+              example: "Internal server error"
+  /configuration:
+    get:
+      responses:
+        200:
+          body:
+            application/json:
+              schema: SamlConfig
+        500:
+          body:
+            text/plain:
+              example: "Internal server error"
+    put:
+      description: Save SAML module configuration
+      body:
+        application/json:
+          schema: SamlConfigRequest
+      responses:
+        200:
+          body:
+            application/json:
+              schema: SamlConfig
+        500:
           body:
             text/plain:
               example: "Internal server error"

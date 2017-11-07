@@ -9,6 +9,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.folio.config.model.SAML2ClientMock;
 import org.folio.config.model.SamlClientComposite;
+import org.folio.config.model.SamlConfiguration;
 import org.folio.rest.tools.client.test.HttpClientMock2;
 import org.folio.util.OkapiHelper;
 import org.folio.util.VertxUtils;
@@ -24,8 +25,6 @@ import org.springframework.util.StringUtils;
 import java.net.MalformedURLException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-
-import static org.folio.config.ConfigurationsClient.*;
 
 /**
  * Load Pac4j {@link SAML2Client} from configuration
@@ -44,7 +43,7 @@ public class SamlClientLoader {
     final String okapiUrl = okapiHeaders.getUrl();
     final String tenantId = okapiHeaders.getTenant();
 
-    ConfigurationsClient.getConfiguration(okapiHeaders, routingContext.vertx())
+    ConfigurationsClient.getConfiguration(okapiHeaders)
       .compose(samlConfiguration -> {
 
         final Future<SamlClientComposite> clientInstantiationFuture = Future.future();
@@ -163,12 +162,17 @@ public class SamlClientLoader {
 
           // store in mod-configuration with passwords, wait for all operations to finish
           CompositeFuture.all(
-            ConfigurationsClient.storeEntry(okapiHeaders, vertx, KEYSTORE_FILE_CODE, encodedBytes.toString(StandardCharsets.UTF_8)),
-            ConfigurationsClient.storeEntry(okapiHeaders, vertx, KEYSTORE_PASSWORD_CODE, keystorePassword),
-            ConfigurationsClient.storeEntry(okapiHeaders, vertx, KEYSTORE_PRIVATEKEY_PASSWORD_CODE, privateKeyPassword)
-          ).setHandler(allConfiguratiuonsStoredHandler -> {
-            if (allConfiguratiuonsStoredHandler.failed()) {
-              future.fail(allConfiguratiuonsStoredHandler.cause());
+            ConfigurationsClient.storeEntry(okapiHeaders, SamlConfiguration.KEYSTORE_FILE_CODE, encodedBytes.toString(StandardCharsets.UTF_8)),
+            ConfigurationsClient.storeEntry(okapiHeaders, SamlConfiguration.KEYSTORE_PASSWORD_CODE, keystorePassword),
+            ConfigurationsClient.storeEntry(okapiHeaders, SamlConfiguration.KEYSTORE_PRIVATEKEY_PASSWORD_CODE, privateKeyPassword),
+            ConfigurationsClient.storeEntry(okapiHeaders, SamlConfiguration.METADATA_INVALIDATED_CODE, "true") // if keystore modified, current metasata is invalid.
+          ).setHandler(allConfigurationsStoredHandler -> {
+
+            if (allConfigurationsStoredHandler.failed()) {
+              vertx.fileSystem().delete(keystoreFileName, deleteResult ->
+                // it is already a failed operation, deleteResult is not important
+                future.fail(allConfigurationsStoredHandler.cause())
+              );
             } else {
               // delete the file
               vertx.fileSystem().delete(keystoreFileName, deleteResult -> {
