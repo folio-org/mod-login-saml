@@ -1,5 +1,6 @@
 package org.folio.config;
 
+import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
@@ -10,6 +11,22 @@ import java.util.stream.Collector;
  * The outgoing object can be annotated with JSON annotations.
  */
 public class ConfigurationObjectMapper {
+
+  // prevent instantiating this static util class
+  private ConfigurationObjectMapper() {
+  }
+
+  /**
+   * Future-completer version of {@link #map(JsonArray, Class)}
+   */
+  public static <T> void map(JsonArray array, Class<T> clazz, Future<T> future) {
+    try {
+      T mappedValue = map(array, clazz);
+      future.complete(mappedValue);
+    } catch (Exception ex) {
+      future.fail(ex);
+    }
+  }
 
   public static <T> T map(JsonArray array, Class<T> clazz) {
 
@@ -26,7 +43,7 @@ public class ConfigurationObjectMapper {
       JsonObject::new,
       (result, entry) -> result.put(entry.getString("code"), entry.getString("value")),
       JsonObject::mergeIn,
-      (result) -> result.mapTo(clazz)
+      result -> result.mapTo(clazz)
     );
 
   }

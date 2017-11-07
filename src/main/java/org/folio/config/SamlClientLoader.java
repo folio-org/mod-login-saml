@@ -76,7 +76,6 @@ public class SamlClientLoader {
 
               vertx.executeBlocking(blockingHandler -> {
                   saml2Client.init(VertxUtils.createWebContext(routingContext));
-//                  saml2Client.init(null); // todo: remove web context ?
                   blockingHandler.complete();
                 },
                 samlClientInitHandler -> {
@@ -170,10 +169,10 @@ public class SamlClientLoader {
           ).setHandler(allConfigurationsStoredHandler -> {
 
             if (allConfigurationsStoredHandler.failed()) {
-              vertx.fileSystem().delete(keystoreFileName, deleteResult -> {
+              vertx.fileSystem().delete(keystoreFileName, deleteResult ->
                 // it is already a failed operation, deleteResult is not important
-                future.fail(allConfigurationsStoredHandler.cause());
-              });
+                future.fail(allConfigurationsStoredHandler.cause())
+              );
             } else {
               // delete the file
               vertx.fileSystem().delete(keystoreFileName, deleteResult -> {

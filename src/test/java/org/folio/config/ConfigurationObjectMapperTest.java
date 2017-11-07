@@ -28,10 +28,10 @@ public class ConfigurationObjectMapperTest {
     SamlConfiguration pojo = ConfigurationObjectMapper.map(jsonArray, SamlConfiguration.class);
     assertNotNull(pojo);
 
-    assertEquals(pojo.getIdpUrl(), IDP_URL_VALUE);
-    assertEquals(pojo.getKeystore(), KEYSTORE_FILE_VALUE);
-    assertEquals(pojo.getKeystorePassword(), KEYSTORE_PASSWORD_VALUE);
-    assertEquals(pojo.getPrivateKeyPassword(), PRIVATEKEY_PASSWORD_VALUE);
+    assertEquals(IDP_URL_VALUE, pojo.getIdpUrl());
+    assertEquals(KEYSTORE_FILE_VALUE, pojo.getKeystore());
+    assertEquals(KEYSTORE_PASSWORD_VALUE, pojo.getKeystorePassword());
+    assertEquals(PRIVATEKEY_PASSWORD_VALUE, pojo.getPrivateKeyPassword());
   }
 
 }

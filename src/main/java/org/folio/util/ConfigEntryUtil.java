@@ -9,8 +9,12 @@ import java.util.function.Consumer;
  * @author rsass
  */
 public class ConfigEntryUtil {
-  
-  public static boolean valueChanged(String oldValue, String newValue) {
+
+  // prevent instantiating
+  private ConfigEntryUtil() {
+  }
+
+  static boolean valueChanged(String oldValue, String newValue) {
 
     if (!StringUtils.hasText(oldValue)) {
       return StringUtils.hasText(newValue);

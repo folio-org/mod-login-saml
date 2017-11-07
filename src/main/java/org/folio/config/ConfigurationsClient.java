@@ -66,11 +66,8 @@ public class ConfigurationsClient {
 
             JsonObject responseBody = response.getBody();
             JsonArray configs = responseBody.getJsonArray("configs"); //{"configs": [],"total_records": 0}
-            try {
-              future.complete(ConfigurationObjectMapper.map(configs, SamlConfiguration.class));
-            } catch (Exception ex) {
-              future.fail(ex);
-            }
+
+            ConfigurationObjectMapper.map(configs, SamlConfiguration.class, future);
 
           } else {
             log.warn("Cannot get configuration data: " + response.getError().toString());
