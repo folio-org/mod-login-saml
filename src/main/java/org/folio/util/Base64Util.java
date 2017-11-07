@@ -11,6 +11,9 @@ import java.util.Base64;
  * @author rsass
  */
 public class Base64Util {
+  
+  private Base64Util() {
+  }
 
   /**
    * Encodes a {@link String} with Base64, asnyc.
@@ -26,7 +29,7 @@ public class Base64Util {
       byte[] encodedBytes = Base64.getEncoder().encode(content.getBytes(StandardCharsets.UTF_8));
       blockingCode.complete(Buffer.buffer(encodedBytes));
     }, result.completer());
-    
+
     return result;
   }
 
