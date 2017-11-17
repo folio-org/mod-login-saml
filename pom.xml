@@ -48,16 +48,6 @@
       <groupId>org.folio</groupId>
       <artifactId>domain-models-runtime</artifactId>
       <version>${folio.domain-models-runtime.version}</version>
-      <!-- TEMP fix: verx-unit is a compile dep in RMB, and it can bring a wrong CommandFactory for vertx -->
-      <!-- if dependencies processed in wrong order. This can cause -->
-      <!-- "The command 'run' is not a valid command." -->
-      <!-- error message when running a fat jar -->
-      <exclusions>
-        <exclusion>
-          <groupId>io.vertx</groupId>
-          <artifactId>vertx-unit</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
 
     <dependency>

@@ -3,7 +3,7 @@
   "name": "SAML login",
   "provides": [
     {
-      "id": "mod-login-saml",
+      "id": "login-saml",
       "version": "1.0",
       "handlers": [
         {
