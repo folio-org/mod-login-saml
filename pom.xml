@@ -1,10 +1,9 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.folio</groupId>
   <artifactId>mod-login-saml</artifactId>
   <packaging>jar</packaging>
-  <version>1.0.1-SNAPSHOT</version>
+  <version>1.0.1</version>
   <name>mod-login-saml</name>
 
   <licenses>
@@ -183,7 +182,7 @@
     <url>https://github.com/folio-org/mod-login-saml</url>
     <connection>scm:git:git://github.com:folio-org/mod-login-saml.git</connection>
     <developerConnection>scm:git:git@github.com:folio-org/mod-login-saml.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>v1.0.1</tag>
   </scm>
 
   <build>
@@ -366,7 +365,7 @@
                   </manifestEntries>
                 </transformer>
               </transformers>
-              <artifactSet/>
+              <artifactSet />
               <outputFile>${project.build.directory}/${project.artifactId}-fat.jar</outputFile>
             </configuration>
           </execution>
