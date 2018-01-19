@@ -19,7 +19,7 @@ public class SamlConfiguration {
   public static final String SAML_ATTRIBUTE_CODE = "saml.attribute";
   public static final String USER_PROPERTY_CODE = "user.property";
   public static final String METADATA_INVALIDATED_CODE = "metadata.invalidated";
-
+  public static final String OKAPI_URL= "okapi.url";
 
   @JsonProperty(IDP_URL_CODE)
   private String idpUrl;
@@ -37,6 +37,11 @@ public class SamlConfiguration {
   private String userProperty;
   @JsonProperty(METADATA_INVALIDATED_CODE)
   private String metadataInvalidated = "true";
+
+
+  @JsonProperty(OKAPI_URL)
+  private String okapiUrl;
+
 
   public String getIdpUrl() {
     return idpUrl;
@@ -100,5 +105,12 @@ public class SamlConfiguration {
 
   public void setMetadataInvalidated(String metadataInvalidated) {
     this.metadataInvalidated = metadataInvalidated;
+  }
+  public String getOkapiUrl() {
+    return okapiUrl;
+  }
+
+  public void setOkapiUrl(String okapiUrl) {
+    this.okapiUrl = okapiUrl;
   }
 }

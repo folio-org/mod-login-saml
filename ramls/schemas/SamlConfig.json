@@ -27,6 +27,11 @@
       "type": "boolean",
       "description": "Indicates that there is a change in configuration that can break working of module, like IdP URL or encrityon key changed.",
       "required": false
+    },
+    "okapiUrl": {
+      "type": "string",
+      "format": "uri",
+      "required": true
     }
   }
 }
