@@ -22,6 +22,10 @@
     "userProperty": {
       "type": "string",
       "required": true
+    },
+    "okapiUrl": {
+      "type": "string",
+      "required": true
     }
   }
 }

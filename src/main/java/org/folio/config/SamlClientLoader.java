@@ -40,7 +40,6 @@ public class SamlClientLoader {
     Future<SamlClientComposite> result = Future.future();
 
     OkapiHeaders okapiHeaders = OkapiHelper.okapiHeaders(routingContext);
-    final String okapiUrl = okapiHeaders.getUrl();
     final String tenantId = okapiHeaders.getTenant();
 
     ConfigurationsClient.getConfiguration(okapiHeaders)
@@ -53,6 +52,7 @@ public class SamlClientLoader {
         final String keystorePassword = samlConfiguration.getKeystorePassword();
         final String privateKeyPassword = samlConfiguration.getPrivateKeyPassword();
         final String samlBinding = samlConfiguration.getSamlBinding();
+        final String okapiUrl = samlConfiguration.getOkapiUrl();
 
         final Vertx vertx = routingContext.vertx();
 

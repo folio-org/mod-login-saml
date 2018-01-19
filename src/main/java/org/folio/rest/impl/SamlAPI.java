@@ -1,5 +1,6 @@
 package org.folio.rest.impl;
 
+import android.net.Uri;
 import io.vertx.core.*;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
@@ -34,6 +35,7 @@ import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
@@ -254,7 +256,7 @@ public class SamlAPI implements SamlResource {
                         .withFileContent(base64Result.result().toString(StandardCharsets.UTF_8));
                       asyncResultHandler.handle(Future.succeededFuture(GetSamlRegenerateResponse.withJsonOK(responseEntity)));
                     }
-                    
+
                   });
 
 
@@ -290,57 +292,62 @@ public class SamlAPI implements SamlResource {
   public void putSamlConfiguration(SamlConfigRequest updatedConfig, RoutingContext rc, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
 
     OkapiHeaders parsedHeaders = OkapiHelper.okapiHeaders(okapiHeaders);
-    ConfigurationsClient.getConfiguration(parsedHeaders)
-      .setHandler(configRes -> {
-        if (configRes.failed()) {
-          asyncResultHandler.handle(Future.succeededFuture(
-            PutSamlConfigurationResponse.withPlainInternalServerError(configRes.cause() != null ? configRes.cause().getMessage() : "Cannot load current configuration")));
-        } else {
+    ConfigurationsClient.getConfiguration(parsedHeaders).setHandler(configRes -> {
+      if (configRes.failed()) {
+        asyncResultHandler.handle(Future.succeededFuture(
+          PutSamlConfigurationResponse.withPlainInternalServerError(configRes.cause() != null ? configRes.cause().getMessage() : "Cannot load current configuration")));
+      } else {
 
-          Map<String, String> updateEntries = new HashMap<>();
+        Map<String, String> updateEntries = new HashMap<>();
 
-          SamlConfiguration config = configRes.result();
+        SamlConfiguration config = configRes.result();
 
-          ConfigEntryUtil.valueChanged(config.getIdpUrl(), updatedConfig.getIdpUrl().toString(), idpUrl -> {
-            updateEntries.put(SamlConfiguration.IDP_URL_CODE, idpUrl);
-            updateEntries.put(SamlConfiguration.METADATA_INVALIDATED_CODE, "true");
+        ConfigEntryUtil.valueChanged(config.getIdpUrl(), updatedConfig.getIdpUrl().toString(), idpUrl -> {
+          updateEntries.put(SamlConfiguration.IDP_URL_CODE, idpUrl);
+          updateEntries.put(SamlConfiguration.METADATA_INVALIDATED_CODE, "true");
+        });
+
+        ConfigEntryUtil.valueChanged(config.getSamlBinding(), updatedConfig.getSamlBinding().toString(), samlBindingCode ->
+          updateEntries.put(SamlConfiguration.SAML_BINDING_CODE, samlBindingCode));
+
+        ConfigEntryUtil.valueChanged(config.getSamlAttribute(), updatedConfig.getSamlAttribute(), samlAttribute ->
+          updateEntries.put(SamlConfiguration.SAML_ATTRIBUTE_CODE, samlAttribute));
+
+        ConfigEntryUtil.valueChanged(config.getUserProperty(), updatedConfig.getUserProperty(), userProperty ->
+          updateEntries.put(SamlConfiguration.USER_PROPERTY_CODE, userProperty));
+
+        ConfigEntryUtil.valueChanged(config.getOkapiUrl(), updatedConfig.getOkapiUrl().toString(), okapiUrl -> {
+          updateEntries.put(SamlConfiguration.OKAPI_URL, okapiUrl);
+          updateEntries.put(SamlConfiguration.METADATA_INVALIDATED_CODE, "true");
+        });
+
+
+        ConfigurationsClient.storeEntries(parsedHeaders, updateEntries)
+          .setHandler(configuratiuonSavedEvent -> {
+            if (configuratiuonSavedEvent.failed()) {
+              asyncResultHandler.handle(Future.succeededFuture(
+                PutSamlConfigurationResponse.withPlainInternalServerError(configuratiuonSavedEvent.cause() != null ? configuratiuonSavedEvent.cause().getMessage() : "Cannot save configuration")));
+            } else {
+              findSaml2Client(rc, true, true)
+                .setHandler(configurationLoadEvent -> {
+                  if (configurationLoadEvent.failed()) {
+                    asyncResultHandler.handle(Future.succeededFuture(
+                      PutSamlConfigurationResponse.withPlainInternalServerError(configurationLoadEvent.cause() != null ? configurationLoadEvent.cause().getMessage() : "Cannot reload current configuration")));
+                  } else {
+
+                    SamlConfiguration newConf = configurationLoadEvent.result().getConfiguration();
+                    SamlConfig dto = configToDto(newConf);
+
+                    asyncResultHandler.handle(Future.succeededFuture(PutSamlConfigurationResponse.withJsonOK(dto)));
+
+                  }
+                });
+            }
           });
 
-          ConfigEntryUtil.valueChanged(config.getSamlBinding(), updatedConfig.getSamlBinding().toString(), samlBindingCode ->
-            updateEntries.put(SamlConfiguration.SAML_BINDING_CODE, samlBindingCode));
 
-          ConfigEntryUtil.valueChanged(config.getSamlAttribute(), updatedConfig.getSamlAttribute(), samlAttribute ->
-            updateEntries.put(SamlConfiguration.SAML_ATTRIBUTE_CODE, samlAttribute));
-
-          ConfigEntryUtil.valueChanged(config.getUserProperty(), updatedConfig.getUserProperty(), userProperty ->
-            updateEntries.put(SamlConfiguration.USER_PROPERTY_CODE, userProperty));
-
-          ConfigurationsClient.storeEntries(parsedHeaders, updateEntries)
-            .setHandler(configuratiuonSavedEvent -> {
-              if (configuratiuonSavedEvent.failed()) {
-                asyncResultHandler.handle(Future.succeededFuture(
-                  PutSamlConfigurationResponse.withPlainInternalServerError(configuratiuonSavedEvent.cause() != null ? configuratiuonSavedEvent.cause().getMessage() : "Cannot save configuration")));
-              } else {
-                findSaml2Client(rc, true, true)
-                  .setHandler(configurationLoadEvent -> {
-                    if (configurationLoadEvent.failed()) {
-                      asyncResultHandler.handle(Future.succeededFuture(
-                        PutSamlConfigurationResponse.withPlainInternalServerError(configurationLoadEvent.cause() != null ? configurationLoadEvent.cause().getMessage() : "Cannot reload current configuration")));
-                    } else {
-
-                      SamlConfiguration newConf = configurationLoadEvent.result().getConfiguration();
-                      SamlConfig dto = configToDto(newConf);
-
-                      asyncResultHandler.handle(Future.succeededFuture(PutSamlConfigurationResponse.withJsonOK(dto)));
-
-                    }
-                  });
-              }
-            });
-
-
-        }
-      });
+      }
+    });
 
   }
 
@@ -425,10 +432,17 @@ public class SamlAPI implements SamlResource {
    * Converts internal {@link SamlConfiguration} object to DTO, checks illegal values
    */
   private SamlConfig configToDto(SamlConfiguration config) {
-    SamlConfig samlConfig = new SamlConfig()
-      .withSamlAttribute(config.getSamlAttribute())
-      .withUserProperty(config.getUserProperty())
-      .withMetadataInvalidated(Boolean.valueOf(config.getMetadataInvalidated()));
+      SamlConfig samlConfig = new SamlConfig()
+        .withSamlAttribute(config.getSamlAttribute())
+        .withUserProperty(config.getUserProperty())
+        .withMetadataInvalidated(Boolean.valueOf(config.getMetadataInvalidated()));
+    try {
+      URI uri = URI.create(config.getOkapiUrl());
+        samlConfig.setOkapiUrl(uri);
+    }catch(Exception e){
+      log.debug("Okapi URI is in a bad format");
+      samlConfig.setOkapiUrl(URI.create(""));
+    }
 
     try {
       URI uri = URI.create(config.getIdpUrl());
