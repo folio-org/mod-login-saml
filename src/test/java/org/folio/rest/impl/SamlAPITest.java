@@ -189,7 +189,8 @@ public class SamlAPITest {
       .withIdpUrl(URI.create("http://localhost"))
       .withSamlAttribute("UserID")
       .withSamlBinding(SamlConfigRequest.SamlBinding.POST)
-      .withUserProperty("externalSystemId");
+      .withUserProperty("externalSystemId")
+      .withOkapiUrl(URI.create("http://localhost:9130"));
 
     String jsonString = Json.encode(samlConfigRequest);
 
