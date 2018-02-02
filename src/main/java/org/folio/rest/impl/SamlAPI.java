@@ -22,6 +22,7 @@ import org.folio.rest.tools.client.interfaces.HttpClientInterface;
 import org.folio.session.NoopSession;
 import org.folio.util.*;
 import org.folio.util.model.OkapiHeaders;
+import org.folio.util.model.UrlCheckResult;
 import org.pac4j.core.exception.HttpAction;
 import org.pac4j.core.redirect.RedirectAction;
 import org.pac4j.saml.client.SAML2Client;
@@ -349,6 +350,38 @@ public class SamlAPI implements SamlResource {
 
   }
 
+  @Override
+  public void getSamlValidate(Type type, String value, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+
+    switch (type) {
+      case idpurl:
+        UrlUtil.checkIdpUrl(value, vertxContext.owner())
+          .setHandler(hnd -> {
+            if (hnd.succeeded()) {
+              UrlCheckResult result = hnd.result();
+              SamlValidateResponse response = new SamlValidateResponse();
+              if (result.isSuccess()) {
+                response.setValid(true);
+              } else {
+                response.setValid(false);
+                response.setError(result.getMessage());
+              }
+              asyncResultHandler.handle(Future.succeededFuture(GetSamlValidateResponse.withJsonOK(response)));
+
+            } else {
+              asyncResultHandler.handle(Future.succeededFuture(GetSamlValidateResponse.withPlainInternalServerError("failed to check param")));
+            }
+          });
+        break;
+      case okapiurl:
+        asyncResultHandler.handle(Future.succeededFuture(GetSamlValidateResponse.withPlainInternalServerError("not implemented yet")));
+        break;
+      default:
+        asyncResultHandler.handle(Future.succeededFuture(GetSamlValidateResponse.withPlainInternalServerError("unknown type: " + type.toString())));
+    }
+
+  }
+
   private Future<String> regenerateSaml2Config(RoutingContext routingContext) {
 
     Future<String> result = Future.future();
@@ -430,14 +463,14 @@ public class SamlAPI implements SamlResource {
    * Converts internal {@link SamlConfiguration} object to DTO, checks illegal values
    */
   private SamlConfig configToDto(SamlConfiguration config) {
-      SamlConfig samlConfig = new SamlConfig()
-        .withSamlAttribute(config.getSamlAttribute())
-        .withUserProperty(config.getUserProperty())
-        .withMetadataInvalidated(Boolean.valueOf(config.getMetadataInvalidated()));
+    SamlConfig samlConfig = new SamlConfig()
+      .withSamlAttribute(config.getSamlAttribute())
+      .withUserProperty(config.getUserProperty())
+      .withMetadataInvalidated(Boolean.valueOf(config.getMetadataInvalidated()));
     try {
       URI uri = URI.create(config.getOkapiUrl());
-        samlConfig.setOkapiUrl(uri);
-    }catch(Exception e){
+      samlConfig.setOkapiUrl(uri);
+    } catch (Exception e) {
       log.debug("Okapi URI is in a bad format");
       samlConfig.setOkapiUrl(URI.create(""));
     }
