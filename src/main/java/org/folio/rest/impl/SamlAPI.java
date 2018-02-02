@@ -353,32 +353,33 @@ public class SamlAPI implements SamlResource {
   @Override
   public void getSamlValidate(Type type, String value, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
 
+    Handler<AsyncResult<UrlCheckResult>> handler = hnd -> {
+      if (hnd.succeeded()) {
+        UrlCheckResult result = hnd.result();
+        SamlValidateResponse response = new SamlValidateResponse();
+        if (result.isSuccess()) {
+          response.setValid(true);
+        } else {
+          response.setValid(false);
+          response.setError(result.getMessage());
+        }
+        asyncResultHandler.handle(Future.succeededFuture(GetSamlValidateResponse.withJsonOK(response)));
+      } else {
+        asyncResultHandler.handle(Future.succeededFuture(GetSamlValidateResponse.withPlainInternalServerError("unknown error")));
+      }
+    };
+
     switch (type) {
       case idpurl:
-        UrlUtil.checkIdpUrl(value, vertxContext.owner())
-          .setHandler(hnd -> {
-            if (hnd.succeeded()) {
-              UrlCheckResult result = hnd.result();
-              SamlValidateResponse response = new SamlValidateResponse();
-              if (result.isSuccess()) {
-                response.setValid(true);
-              } else {
-                response.setValid(false);
-                response.setError(result.getMessage());
-              }
-              asyncResultHandler.handle(Future.succeededFuture(GetSamlValidateResponse.withJsonOK(response)));
-
-            } else {
-              asyncResultHandler.handle(Future.succeededFuture(GetSamlValidateResponse.withPlainInternalServerError("failed to check param")));
-            }
-          });
+        UrlUtil.checkIdpUrl(value, vertxContext.owner()).setHandler(handler);
         break;
       case okapiurl:
-        asyncResultHandler.handle(Future.succeededFuture(GetSamlValidateResponse.withPlainInternalServerError("not implemented yet")));
+        UrlUtil.checkOkapiUrl(value, vertxContext.owner()).setHandler(handler);
         break;
       default:
         asyncResultHandler.handle(Future.succeededFuture(GetSamlValidateResponse.withPlainInternalServerError("unknown type: " + type.toString())));
     }
+
 
   }
 
