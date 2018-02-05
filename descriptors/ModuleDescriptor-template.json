@@ -60,6 +60,12 @@
             "configuration.entries.item.post",
             "configuration.entries.item.put"
           ]
+        },
+        {
+          "methods": [
+            "GET"
+          ],
+          "pathPattern": "/saml/validate"
         }
       ]
     }
