@@ -25,9 +25,14 @@ public class UrlUtil {
   }
 
   public static Future<UrlCheckResult> checkIdpUrl(String url, Vertx vertx) {
+    HttpClient client = createClient(vertx);
+    return checkIdpUrl(url, client);
+  }
+
+  public static Future<UrlCheckResult> checkIdpUrl(String url, HttpClient client) {
 
     Future<UrlCheckResult> future = Future.future();
-    HttpClient client = createClient(vertx);
+
 
     try {
       client.getAbs(url, responseHandler -> {
@@ -49,6 +54,11 @@ public class UrlUtil {
   }
 
   public static Future<UrlCheckResult> checkOkapiUrl(String url, Vertx vertx) {
+    HttpClient client = createClient(vertx);
+    return checkOkapiUrl(url, client);
+  }
+
+  public static Future<UrlCheckResult> checkOkapiUrl(String url, HttpClient client) {
 
     if (!url.endsWith("/")) {
       url += "/";
@@ -56,8 +66,7 @@ public class UrlUtil {
     url += "_/proxy/modules";
 
     Future<UrlCheckResult> future = Future.future();
-    HttpClient client = createClient(vertx);
-
+    
     try {
       client.getAbs(url, responseHandler -> {
         String contentType = responseHandler.getHeader("Content-Type");
