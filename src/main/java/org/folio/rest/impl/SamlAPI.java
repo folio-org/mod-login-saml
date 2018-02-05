@@ -290,7 +290,8 @@ public class SamlAPI implements SamlResource {
     checkConfigValues(updatedConfig, vertxContext.owner())
       .setHandler(checkValuesHandler -> {
         if (checkValuesHandler.failed()) {
-          asyncResultHandler.handle(Future.succeededFuture(PutSamlConfigurationResponse.withPlainBadRequest(checkValuesHandler.cause().getMessage())));
+          SamlValidateResponse errorEntity = new SamlValidateResponse().withValid(false).withError(checkValuesHandler.cause().getMessage());
+          asyncResultHandler.handle(Future.succeededFuture(PutSamlConfigurationResponse.withJsonBadRequest(errorEntity)));
         } else {
           OkapiHeaders parsedHeaders = OkapiHelper.okapiHeaders(okapiHeaders);
           ConfigurationsClient.getConfiguration(parsedHeaders).setHandler(configRes -> {

@@ -121,8 +121,8 @@ schemas:
               schema: SamlConfig
         400:
           body:
-            text/plain:
-              example: "Bad request"
+            application/json:
+              schema: SamlValidateResponse
         500:
           body:
             text/plain:
