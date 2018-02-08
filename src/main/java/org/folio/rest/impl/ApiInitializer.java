@@ -26,6 +26,9 @@ public class ApiInitializer implements InitAPI {
       trustAllCertificates();
     }
 
+    String disableResolver = System.getProperty("vertx.disableDnsResolver");
+    log.info("vertx.disableDnsResolver (netty workaround): " + disableResolver);
+
     handler.handle(Future.succeededFuture(true));
   }
 

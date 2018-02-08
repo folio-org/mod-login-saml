@@ -14,6 +14,7 @@ schemas:
   - SamlConfigRequest: !include schemas/SamlConfigRequest.json
   - SamlConfig: !include schemas/SamlConfig.json
   - SamlRegenerateResponse: !include schemas/SamlRegenerateResponse.json
+  - SamlValidateResponse: !include schemas/SamlValidateResponse.json
 
 /saml:
   /regenerate:
@@ -118,7 +119,37 @@ schemas:
           body:
             application/json:
               schema: SamlConfig
+        400:
+          body:
+            application/json:
+              schema: SamlValidateResponse
         500:
+          body:
+            text/plain:
+              example: "Internal server error"
+  /validate:
+    get:
+      queryParameters:
+        type:
+          displayName: Type
+          type: string
+          enum: [idpurl,okapiurl]
+          description: The type of configuration directive
+          example: idpurl
+          required: true
+        value:
+          displayName: Value
+          type: string
+          description: The value of configuration directive
+          example: http://localhost
+          required: true
+      responses:
+        200:
+          body:
+            application/json:
+              schema: SamlValidateResponse
+        500:
+          description: "Internal server error"
           body:
             text/plain:
               example: "Internal server error"
