@@ -42,10 +42,7 @@ public class UrlUtil {
         } else {
           future.complete(UrlCheckResult.failResult("Response content-type is not XML"));
         }
-      }).exceptionHandler(exc -> {
-        future.complete(UrlCheckResult.failResult(exc.getMessage()));
-      }).end();
-
+      }).exceptionHandler(exc -> future.complete(UrlCheckResult.failResult(exc.getMessage()))).end();
     } catch (Exception e) {
       future.complete(UrlCheckResult.failResult(e.getMessage()));
     }
@@ -66,7 +63,7 @@ public class UrlUtil {
     url += "_/proxy/modules";
 
     Future<UrlCheckResult> future = Future.future();
-    
+
     try {
       client.getAbs(url, responseHandler -> {
         String contentType = responseHandler.getHeader("Content-Type");
@@ -75,9 +72,7 @@ public class UrlUtil {
         } else {
           future.complete(UrlCheckResult.failResult("Response content-type is not JSON!"));
         }
-      }).exceptionHandler(exc -> {
-        future.complete(UrlCheckResult.failResult(exc.getMessage()));
-      }).end();
+      }).exceptionHandler(exc -> future.complete(UrlCheckResult.failResult(exc.getMessage()))).end();
 
     } catch (Exception e) {
       future.complete(UrlCheckResult.failResult(e.getMessage()));
