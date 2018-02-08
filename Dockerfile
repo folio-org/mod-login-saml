@@ -2,6 +2,8 @@ FROM folioci/openjdk8-jre:latest
 
 ENV VERTICLE_FILE mod-login-saml-fat.jar
 
+ENV JAVA_OPTIONS -Dvertx.disableDnsResolver=true
+
 # Set the location of the verticles
 ENV VERTICLE_HOME /usr/verticles
 
