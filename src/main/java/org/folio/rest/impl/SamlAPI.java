@@ -127,7 +127,6 @@ public class SamlAPI implements SamlResource {
 
 
             SAML2Credentials credentials = client.getCredentials(webContext);
-            log.debug("credentials: {}", credentials);
 
             // Get user id
             //String query = null;
@@ -179,7 +178,7 @@ public class SamlAPI implements SamlResource {
                     HttpClientInterface tokenClient = HttpClientFactory.getHttpClient(parsedHeaders.getUrl(), parsedHeaders.getTenant());
                     tokenClient.setDefaultHeaders(headers);
                     try {
-                      tokenClient.request(HttpMethod.POST, payload.toString(), "/token", null)
+                      tokenClient.request(HttpMethod.POST, payload, "/token", null)
                         .whenComplete((tokenResponse, tokenError) -> {
                           if (!org.folio.rest.tools.client.Response.isSuccess(tokenResponse.getCode())) {
                             asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withPlainInternalServerError(tokenResponse.getError().toString())));
