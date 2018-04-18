@@ -321,7 +321,7 @@ public class SamlAPI implements SamlResource {
                 updateEntries.put(SamlConfiguration.OKAPI_URL, okapiUrl);
                 updateEntries.put(SamlConfiguration.METADATA_INVALIDATED_CODE, "true");
               });
-              
+
               storeConfigEntries(rc, asyncResultHandler, parsedHeaders, updateEntries);
 
             }

@@ -11,7 +11,7 @@ import java.util.Base64;
  * @author rsass
  */
 public class Base64Util {
-  
+
   private Base64Util() {
   }
 
