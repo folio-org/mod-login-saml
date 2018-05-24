@@ -37,7 +37,7 @@ public class UrlUtil {
     try {
       client.getAbs(url, responseHandler -> {
         String contentType = responseHandler.getHeader("Content-Type");
-        if (MediaType.TEXT_XML.equals(contentType) || MediaType.APPLICATION_XML.equals(contentType)) {
+        if (contentType.endsWith("xml")) {
           future.complete(UrlCheckResult.emptySuccessResult());
         } else {
           future.complete(UrlCheckResult.failResult("Response content-type is not XML"));
