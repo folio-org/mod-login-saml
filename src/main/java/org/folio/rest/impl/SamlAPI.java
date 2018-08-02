@@ -129,7 +129,6 @@ public class SamlAPI implements SamlResource {
             SAML2Credentials credentials = client.getCredentials(webContext);
 
             // Get user id
-            //String query = null;
             List samlAttributeList = (List) credentials.getUserProfile().getAttribute(samlAttributeName);
             if (samlAttributeList == null || samlAttributeList.isEmpty()) {
               asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withPlainBadRequest("SAML attribute doesn't exist: " + samlAttributeName)));
@@ -169,37 +168,38 @@ public class SamlAPI implements SamlResource {
                     final JsonObject userObject = resultObject.getJsonArray("users").getJsonObject(0);
                     String userId = userObject.getString("id");
                     if (!userObject.getBoolean("active")) {
-                      log.warn("User " + userId + " is inactive!"); // TODO: should we deny login from an inactive account?
-                    }
+                      asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withPlainForbidden("Inactive user account!")));
+                    } else {
 
-                    JsonObject payload = new JsonObject().put("payload", new JsonObject().put("sub", userObject.getString("username")).put("user_id", userId));
+                      JsonObject payload = new JsonObject().put("payload", new JsonObject().put("sub", userObject.getString("username")).put("user_id", userId));
 
 
-                    HttpClientInterface tokenClient = HttpClientFactory.getHttpClient(parsedHeaders.getUrl(), parsedHeaders.getTenant());
-                    tokenClient.setDefaultHeaders(headers);
-                    try {
-                      tokenClient.request(HttpMethod.POST, payload, "/token", null)
-                        .whenComplete((tokenResponse, tokenError) -> {
-                          if (!org.folio.rest.tools.client.Response.isSuccess(tokenResponse.getCode())) {
-                            asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withPlainInternalServerError(tokenResponse.getError().toString())));
-                          } else {
-                            final String authToken = tokenResponse.getHeaders().get(OkapiHeaders.OKAPI_TOKEN_HEADER);
+                      HttpClientInterface tokenClient = HttpClientFactory.getHttpClient(parsedHeaders.getUrl(), parsedHeaders.getTenant());
+                      tokenClient.setDefaultHeaders(headers);
+                      try {
+                        tokenClient.request(HttpMethod.POST, payload, "/token", null)
+                          .whenComplete((tokenResponse, tokenError) -> {
+                            if (!org.folio.rest.tools.client.Response.isSuccess(tokenResponse.getCode())) {
+                              asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withPlainInternalServerError(tokenResponse.getError().toString())));
+                            } else {
+                              final String authToken = tokenResponse.getHeaders().get(OkapiHeaders.OKAPI_TOKEN_HEADER);
 
-                            final String location = UriBuilder.fromUri(stripesBaseUrl)
-                              .path("sso-landing")
-                              .queryParam("ssoToken", authToken)
-                              .queryParam("fwd", originalUrl.getPath())
-                              .build()
-                              .toString();
+                              final String location = UriBuilder.fromUri(stripesBaseUrl)
+                                .path("sso-landing")
+                                .queryParam("ssoToken", authToken)
+                                .queryParam("fwd", originalUrl.getPath())
+                                .build()
+                                .toString();
 
-                            final String cookie = new NewCookie("ssoToken", authToken, "", originalUrl.getHost(), "", 3600, false).toString();
+                              final String cookie = new NewCookie("ssoToken", authToken, "", originalUrl.getHost(), "", 3600, false).toString();
 
-                            asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withMovedTemporarily(cookie, authToken, location)));
+                              asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withMovedTemporarily(cookie, authToken, location)));
 
-                          }
-                        });
-                    } catch (Exception httpClientEx) {
-                      asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withPlainInternalServerError(httpClientEx.getMessage())));
+                            }
+                          });
+                      } catch (Exception httpClientEx) {
+                        asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withPlainInternalServerError(httpClientEx.getMessage())));
+                      }
                     }
 
                   }
@@ -381,9 +381,6 @@ public class SamlAPI implements SamlResource {
       case idpurl:
         UrlUtil.checkIdpUrl(value, vertxContext.owner()).setHandler(handler);
         break;
-      case okapiurl:
-        UrlUtil.checkOkapiUrl(value, vertxContext.owner()).setHandler(handler);
-        break;
       default:
         asyncResultHandler.handle(Future.succeededFuture(GetSamlValidateResponse.withPlainInternalServerError("unknown type: " + type.toString())));
     }
@@ -395,8 +392,7 @@ public class SamlAPI implements SamlResource {
 
     Future<Void> result = Future.future();
 
-    List<Future> futures = Arrays.asList(UrlUtil.checkOkapiUrl(updatedConfig.getOkapiUrl().toString(), vertx),
-      UrlUtil.checkIdpUrl(updatedConfig.getIdpUrl().toString(), vertx));
+    List<Future> futures = Arrays.asList(UrlUtil.checkIdpUrl(updatedConfig.getIdpUrl().toString(), vertx));
 
     CompositeFuture.all(futures)
       .setHandler(hnd -> {
@@ -472,7 +468,6 @@ public class SamlAPI implements SamlResource {
     } else {
       if (reloadClient) {
         configHolder.removeClient(tenantId);
-        clientComposite = null;
       }
 
       Future<SamlClientComposite> result = Future.future();
