@@ -381,9 +381,6 @@ public class SamlAPI implements SamlResource {
       case idpurl:
         UrlUtil.checkIdpUrl(value, vertxContext.owner()).setHandler(handler);
         break;
-      case okapiurl:
-        UrlUtil.checkOkapiUrl(value, vertxContext.owner()).setHandler(handler);
-        break;
       default:
         asyncResultHandler.handle(Future.succeededFuture(GetSamlValidateResponse.withPlainInternalServerError("unknown type: " + type.toString())));
     }
@@ -395,8 +392,7 @@ public class SamlAPI implements SamlResource {
 
     Future<Void> result = Future.future();
 
-    List<Future> futures = Arrays.asList(UrlUtil.checkOkapiUrl(updatedConfig.getOkapiUrl().toString(), vertx),
-      UrlUtil.checkIdpUrl(updatedConfig.getIdpUrl().toString(), vertx));
+    List<Future> futures = Arrays.asList(UrlUtil.checkIdpUrl(updatedConfig.getIdpUrl().toString(), vertx));
 
     CompositeFuture.all(futures)
       .setHandler(hnd -> {
