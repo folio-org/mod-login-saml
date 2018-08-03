@@ -3,7 +3,7 @@
   <groupId>org.folio</groupId>
   <artifactId>mod-login-saml</artifactId>
   <packaging>jar</packaging>
-  <version>1.1.0-SNAPSHOT</version>
+  <version>1.1.0</version>
   <name>mod-login-saml</name>
 
   <licenses>
@@ -182,7 +182,7 @@
     <url>https://github.com/folio-org/mod-login-saml</url>
     <connection>scm:git:git://github.com:folio-org/mod-login-saml.git</connection>
     <developerConnection>scm:git:git@github.com:folio-org/mod-login-saml.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>v1.1.0</tag>
   </scm>
 
   <build>
