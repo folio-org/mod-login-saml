@@ -182,7 +182,17 @@ public class SamlAPI implements SamlResource {
                             if (!org.folio.rest.tools.client.Response.isSuccess(tokenResponse.getCode())) {
                               asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withPlainInternalServerError(tokenResponse.getError().toString())));
                             } else {
-                              final String authToken = tokenResponse.getHeaders().get(OkapiHeaders.OKAPI_TOKEN_HEADER);
+                              String candidateAuthToken = null;
+                              if(tokenResponse.getCode() == 200) {
+                                candidateAuthToken = tokenResponse.getHeaders().get(OkapiHeaders.OKAPI_TOKEN_HEADER);
+                              } else { //mod-authtoken v2.x returns 201, with token in JSON response body
+                                try {
+                                  candidateAuthToken = tokenResponse.getBody().getString("token");
+                                } catch(Exception e) {
+                                  asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withPlainInternalServerError(e.getMessage())));
+                                }
+                              }
+                              final String authToken = candidateAuthToken;
 
                               final String location = UriBuilder.fromUri(stripesBaseUrl)
                                 .path("sso-landing")
