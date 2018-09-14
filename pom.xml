@@ -3,7 +3,7 @@
   <groupId>org.folio</groupId>
   <artifactId>mod-login-saml</artifactId>
   <packaging>jar</packaging>
-  <version>1.2.0-SNAPSHOT</version>
+  <version>1.2.1-SNAPSHOT</version>
   <name>mod-login-saml</name>
 
   <licenses>
