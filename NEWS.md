@@ -1,3 +1,5 @@
+## 1.2.0
+ * Add support for authtoken v2.0 interface
 ## 1.1.0
  * MODLOGSAML-31: support `users` interface 15.0
  * MODLOGSAML-32: Update Status Field to also control access to Folio via SSO
