@@ -1,3 +1,5 @@
+## 1.2.1
+ * MODLOGSAML-36: Fix security vulnerability reported in jackson-databind
 ## 1.2.0
  * Add support for authtoken v2.0 interface
 ## 1.1.0
