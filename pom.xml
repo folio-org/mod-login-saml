@@ -33,7 +33,7 @@
 
     <vertx.version>3.5.4</vertx.version>
     <pac4j.version>2.0.0</pac4j.version>
-    <vertx-pac4j.version>3.0.0</vertx-pac4j.version>
+    <vertx-pac4j.version>4.0.0</vertx-pac4j.version>
     <jackson.version>2.9.8</jackson.version>
 
     <ramlfiles_path>${basedir}/ramls</ramlfiles_path>
@@ -378,7 +378,7 @@
                   </manifestEntries>
                 </transformer>
               </transformers>
-              <artifactSet />
+              <artifactSet/>
               <outputFile>${project.build.directory}/${project.artifactId}-fat.jar</outputFile>
             </configuration>
           </execution>
