@@ -102,7 +102,7 @@
   ],
   "metadata": {
     "containerMemory": "256",
-    "databaseConnection": "true"
+    "databaseConnection": "false"
   },
   "launchDescriptor": {
     "dockerImage": "${artifactId}:${version}",
