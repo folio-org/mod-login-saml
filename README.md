@@ -34,6 +34,8 @@ production environment, use it for testing only! Default value is `false`.
 
 ### Other documentation
 
+Refer to the user documentation [Guide](GUIDE.md).
+
 Other [modules](https://dev.folio.org/source-code/#server-side) are described,
 with further FOLIO Developer documentation at [dev.folio.org](https://dev.folio.org/)
 
