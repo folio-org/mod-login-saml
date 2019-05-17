@@ -1,6 +1,6 @@
 # mod-login-saml
 
-Copyright (C) 2017-2018 The Open Library Foundation
+Copyright (C) 2017-2019 The Open Library Foundation
 
 This software is distributed under the terms of the Apache License,
 Version 2.0. See the file "[LICENSE](LICENSE)" for more information.
@@ -21,22 +21,63 @@ This module provides SAML2 SSO functionality for FOLIO.
   - These default properties can be overridden by `user.property` and `saml.attribute` configuration parameters.
   - SAML binding type can be overridden by `saml.binding` configuration property, allowed values are `POST` and `REDIRECT`
   - There will be UI for these too.
-4. Go back to Stripes login page (log out obviously), 'SSO Login' button show up. Clicking on it will forwarf to IdP's login page.
+4. Go back to Stripes login page (log out obviously), 'SSO Login' button show up. Clicking on it will forward to IdP's login page.
 
 Endpoints are documented in [RAML file](ramls/saml-login.raml)
 
-### Enviroment variables
+### Environment variables
 
 `TRUST_ALL_CERTIFICATES`: if value is `true` then HTTPS certificates not checked. This is a security issue in
 production environment, use it for testing only! Default value is `false`.
 
-
-
 ## Additional information
 
-Other [modules](https://dev.folio.org/source-code/#server-side).
+### Other documentation
+
+Refer to the user documentation [Guide](GUIDE.md).
+
+Other [modules](https://dev.folio.org/source-code/#server-side) are described,
+with further FOLIO Developer documentation at [dev.folio.org](https://dev.folio.org/)
+
+### Issue tracker
 
 See project [MODLOGSAML](https://issues.folio.org/browse/MODLOGSAML)
 at the [FOLIO issue tracker](https://dev.folio.org/guidelines/issue-tracker/).
 
-Other FOLIO Developer documentation is at [dev.folio.org](https://dev.folio.org/)
+### Quick start
+
+Compile with `mvn clean install`
+
+Run the local stand-alone instance:
+
+```
+java -jar target/mod-login-saml-fat.jar \
+  -Dhttp.port=8081 embed_postgres=true
+```
+
+### ModuleDescriptor
+
+See the built `target/ModuleDescriptor.json` for the interfaces that this module
+requires and provides, the permissions, and the additional module metadata.
+
+### API documentation
+
+This module's [API documentation](https://dev.folio.org/reference/api/#mod-login-saml).
+
+The local API docs are available, for example:
+```
+http://localhost:8081/apidocs/?raml=raml/saml-login.raml
+http://localhost:8081/apidocs/?raml=raml/admin.raml
+etc.
+```
+
+### Code analysis
+
+[SonarQube analysis](https://sonarcloud.io/dashboard?id=org.folio%3Amod-login-saml).
+
+### Download and configuration
+
+The built artifacts for this module are available.
+See [configuration](https://dev.folio.org/download/artifacts) for repository access,
+and the [Docker image](https://hub.docker.com/r/folioorg/mod-login-saml/).
+
