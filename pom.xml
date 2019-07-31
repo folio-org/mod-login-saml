@@ -35,6 +35,7 @@
     <pac4j.version>2.0.0</pac4j.version>
     <vertx-pac4j.version>3.0.0</vertx-pac4j.version>
     <jackson.version>2.9.9</jackson.version>
+    <jackson-databind.version>2.9.9.1</jackson-databind.version>
 
     <ramlfiles_path>${basedir}/ramls</ramlfiles_path>
 
@@ -147,7 +148,7 @@
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-databind</artifactId>
-        <version>${jackson.version}</version>
+        <version>${jackson-databind.version}</version>
       </dependency>
 
       <dependency>
