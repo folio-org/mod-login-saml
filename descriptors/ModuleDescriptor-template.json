@@ -32,7 +32,6 @@
           ],
           "pathPattern": "/saml/regenerate",
           "permissionsRequired": [
-            "login-saml.regenerate"
           ],
           "modulePermissions": [
             "configuration.entries.collection.get",
