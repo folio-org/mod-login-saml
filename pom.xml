@@ -34,7 +34,7 @@
     <vertx.version>3.5.4</vertx.version>
     <pac4j.version>2.0.0</pac4j.version>
     <vertx-pac4j.version>3.0.0</vertx-pac4j.version>
-    <jackson.version>2.9.10</jackson.version>
+    <jackson.version>2.10.1</jackson.version>
 
     <ramlfiles_path>${basedir}/ramls</ramlfiles_path>
 
@@ -139,21 +139,11 @@
       </dependency>
 
       <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-core</artifactId>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
         <version>${jackson.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-databind</artifactId>
-        <version>${jackson.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-annotations</artifactId>
-        <version>${jackson.version}</version>
+        <scope>import</scope>
+        <type>pom</type>
       </dependency>
 
     </dependencies>
