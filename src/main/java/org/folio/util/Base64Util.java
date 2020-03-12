@@ -2,6 +2,7 @@ package org.folio.util;
 
 import io.vertx.core.Context;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.buffer.Buffer;
 
 import java.nio.charset.StandardCharsets;
@@ -25,7 +26,7 @@ public class Base64Util {
   public static Future<Buffer> encode(Context context, String content) {
 
     Future<Buffer> result = Future.future();
-    context.executeBlocking((Future<Buffer> blockingCode) -> {
+    context.executeBlocking((Promise<Buffer> blockingCode) -> {
       byte[] encodedBytes = Base64.getEncoder().encode(content.getBytes(StandardCharsets.UTF_8));
       blockingCode.complete(Buffer.buffer(encodedBytes));
     }, result.completer());

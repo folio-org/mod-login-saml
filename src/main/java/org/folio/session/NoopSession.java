@@ -72,4 +72,9 @@ public class NoopSession implements Session {
   public void setAccessed() {
 
   }
+
+  @Override
+  public boolean isEmpty() {
+    return false;
+  }
 }

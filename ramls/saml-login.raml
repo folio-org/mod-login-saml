@@ -1,4 +1,4 @@
-#%RAML 0.8
+#%RAML 1.0
 title: SAML Login
 version: v1
 baseUri: https://github.com/folio-org/mod-login-saml
@@ -7,14 +7,14 @@ documentation:
   - title: mod-login-saml API
     content: This module provides an SAML2-based login mechanism to authenticate user in FOLIO through SSO credentials
 
-schemas:
-  - SamlCheck: !include schemas/SamlCheck.json
-  - SamlLogin: !include schemas/SamlLogin.json
-  - SamlLoginRequest: !include schemas/SamlLoginRequest.json
-  - SamlConfigRequest: !include schemas/SamlConfigRequest.json
-  - SamlConfig: !include schemas/SamlConfig.json
-  - SamlRegenerateResponse: !include schemas/SamlRegenerateResponse.json
-  - SamlValidateResponse: !include schemas/SamlValidateResponse.json
+types:
+  SamlCheck: !include schemas/SamlCheck.json
+  SamlLogin: !include schemas/SamlLogin.json
+  SamlLoginRequest: !include schemas/SamlLoginRequest.json
+  SamlConfigRequest: !include schemas/SamlConfigRequest.json
+  SamlConfig: !include schemas/SamlConfig.json
+  SamlRegenerateResponse: !include schemas/SamlRegenerateResponse.json
+  SamlValidateResponse: !include schemas/SamlValidateResponse.json
 
 /saml:
   /regenerate:
@@ -24,7 +24,7 @@ schemas:
         200:
           body:
             application/json:
-              schema: SamlRegenerateResponse
+              type: SamlRegenerateResponse
         500:
           description: "Internal server error"
           body:
@@ -34,14 +34,14 @@ schemas:
     post:
       body:
         application/json:
-          schema: SamlLoginRequest
+          type: SamlLoginRequest
       description: Generates SAMLRequest and RelayState parameters for initiating a SAML login process
       responses:
         200:
           description: "Return with HTML page in case POST_BINDING is used"
           body:
             application/json:
-              schema: SamlLogin
+              type: SamlLogin
         500:
           description: "Internal server error"
           body:
@@ -52,7 +52,6 @@ schemas:
       description: Redirect browser to sso-landing page with generated token.
       body:
         application/x-www-form-urlencoded:
-          formParameters:
       responses:
         302:
           description: "Generate JWT token and set cookie"
@@ -87,7 +86,7 @@ schemas:
         200:
           body:
             application/json:
-              schema: SamlCheck
+              type: SamlCheck
         404:
           description: Module is not deployed
           body:
@@ -104,7 +103,7 @@ schemas:
         200:
           body:
             application/json:
-              schema: SamlConfig
+              type: SamlConfig
         500:
           body:
             text/plain:
@@ -113,16 +112,16 @@ schemas:
       description: Save SAML module configuration
       body:
         application/json:
-          schema: SamlConfigRequest
+          type: SamlConfigRequest
       responses:
         200:
           body:
             application/json:
-              schema: SamlConfig
+              type: SamlConfig
         400:
           body:
             application/json:
-              schema: SamlValidateResponse
+              type: SamlValidateResponse
         500:
           body:
             text/plain:
@@ -147,7 +146,7 @@ schemas:
         200:
           body:
             application/json:
-              schema: SamlValidateResponse
+              type: SamlValidateResponse
         500:
           description: "Internal server error"
           body:

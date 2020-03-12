@@ -3,6 +3,7 @@ package org.folio.config;
 import com.google.common.base.Strings;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.RoutingContext;
@@ -107,7 +108,7 @@ public class SamlClientLoader {
           } else {
             // Load KeyStore from configuration
 
-            vertx.executeBlocking((Future<Buffer> blockingCode) -> {
+            vertx.executeBlocking((Promise<Buffer> blockingCode) -> {
               blockingCode.complete(Buffer.buffer(Base64.getDecoder().decode(keystore)));
             }, resultHandler -> {
               if (resultHandler.failed()) {
@@ -154,7 +155,7 @@ public class SamlClientLoader {
         final byte[] rawBytes = fileResult.result().getBytes();
 
         // base64 encode
-        vertx.executeBlocking((Future<Buffer> blockingFuture) -> {
+        vertx.executeBlocking((Promise<Buffer> blockingFuture) -> {
           Buffer encodedBytes = Buffer.buffer(Base64.getEncoder().encode(rawBytes));
           blockingFuture.complete(encodedBytes);
         }, resultHandler -> {

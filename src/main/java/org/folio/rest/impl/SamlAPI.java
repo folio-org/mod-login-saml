@@ -9,14 +9,16 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.auth.PRNG;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.Session;
-import io.vertx.ext.web.sstore.impl.SessionImpl;
+import io.vertx.ext.web.sstore.impl.SharedDataSessionImpl;
 import org.folio.config.ConfigurationsClient;
 import org.folio.config.SamlClientLoader;
 import org.folio.config.SamlConfigHolder;
 import org.folio.config.model.SamlClientComposite;
 import org.folio.config.model.SamlConfiguration;
 import org.folio.rest.jaxrs.model.*;
-import org.folio.rest.jaxrs.resource.SamlResource;
+import org.folio.rest.jaxrs.resource.Saml;
+import org.folio.rest.jaxrs.resource.Saml.PostSamlCallbackResponse;
+import org.folio.rest.jaxrs.resource.Saml.PostSamlCallbackResponse.HeadersFor302;
 import org.folio.rest.tools.client.HttpClientFactory;
 import org.folio.rest.tools.client.interfaces.HttpClientInterface;
 import org.folio.session.NoopSession;
@@ -31,10 +33,12 @@ import org.pac4j.saml.credentials.SAML2Credentials;
 import org.pac4j.vertx.VertxWebContext;
 import org.springframework.util.StringUtils;
 
+import javax.ws.rs.FormParam;
 import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
@@ -43,7 +47,7 @@ import java.util.*;
  *
  * @author rsass
  */
-public class SamlAPI implements SamlResource {
+public class SamlAPI implements Saml {
 
   private static final Logger log = LoggerFactory.getLogger(SamlAPI.class);
   public static final String QUOTATION_MARK_CHARACTER = "\"";
@@ -53,14 +57,14 @@ public class SamlAPI implements SamlResource {
    */
   @Override
   public void getSamlCheck(RoutingContext routingContext, Map<String, String> okapiHeaders,
-                           Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+                           Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
     findSaml2Client(routingContext, false, false)
       .setHandler(samlClientHandler -> {
         if (samlClientHandler.failed()) {
-          asyncResultHandler.handle(Future.succeededFuture(GetSamlCheckResponse.withJsonOK(new SamlCheck().withActive(false))));
+          asyncResultHandler.handle(Future.succeededFuture(GetSamlCheckResponse.respond200WithApplicationJson(new SamlCheck().withActive(false))));
         } else {
-          asyncResultHandler.handle(Future.succeededFuture(GetSamlCheckResponse.withJsonOK(new SamlCheck().withActive(true))));
+          asyncResultHandler.handle(Future.succeededFuture(GetSamlCheckResponse.respond200WithApplicationJson(new SamlCheck().withActive(true))));
         }
       });
   }
@@ -68,12 +72,12 @@ public class SamlAPI implements SamlResource {
 
   @Override
   public void postSamlLogin(SamlLoginRequest requestEntity, RoutingContext routingContext, Map<String, String> okapiHeaders,
-                            Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+                            Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
     String stripesUrl = requestEntity.getStripesUrl();
 
     // register non-persistent session (this request only) to overWrite relayState
-    Session session = new SessionImpl(new PRNG(vertxContext.owner()));
+    Session session = new SharedDataSessionImpl(new PRNG(vertxContext.owner()));
     session.put("samlRelayState", stripesUrl);
     routingContext.setSession(session);
 
@@ -88,13 +92,13 @@ public class SamlAPI implements SamlResource {
             String responseJsonString = redirectAction.getContent();
             SamlLogin dto = Json.decodeValue(responseJsonString, SamlLogin.class);
             routingContext.response().headers().clear(); // saml2Client sets Content-Type: text/html header
-            response = PostSamlLoginResponse.withJsonOK(dto);
+            response = PostSamlLoginResponse.respond200WithApplicationJson(dto);
           } catch (HttpAction httpAction) {
             response = HttpActionMapper.toResponse(httpAction);
           }
         } else {
           log.warn("Login called but cannot load client to handle", samlClientHandler.cause());
-          response = PostSamlLoginResponse.withPlainInternalServerError("Login called but cannot load client to handle");
+          response = PostSamlLoginResponse.respond500WithTextPlain("Login called but cannot load client to handle");
         }
         asyncResultHandler.handle(Future.succeededFuture(response));
       });
@@ -103,20 +107,27 @@ public class SamlAPI implements SamlResource {
 
   @Override
   public void postSamlCallback(RoutingContext routingContext, Map<String, String> okapiHeaders,
-                               Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+                               Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
     registerFakeSession(routingContext);
 
     final VertxWebContext webContext = VertxUtils.createWebContext(routingContext);
     final String relayState = webContext.getRequestParameter("RelayState"); // There is no better way to get RelayState.
-    final URI originalUrl = new URI(relayState); // throws exception if invalid -> automatic bad request response.
+    URI relayStateUrl = null;
+    try {
+      relayStateUrl = new URI(relayState);
+    } catch (URISyntaxException e1) {
+      asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond400WithTextPlain("Invalid relay state url: " + relayState)));
+      return;
+    }
+    final URI originalUrl = relayStateUrl;
     final URI stripesBaseUrl = UrlUtil.parseBaseUrl(originalUrl);
 
     findSaml2Client(routingContext, false, false)
       .setHandler(samlClientHandler -> {
         if (samlClientHandler.failed()) {
           asyncResultHandler.handle(
-            Future.succeededFuture(PostSamlCallbackResponse.withPlainInternalServerError(samlClientHandler.cause().getMessage())));
+            Future.succeededFuture(PostSamlCallbackResponse.respond500WithTextPlain(samlClientHandler.cause().getMessage())));
         } else {
           try {
             final SamlClientComposite samlClientComposite = samlClientHandler.result();
@@ -131,7 +142,7 @@ public class SamlAPI implements SamlResource {
             // Get user id
             List samlAttributeList = (List) credentials.getUserProfile().getAttribute(samlAttributeName);
             if (samlAttributeList == null || samlAttributeList.isEmpty()) {
-              asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withPlainBadRequest("SAML attribute doesn't exist: " + samlAttributeName)));
+              asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond400WithTextPlain("SAML attribute doesn't exist: " + samlAttributeName)));
               return;
             }
             final String samlAttributeValue = samlAttributeList.get(0).toString();
@@ -152,23 +163,23 @@ public class SamlAPI implements SamlResource {
             usersClient.request(userQuery)
               .whenComplete((userQueryResponse, ex) -> {
                 if (!org.folio.rest.tools.client.Response.isSuccess(userQueryResponse.getCode())) {
-                  asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withPlainInternalServerError(userQueryResponse.getError().toString())));
+                  asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond500WithTextPlain(userQueryResponse.getError().toString())));
                 } else { // success
                   JsonObject resultObject = userQueryResponse.getBody();
 
                   int recordCount = resultObject.getInteger("totalRecords");
                   if (recordCount > 1) {
-                    asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withPlainBadRequest("More than one user record found!")));
+                    asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond400WithTextPlain("More than one user record found!")));
                   } else if (recordCount == 0) {
                     String message = "No user found by " + userPropertyName + " == " + samlAttributeValue;
                     log.warn(message);
-                    asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withPlainBadRequest(message)));
+                    asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond400WithTextPlain(message)));
                   } else {
 
                     final JsonObject userObject = resultObject.getJsonArray("users").getJsonObject(0);
                     String userId = userObject.getString("id");
                     if (!userObject.getBoolean("active")) {
-                      asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withPlainForbidden("Inactive user account!")));
+                      asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond403WithTextPlain("Inactive user account!")));
                     } else {
 
                       JsonObject payload = new JsonObject().put("payload", new JsonObject().put("sub", userObject.getString("username")).put("user_id", userId));
@@ -180,7 +191,7 @@ public class SamlAPI implements SamlResource {
                         tokenClient.request(HttpMethod.POST, payload, "/token", null)
                           .whenComplete((tokenResponse, tokenError) -> {
                             if (!org.folio.rest.tools.client.Response.isSuccess(tokenResponse.getCode())) {
-                              asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withPlainInternalServerError(tokenResponse.getError().toString())));
+                              asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond500WithTextPlain(tokenResponse.getError().toString())));
                             } else {
                               String candidateAuthToken = null;
                               if(tokenResponse.getCode() == 200) {
@@ -189,7 +200,7 @@ public class SamlAPI implements SamlResource {
                                 try {
                                   candidateAuthToken = tokenResponse.getBody().getString("token");
                                 } catch(Exception e) {
-                                  asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withPlainInternalServerError(e.getMessage())));
+                                  asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond500WithTextPlain(e.getMessage())));
                                 }
                               }
                               final String authToken = candidateAuthToken;
@@ -203,12 +214,13 @@ public class SamlAPI implements SamlResource {
 
                               final String cookie = new NewCookie("ssoToken", authToken, "", originalUrl.getHost(), "", 3600, false).toString();
 
-                              asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withMovedTemporarily(cookie, authToken, location)));
+                              HeadersFor302 headers302 = PostSamlCallbackResponse.headersFor302().withSetCookie(cookie).withXOkapiToken(authToken).withLocation(location);
+                              asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond302(headers302)));
 
                             }
                           });
                       } catch (Exception httpClientEx) {
-                        asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withPlainInternalServerError(httpClientEx.getMessage())));
+                        asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond500WithTextPlain(httpClientEx.getMessage())));
                       }
                     }
 
@@ -222,7 +234,7 @@ public class SamlAPI implements SamlResource {
             asyncResultHandler.handle(Future.succeededFuture(HttpActionMapper.toResponse(httpAction)));
           } catch (Exception ex) {
             String message = StringUtils.hasText(ex.getMessage()) ? ex.getMessage() : "Unknown error: " + ex.getClass().getName();
-            asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.withPlainInternalServerError(message)));
+            asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond500WithTextPlain(message)));
           }
         }
       });
@@ -231,7 +243,7 @@ public class SamlAPI implements SamlResource {
 
   @Override
   public void getSamlRegenerate(RoutingContext routingContext, Map<String, String> okapiHeaders,
-                                Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+                                Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
     regenerateSaml2Config(routingContext)
       .setHandler(regenerationHandler -> {
@@ -240,14 +252,14 @@ public class SamlAPI implements SamlResource {
           String message =
             "Cannot regenerate SAML2 matadata. Internal error was: " + regenerationHandler.cause().getMessage();
           asyncResultHandler
-            .handle(Future.succeededFuture(GetSamlRegenerateResponse.withPlainInternalServerError(message)));
+            .handle(Future.succeededFuture(GetSamlRegenerateResponse.respond500WithTextPlain(message)));
         } else {
 
           ConfigurationsClient.storeEntry(OkapiHelper.okapiHeaders(okapiHeaders), SamlConfiguration.METADATA_INVALIDATED_CODE, "false")
             .setHandler(configurationEntryStoredEvent -> {
 
               if (configurationEntryStoredEvent.failed()) {
-                asyncResultHandler.handle(Future.succeededFuture(GetSamlRegenerateResponse.withPlainInternalServerError("Cannot persist metadata invalidated flag!")));
+                asyncResultHandler.handle(Future.succeededFuture(GetSamlRegenerateResponse.respond500WithTextPlain("Cannot persist metadata invalidated flag!")));
               } else {
                 String metadata = regenerationHandler.result();
 
@@ -255,12 +267,12 @@ public class SamlAPI implements SamlResource {
                   .setHandler(base64Result -> {
                     if (base64Result.failed()) {
                       String message = base64Result.cause() == null ? "" : base64Result.cause().getMessage();
-                      GetSamlRegenerateResponse response = GetSamlRegenerateResponse.withPlainInternalServerError("Cannot encode file content " + message);
+                      GetSamlRegenerateResponse response = GetSamlRegenerateResponse.respond500WithTextPlain("Cannot encode file content " + message);
                       asyncResultHandler.handle(Future.succeededFuture(response));
                     } else {
                       SamlRegenerateResponse responseEntity = new SamlRegenerateResponse()
                         .withFileContent(base64Result.result().toString(StandardCharsets.UTF_8));
-                      asyncResultHandler.handle(Future.succeededFuture(GetSamlRegenerateResponse.withJsonOK(responseEntity)));
+                      asyncResultHandler.handle(Future.succeededFuture(GetSamlRegenerateResponse.respond200WithApplicationJson(responseEntity)));
                     }
 
                   });
@@ -272,7 +284,7 @@ public class SamlAPI implements SamlResource {
   }
 
   @Override
-  public void getSamlConfiguration(RoutingContext rc, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+  public void getSamlConfiguration(RoutingContext rc, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
     ConfigurationsClient.getConfiguration(OkapiHelper.okapiHeaders(okapiHeaders))
       .setHandler(configurationResult -> {
@@ -283,9 +295,9 @@ public class SamlAPI implements SamlResource {
           log.warn("Cannot load configuration", result.cause());
           asyncResultHandler.handle(
             Future.succeededFuture(
-              GetSamlConfigurationResponse.withPlainInternalServerError("Cannot get configuration")));
+              GetSamlConfigurationResponse.respond500WithTextPlain("Cannot get configuration")));
         } else {
-          asyncResultHandler.handle(Future.succeededFuture(GetSamlConfigurationResponse.withJsonOK(result.result())));
+          asyncResultHandler.handle(Future.succeededFuture(GetSamlConfigurationResponse.respond200WithApplicationJson(result.result())));
         }
 
       });
@@ -294,19 +306,19 @@ public class SamlAPI implements SamlResource {
 
 
   @Override
-  public void putSamlConfiguration(SamlConfigRequest updatedConfig, RoutingContext rc, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+  public void putSamlConfiguration(SamlConfigRequest updatedConfig, RoutingContext rc, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
     checkConfigValues(updatedConfig, vertxContext.owner())
       .setHandler(checkValuesHandler -> {
         if (checkValuesHandler.failed()) {
           SamlValidateResponse errorEntity = new SamlValidateResponse().withValid(false).withError(checkValuesHandler.cause().getMessage());
-          asyncResultHandler.handle(Future.succeededFuture(PutSamlConfigurationResponse.withJsonBadRequest(errorEntity)));
+          asyncResultHandler.handle(Future.succeededFuture(PutSamlConfigurationResponse.respond400WithApplicationJson(errorEntity)));
         } else {
           OkapiHeaders parsedHeaders = OkapiHelper.okapiHeaders(okapiHeaders);
           ConfigurationsClient.getConfiguration(parsedHeaders).setHandler((AsyncResult<SamlConfiguration> configRes) -> {
             if (configRes.failed()) {
               asyncResultHandler.handle(Future.succeededFuture(
-                PutSamlConfigurationResponse.withPlainInternalServerError(configRes.cause() != null ? configRes.cause().getMessage() : "Cannot load current configuration")));
+                PutSamlConfigurationResponse.respond500WithTextPlain(configRes.cause() != null ? configRes.cause().getMessage() : "Cannot load current configuration")));
             } else {
 
               Map<String, String> updateEntries = new HashMap<>();
@@ -347,19 +359,19 @@ public class SamlAPI implements SamlResource {
       .setHandler(configuratiuonSavedEvent -> {
         if (configuratiuonSavedEvent.failed()) {
           asyncResultHandler.handle(Future.succeededFuture(
-            PutSamlConfigurationResponse.withPlainInternalServerError(configuratiuonSavedEvent.cause() != null ? configuratiuonSavedEvent.cause().getMessage() : "Cannot save configuration")));
+            PutSamlConfigurationResponse.respond500WithTextPlain(configuratiuonSavedEvent.cause() != null ? configuratiuonSavedEvent.cause().getMessage() : "Cannot save configuration")));
         } else {
           findSaml2Client(rc, true, true)
             .setHandler(configurationLoadEvent -> {
               if (configurationLoadEvent.failed()) {
                 asyncResultHandler.handle(Future.succeededFuture(
-                  PutSamlConfigurationResponse.withPlainInternalServerError(configurationLoadEvent.cause() != null ? configurationLoadEvent.cause().getMessage() : "Cannot reload current configuration")));
+                  PutSamlConfigurationResponse.respond500WithTextPlain(configurationLoadEvent.cause() != null ? configurationLoadEvent.cause().getMessage() : "Cannot reload current configuration")));
               } else {
 
                 SamlConfiguration newConf = configurationLoadEvent.result().getConfiguration();
                 SamlConfig dto = configToDto(newConf);
 
-                asyncResultHandler.handle(Future.succeededFuture(PutSamlConfigurationResponse.withJsonOK(dto)));
+                asyncResultHandler.handle(Future.succeededFuture(PutSamlConfigurationResponse.respond200WithApplicationJson(dto)));
 
               }
             });
@@ -369,7 +381,7 @@ public class SamlAPI implements SamlResource {
 
 
   @Override
-  public void getSamlValidate(Type type, String value, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) throws Exception {
+  public void getSamlValidate(SamlValidateGetType type, String value, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
     Handler<AsyncResult<UrlCheckResult>> handler = hnd -> {
       if (hnd.succeeded()) {
@@ -381,18 +393,18 @@ public class SamlAPI implements SamlResource {
           response.setValid(false);
           response.setError(result.getMessage());
         }
-        asyncResultHandler.handle(Future.succeededFuture(GetSamlValidateResponse.withJsonOK(response)));
+        asyncResultHandler.handle(Future.succeededFuture(GetSamlValidateResponse.respond200WithApplicationJson(response)));
       } else {
-        asyncResultHandler.handle(Future.succeededFuture(GetSamlValidateResponse.withPlainInternalServerError("unknown error")));
+        asyncResultHandler.handle(Future.succeededFuture(GetSamlValidateResponse.respond500WithTextPlain("unknown error")));
       }
     };
 
     switch (type) {
-      case idpurl:
+      case IDPURL:
         UrlUtil.checkIdpUrl(value, vertxContext.owner()).setHandler(handler);
         break;
       default:
-        asyncResultHandler.handle(Future.succeededFuture(GetSamlValidateResponse.withPlainInternalServerError("unknown type: " + type.toString())));
+        asyncResultHandler.handle(Future.succeededFuture(GetSamlValidateResponse.respond500WithTextPlain("unknown type: " + type.toString())));
     }
 
 
