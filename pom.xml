@@ -3,7 +3,7 @@
   <groupId>org.folio</groupId>
   <artifactId>mod-login-saml</artifactId>
   <packaging>jar</packaging>
-  <version>1.2.3-SNAPSHOT</version>
+  <version>1.3.0-SNAPSHOT</version>
   <name>mod-login-saml</name>
 
   <licenses>
@@ -106,20 +106,6 @@
   <!-- Overriding versions coming from RMB -->
   <dependencyManagement>
     <dependencies>
-
-      <dependency>
-        <groupId>io.vertx</groupId>
-        <artifactId>vertx-core</artifactId>
-        <version>${vertx.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>io.vertx</groupId>
-        <artifactId>vertx-web</artifactId>
-        <version>${vertx.version}</version>
-      </dependency>
-
-
       <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-unit</artifactId>
@@ -129,12 +115,6 @@
       <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-dropwizard-metrics</artifactId>
-        <version>${vertx.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>io.vertx</groupId>
-        <artifactId>vertx-mysql-postgresql-client</artifactId>
         <version>${vertx.version}</version>
       </dependency>
 
