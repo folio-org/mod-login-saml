@@ -38,7 +38,7 @@ public class SamlClientLoader {
 
   public static Future<SamlClientComposite> loadFromConfiguration(RoutingContext routingContext, boolean generateMissingKeyStore) {
 
-    Future<SamlClientComposite> result = Future.future();
+    Promise<SamlClientComposite> result = Promise.promise();
 
     OkapiHeaders okapiHeaders = OkapiHelper.okapiHeaders(routingContext);
     final String tenantId = okapiHeaders.getTenant();
@@ -46,7 +46,7 @@ public class SamlClientLoader {
     ConfigurationsClient.getConfiguration(okapiHeaders)
       .compose(samlConfiguration -> {
 
-        final Future<SamlClientComposite> clientInstantiationFuture = Future.future();
+        final Promise<SamlClientComposite> clientInstantiationFuture = Promise.promise();
 
         final String idpUrl = samlConfiguration.getIdpUrl();
         final String keystore = samlConfiguration.getKeystore();
@@ -108,9 +108,9 @@ public class SamlClientLoader {
           } else {
             // Load KeyStore from configuration
 
-            vertx.executeBlocking((Promise<Buffer> blockingCode) -> {
-              blockingCode.complete(Buffer.buffer(Base64.getDecoder().decode(keystore)));
-            }, resultHandler -> {
+            vertx.executeBlocking((Promise<Buffer> blockingCode) ->
+              blockingCode.complete(Buffer.buffer(Base64.getDecoder().decode(keystore))),
+              resultHandler -> {
               if (resultHandler.failed()) {
                 clientInstantiationFuture.fail(resultHandler.cause());
               } else {
@@ -131,10 +131,11 @@ public class SamlClientLoader {
         }
 
 
-        clientInstantiationFuture.setHandler(result.completer());
-      }, result);
+        clientInstantiationFuture.future().setHandler(result.future());
+        return result.future();
+      });
 
-    return result;
+    return result.future();
   }
 
 
@@ -145,7 +146,7 @@ public class SamlClientLoader {
   private static Future<Buffer> storeKeystore(OkapiHeaders okapiHeaders, Vertx vertx, String keystoreFileName, String keystorePassword, String privateKeyPassword) {
 
 
-    Future<Buffer> future = Future.future();
+    Promise<Buffer> future = Promise.promise();
 
     // read generated jks file
     vertx.fileSystem().readFile(keystoreFileName, fileResult -> {
@@ -189,7 +190,7 @@ public class SamlClientLoader {
       }
     });
 
-    return future;
+    return future.future();
 
   }
 

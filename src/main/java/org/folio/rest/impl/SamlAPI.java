@@ -17,7 +17,6 @@ import org.folio.config.model.SamlClientComposite;
 import org.folio.config.model.SamlConfiguration;
 import org.folio.rest.jaxrs.model.*;
 import org.folio.rest.jaxrs.resource.Saml;
-import org.folio.rest.jaxrs.resource.Saml.PostSamlCallbackResponse;
 import org.folio.rest.jaxrs.resource.Saml.PostSamlCallbackResponse.HeadersFor302;
 import org.folio.rest.tools.client.HttpClientFactory;
 import org.folio.rest.tools.client.interfaces.HttpClientInterface;
@@ -33,7 +32,6 @@ import org.pac4j.saml.credentials.SAML2Credentials;
 import org.pac4j.vertx.VertxWebContext;
 import org.springframework.util.StringUtils;
 
-import javax.ws.rs.FormParam;
 import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
@@ -412,7 +410,7 @@ public class SamlAPI implements Saml {
 
   private Future<Void> checkConfigValues(SamlConfigRequest updatedConfig, Vertx vertx) {
 
-    Future<Void> result = Future.future();
+    Promise<Void> result = Promise.promise();
 
     List<Future> futures = Arrays.asList(UrlUtil.checkIdpUrl(updatedConfig.getIdpUrl().toString(), vertx));
 
@@ -437,13 +435,13 @@ public class SamlAPI implements Saml {
         }
       });
 
-    return result;
+    return result.future();
 
   }
 
   private Future<String> regenerateSaml2Config(RoutingContext routingContext) {
 
-    Future<String> result = Future.future();
+    Promise<String> result = Promise.promise();
     final Vertx vertx = routingContext.vertx();
 
     findSaml2Client(routingContext, false, false) // generate KeyStore if missing
@@ -468,7 +466,7 @@ public class SamlAPI implements Saml {
         }
       });
 
-    return result;
+    return result.future();
   }
 
   /**
@@ -492,7 +490,7 @@ public class SamlAPI implements Saml {
         configHolder.removeClient(tenantId);
       }
 
-      Future<SamlClientComposite> result = Future.future();
+      Promise<SamlClientComposite> result = Promise.promise();
       SamlClientLoader.loadFromConfiguration(routingContext, generateMissingConfig)
         .setHandler(clientResult -> {
           if (clientResult.failed()) {
@@ -503,7 +501,7 @@ public class SamlAPI implements Saml {
             result.complete(newClientComposite);
           }
         });
-      return result;
+      return result.future();
     }
 
   }
