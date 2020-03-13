@@ -131,7 +131,7 @@ public class SamlClientLoader {
         }
 
 
-        clientInstantiationFuture.future().setHandler(result.future());
+        clientInstantiationFuture.future().setHandler(result.future()::handle);
         return result.future();
       });
 
