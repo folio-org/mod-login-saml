@@ -27,11 +27,11 @@
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
 
-    <folio.domain-models-runtime.version>15.0.2</folio.domain-models-runtime.version>
+    <folio.domain-models-runtime.version>29.3.1</folio.domain-models-runtime.version>
     <generate_routing_context>/saml/callback,/saml/regenerate,/saml/login,/saml/check,/saml/configuration
     </generate_routing_context>
 
-    <vertx.version>3.5.4</vertx.version>
+    <vertx.version>3.8.5</vertx.version>
     <pac4j.version>2.0.0</pac4j.version>
     <vertx-pac4j.version>3.0.0</vertx-pac4j.version>
     <jackson.version>2.10.1</jackson.version>
@@ -308,6 +308,26 @@
                   <filtering>true</filtering>
                 </resource>
               </resources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>3.0.0</version>
+        <executions>
+          <execution>
+            <id>add-raml-jaxrs-source</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>add-source</goal>
+            </goals>
+            <configuration>
+              <sources>
+                <source>${project.build.directory}/generated-sources/raml-jaxrs</source>
+              </sources>
             </configuration>
           </execution>
         </executions>
