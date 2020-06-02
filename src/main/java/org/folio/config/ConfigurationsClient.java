@@ -95,9 +95,9 @@ public class ConfigurationsClient {
       .map(entry -> ConfigurationsClient.storeEntry(headers, entry.getKey(), entry.getValue()))
       .collect(Collectors.toList());
 
-    CompositeFuture.all(futures).setHandler(compositeEvent -> {
+    CompositeFuture.all(futures).onComplete(compositeEvent -> {
       if (compositeEvent.succeeded()) {
-        ConfigurationsClient.getConfiguration(headers).setHandler(newConfigHandler -> {
+        ConfigurationsClient.getConfiguration(headers).onComplete(newConfigHandler -> {
 
           if (newConfigHandler.succeeded()) {
             result.complete(newConfigHandler.result());
@@ -141,7 +141,7 @@ public class ConfigurationsClient {
       .put("value", value);
 
     // decide to POST or PUT
-    checkEntry(okapiHeaders, code).setHandler(checkHandler -> {
+    checkEntry(okapiHeaders, code).onComplete(checkHandler -> {
       if (checkHandler.failed()) {
         result.fail(checkHandler.cause());
       } else {

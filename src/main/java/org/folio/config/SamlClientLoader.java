@@ -83,7 +83,7 @@ public class SamlClientLoader {
                   if (samlClientInitHandler.failed()) {
                     clientInstantiationFuture.fail(samlClientInitHandler.cause());
                   } else {
-                    storeKeystore(okapiHeaders, vertx, keystoreFileName, actualKeystorePassword, actualPrivateKeyPassword).setHandler(keyfileStorageHandler -> {
+                    storeKeystore(okapiHeaders, vertx, keystoreFileName, actualKeystorePassword, actualPrivateKeyPassword).onComplete(keyfileStorageHandler -> {
                       if (keyfileStorageHandler.succeeded()) {
                         // storeKeystore is deleting JKS file, recreate client from byteArray
                         Buffer keystoreBytes = keyfileStorageHandler.result();
@@ -131,7 +131,7 @@ public class SamlClientLoader {
         }
 
 
-        clientInstantiationFuture.future().setHandler(result.future()::handle);
+        clientInstantiationFuture.future().onComplete(result.future()::handle);
         return result.future();
       });
 
@@ -168,7 +168,7 @@ public class SamlClientLoader {
             ConfigurationsClient.storeEntry(okapiHeaders, SamlConfiguration.KEYSTORE_PASSWORD_CODE, keystorePassword),
             ConfigurationsClient.storeEntry(okapiHeaders, SamlConfiguration.KEYSTORE_PRIVATEKEY_PASSWORD_CODE, privateKeyPassword),
             ConfigurationsClient.storeEntry(okapiHeaders, SamlConfiguration.METADATA_INVALIDATED_CODE, "true") // if keystore modified, current metasata is invalid.
-          ).setHandler(allConfigurationsStoredHandler -> {
+          ).onComplete(allConfigurationsStoredHandler -> {
 
             if (allConfigurationsStoredHandler.failed()) {
               vertx.fileSystem().delete(keystoreFileName, deleteResult ->

@@ -62,7 +62,7 @@ public class UrlUtilTest {
     Async async = context.async();
 
     UrlUtil.checkIdpUrl("http://localhost:" + server.actualPort(), rule.vertx())
-      .setHandler(handler -> {
+      .onComplete(handler -> {
         if (handler.failed()) {
           context.fail(handler.cause());
         } else {

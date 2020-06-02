@@ -58,7 +58,7 @@ public class SamlAPI implements Saml {
                            Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
     findSaml2Client(routingContext, false, false)
-      .setHandler(samlClientHandler -> {
+      .onComplete(samlClientHandler -> {
         if (samlClientHandler.failed()) {
           asyncResultHandler.handle(Future.succeededFuture(GetSamlCheckResponse.respond200WithApplicationJson(new SamlCheck().withActive(false))));
         } else {
@@ -81,7 +81,7 @@ public class SamlAPI implements Saml {
 
 
     findSaml2Client(routingContext, false, false) // do not allow login, if config is missing
-      .setHandler(samlClientHandler -> {
+      .onComplete(samlClientHandler -> {
         Response response;
         if (samlClientHandler.succeeded()) {
           SAML2Client saml2Client = samlClientHandler.result().getClient();
@@ -122,7 +122,7 @@ public class SamlAPI implements Saml {
     final URI stripesBaseUrl = UrlUtil.parseBaseUrl(originalUrl);
 
     findSaml2Client(routingContext, false, false)
-      .setHandler(samlClientHandler -> {
+      .onComplete(samlClientHandler -> {
         if (samlClientHandler.failed()) {
           asyncResultHandler.handle(
             Future.succeededFuture(PostSamlCallbackResponse.respond500WithTextPlain(samlClientHandler.cause().getMessage())));
@@ -244,7 +244,7 @@ public class SamlAPI implements Saml {
                                 Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
     regenerateSaml2Config(routingContext)
-      .setHandler(regenerationHandler -> {
+      .onComplete(regenerationHandler -> {
         if (regenerationHandler.failed()) {
           log.warn("Cannot regenerate SAML2 metadata.", regenerationHandler.cause());
           String message =
@@ -254,7 +254,7 @@ public class SamlAPI implements Saml {
         } else {
 
           ConfigurationsClient.storeEntry(OkapiHelper.okapiHeaders(okapiHeaders), SamlConfiguration.METADATA_INVALIDATED_CODE, "false")
-            .setHandler(configurationEntryStoredEvent -> {
+            .onComplete(configurationEntryStoredEvent -> {
 
               if (configurationEntryStoredEvent.failed()) {
                 asyncResultHandler.handle(Future.succeededFuture(GetSamlRegenerateResponse.respond500WithTextPlain("Cannot persist metadata invalidated flag!")));
@@ -262,7 +262,7 @@ public class SamlAPI implements Saml {
                 String metadata = regenerationHandler.result();
 
                 Base64Util.encode(vertxContext, metadata)
-                  .setHandler(base64Result -> {
+                  .onComplete(base64Result -> {
                     if (base64Result.failed()) {
                       String message = base64Result.cause() == null ? "" : base64Result.cause().getMessage();
                       GetSamlRegenerateResponse response = GetSamlRegenerateResponse.respond500WithTextPlain("Cannot encode file content " + message);
@@ -285,7 +285,7 @@ public class SamlAPI implements Saml {
   public void getSamlConfiguration(RoutingContext rc, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
     ConfigurationsClient.getConfiguration(OkapiHelper.okapiHeaders(okapiHeaders))
-      .setHandler(configurationResult -> {
+      .onComplete(configurationResult -> {
 
         AsyncResult<SamlConfig> result = configurationResult.map(this::configToDto);
 
@@ -307,13 +307,13 @@ public class SamlAPI implements Saml {
   public void putSamlConfiguration(SamlConfigRequest updatedConfig, RoutingContext rc, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
     checkConfigValues(updatedConfig, vertxContext.owner())
-      .setHandler(checkValuesHandler -> {
+      .onComplete(checkValuesHandler -> {
         if (checkValuesHandler.failed()) {
           SamlValidateResponse errorEntity = new SamlValidateResponse().withValid(false).withError(checkValuesHandler.cause().getMessage());
           asyncResultHandler.handle(Future.succeededFuture(PutSamlConfigurationResponse.respond400WithApplicationJson(errorEntity)));
         } else {
           OkapiHeaders parsedHeaders = OkapiHelper.okapiHeaders(okapiHeaders);
-          ConfigurationsClient.getConfiguration(parsedHeaders).setHandler((AsyncResult<SamlConfiguration> configRes) -> {
+          ConfigurationsClient.getConfiguration(parsedHeaders).onComplete((AsyncResult<SamlConfiguration> configRes) -> {
             if (configRes.failed()) {
               asyncResultHandler.handle(Future.succeededFuture(
                 PutSamlConfigurationResponse.respond500WithTextPlain(configRes.cause() != null ? configRes.cause().getMessage() : "Cannot load current configuration")));
@@ -354,13 +354,13 @@ public class SamlAPI implements Saml {
 
   private void storeConfigEntries(RoutingContext rc, Handler<AsyncResult<Response>> asyncResultHandler, OkapiHeaders parsedHeaders, Map<String, String> updateEntries) {
     ConfigurationsClient.storeEntries(parsedHeaders, updateEntries)
-      .setHandler(configuratiuonSavedEvent -> {
+      .onComplete(configuratiuonSavedEvent -> {
         if (configuratiuonSavedEvent.failed()) {
           asyncResultHandler.handle(Future.succeededFuture(
             PutSamlConfigurationResponse.respond500WithTextPlain(configuratiuonSavedEvent.cause() != null ? configuratiuonSavedEvent.cause().getMessage() : "Cannot save configuration")));
         } else {
           findSaml2Client(rc, true, true)
-            .setHandler(configurationLoadEvent -> {
+            .onComplete(configurationLoadEvent -> {
               if (configurationLoadEvent.failed()) {
                 asyncResultHandler.handle(Future.succeededFuture(
                   PutSamlConfigurationResponse.respond500WithTextPlain(configurationLoadEvent.cause() != null ? configurationLoadEvent.cause().getMessage() : "Cannot reload current configuration")));
@@ -399,7 +399,7 @@ public class SamlAPI implements Saml {
 
     switch (type) {
       case IDPURL:
-        UrlUtil.checkIdpUrl(value, vertxContext.owner()).setHandler(handler);
+        UrlUtil.checkIdpUrl(value, vertxContext.owner()).onComplete(handler);
         break;
       default:
         asyncResultHandler.handle(Future.succeededFuture(GetSamlValidateResponse.respond500WithTextPlain("unknown type: " + type.toString())));
@@ -415,7 +415,7 @@ public class SamlAPI implements Saml {
     List<Future> futures = Arrays.asList(UrlUtil.checkIdpUrl(updatedConfig.getIdpUrl().toString(), vertx));
 
     CompositeFuture.all(futures)
-      .setHandler(hnd -> {
+      .onComplete(hnd -> {
         if (hnd.succeeded()) {
           // all success
           Optional<Future> failedCheck = futures.stream()
@@ -445,7 +445,7 @@ public class SamlAPI implements Saml {
     final Vertx vertx = routingContext.vertx();
 
     findSaml2Client(routingContext, false, false) // generate KeyStore if missing
-      .setHandler(handler -> {
+      .onComplete(handler -> {
         if (handler.failed()) {
           result.fail(handler.cause());
         } else {
@@ -492,7 +492,7 @@ public class SamlAPI implements Saml {
 
       Promise<SamlClientComposite> result = Promise.promise();
       SamlClientLoader.loadFromConfiguration(routingContext, generateMissingConfig)
-        .setHandler(clientResult -> {
+        .onComplete(clientResult -> {
           if (clientResult.failed()) {
             result.fail(clientResult.cause());
           } else {
