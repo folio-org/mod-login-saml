@@ -1,8 +1,10 @@
 {
   "$schema": "http://json-schema.org/draft-03/schema#",
   "type": "object",
+  "description": "the payload sent to the POST /saml/login endpoint",
   "properties": {
     "stripesUrl": {
+      "description": "the URL that the user will be redirected to upon successful login",
       "required": true,
       "type": "string"
     }

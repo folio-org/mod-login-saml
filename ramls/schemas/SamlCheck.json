@@ -1,8 +1,10 @@
 {
   "$schema": "http://json-schema.org/draft-03/schema#",
   "type": "object",
+  "description": "Indicates whether or note SAML is configured and active",
   "properties": {
     "active": {
+      "description": "Indicates whether or note SAML is configured and active",
       "required": true,
       "type": "boolean"
     }
