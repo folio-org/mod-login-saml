@@ -50,6 +50,7 @@ public class UrlUtilTest {
         log.info("Running test http listener on port " + hnd.actualPort());
       }));
 
+    WebClientFactory.init(rule.vertx());
   }
 
   @After

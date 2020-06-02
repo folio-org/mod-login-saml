@@ -37,16 +37,24 @@ public class ConfigurationsClient {
   public static final String MODULE_NAME = "LOGIN-SAML";
   public static final String CONFIG_NAME = "saml";
 
+  public static final String MISSING_OKAPI_URL = "Missing Okapi URL";
+  public static final String MISSING_TENANT = "Missing Tenant";
+  public static final String MISSING_TOKEN = "Missing Token";
+
+  private ConfigurationsClient() {
+
+  }
+
   public static Future<SamlConfiguration> getConfiguration(OkapiHeaders okapiHeaders) {
 
     if (Strings.isNullOrEmpty(okapiHeaders.getUrl())) {
-      return Future.failedFuture("Missing Okapi URL");
+      return Future.failedFuture(MISSING_OKAPI_URL);
     }
     if (Strings.isNullOrEmpty(okapiHeaders.getTenant())) {
-      return Future.failedFuture("Missing Tenant");
+      return Future.failedFuture(MISSING_TENANT);
     }
     if (Strings.isNullOrEmpty(okapiHeaders.getToken())) {
-      return Future.failedFuture("Missing Token");
+      return Future.failedFuture(MISSING_TOKEN);
     }
 
     Promise<SamlConfiguration> future = Promise.promise();
@@ -66,18 +74,18 @@ public class ConfigurationsClient {
           if (Response.isSuccess(response.getCode())) {
 
             JsonObject responseBody = response.getBody();
-            JsonArray configs = responseBody.getJsonArray("configs"); //{"configs": [],"total_records": 0}
+            JsonArray configs = responseBody.getJsonArray("configs");
 
             ConfigurationObjectMapper.map(configs, SamlConfiguration.class, future.future());
 
           } else {
-            log.warn("Cannot get configuration data: " + response.getError().toString());
+            log.warn("Cannot get configuration data: {}", response.getError());
             future.fail(response.getException());
           }
         });
 
     } catch (Exception e) {
-      log.warn("Cannot get configuration data: " + e.getMessage());
+      log.warn("Cannot get configuration data: {}", e.getMessage());
       future.fail(e);
     }
 
@@ -107,7 +115,7 @@ public class ConfigurationsClient {
 
         });
       } else {
-        log.warn("Cannot save configuration entries: " + compositeEvent.cause());
+        log.warn("Cannot save configuration entries: {}", compositeEvent.cause());
         result.fail(compositeEvent.cause());
       }
     });
@@ -121,13 +129,13 @@ public class ConfigurationsClient {
     Assert.hasText(code, "config entry CODE is mandatory");
 
     if (Strings.isNullOrEmpty(okapiHeaders.getUrl())) {
-      return Future.failedFuture("Missing Okapi URL");
+      return Future.failedFuture(MISSING_OKAPI_URL);
     }
     if (Strings.isNullOrEmpty(okapiHeaders.getTenant())) {
-      return Future.failedFuture("Missing Tenant");
+      return Future.failedFuture(MISSING_TENANT);
     }
     if (Strings.isNullOrEmpty(okapiHeaders.getToken())) {
-      return Future.failedFuture("Missing Token");
+      return Future.failedFuture(MISSING_TOKEN);
     }
 
 
@@ -198,13 +206,13 @@ public class ConfigurationsClient {
     Promise<String> result = Promise.promise();
 
     if (Strings.isNullOrEmpty(okapiHeaders.getUrl())) {
-      return Future.failedFuture("Missing Okapi URL");
+      return Future.failedFuture(MISSING_OKAPI_URL);
     }
     if (Strings.isNullOrEmpty(okapiHeaders.getTenant())) {
-      return Future.failedFuture("Missing Tenant");
+      return Future.failedFuture(MISSING_TENANT);
     }
     if (Strings.isNullOrEmpty(okapiHeaders.getToken())) {
-      return Future.failedFuture("Missing Token");
+      return Future.failedFuture(MISSING_TOKEN);
     }
 
     String query = "(module==" + MODULE_NAME + " AND configName==" + CONFIG_NAME + " AND code== " + code + ")";
@@ -219,7 +227,7 @@ public class ConfigurationsClient {
         .whenComplete((checkEntryResponse, throwable) -> {
           if (checkEntryResponse.getCode() != 200) {
             result.fail("Failed to check configuration entry: " + code
-              + " HTTP result was " + checkEntryResponse.getCode() + " " + String.valueOf(checkEntryResponse.getBody()));
+              + " HTTP result was " + checkEntryResponse.getCode() + " " + checkEntryResponse.getBody().encode());
           } else {
             JsonObject entries = checkEntryResponse.getBody();
             JsonArray configs = entries.getJsonArray("configs");

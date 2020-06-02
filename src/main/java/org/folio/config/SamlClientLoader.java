@@ -36,6 +36,10 @@ public class SamlClientLoader {
 
   public static final String CALLBACK_ENDPOINT = "/saml/callback";
 
+  private SamlClientLoader() {
+
+  }
+
   public static Future<SamlClientComposite> loadFromConfiguration(RoutingContext routingContext, boolean generateMissingKeyStore) {
 
     Promise<SamlClientComposite> result = Promise.promise();
