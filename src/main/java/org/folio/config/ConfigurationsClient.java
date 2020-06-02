@@ -115,7 +115,7 @@ public class ConfigurationsClient {
 
         });
       } else {
-        log.warn("Cannot save configuration entries: {}", compositeEvent.cause());
+        log.warn("Cannot save configuration entries: {}", compositeEvent.cause().getMessage());
         result.fail(compositeEvent.cause());
       }
     });
