@@ -20,11 +20,7 @@ public class UrlUtil {
   }
 
   public static URI parseBaseUrl(URI originalUrl) {
-    try {
-      return new URI(originalUrl.getScheme() + "://" + originalUrl.getAuthority());
-    } catch (URISyntaxException e) {
-      throw new IllegalStateException("Malformed URI...", e);
-    }
+      return URI.create(originalUrl.getScheme() + "://" + originalUrl.getAuthority());
   }
 
   public static Future<UrlCheckResult> checkIdpUrl(String url, Vertx vertx) {

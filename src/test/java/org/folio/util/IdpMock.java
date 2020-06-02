@@ -20,7 +20,9 @@ public class IdpMock extends AbstractVerticle {
     Router router = Router.router(vertx);
     HttpServer server = vertx.createHttpServer();
 
-    router.route().handler(this::handleIdp);
+    router.route("/xml").handler(this::handleXml);
+    router.route("/json").handler(this::handleJson);
+    router.route("/").handler(this::handleNoContentType);
     System.out.println("Running IdpMock on port " + port);
     server.requestHandler(router::handle).listen(port, result -> {
       if (result.failed()) {
@@ -31,12 +33,24 @@ public class IdpMock extends AbstractVerticle {
     });
   }
 
-  private void handleIdp(RoutingContext context) {
+  private void handleNoContentType(RoutingContext context) {
+    handle(context, null);
+  }
+
+  private void handleXml(RoutingContext context) {
+    handle(context, "application/xml");
+  }
+
+  private void handleJson(RoutingContext context) {
+    handle(context, "application/json");
+  }
+
+  private void handle(RoutingContext context, String contentType) {
     try {
       String idpMetadata = readMockData();
       context.response()
         .setStatusCode(200)
-        .putHeader("Content-Type", "application/xml")
+        .putHeader("Content-Type", contentType)
         .end(idpMetadata);
     } catch (Exception e) {
       context.response()

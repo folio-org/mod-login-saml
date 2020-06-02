@@ -212,7 +212,7 @@ public class SamlAPITest {
   @Test
   public void putConfigurationEndpoint(TestContext context) throws IOException {
     SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
-      .withIdpUrl(URI.create("http://localhost:" + MOCK_PORT))
+      .withIdpUrl(URI.create("http://localhost:" + MOCK_PORT + "/xml"))
       .withSamlAttribute("UserID")
       .withSamlBinding(SamlConfigRequest.SamlBinding.POST)
       .withUserProperty("externalSystemId")
