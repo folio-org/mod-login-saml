@@ -1,7 +1,6 @@
 package org.folio.util;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 
 import org.folio.util.model.UrlCheckResult;
 
