@@ -222,7 +222,7 @@ public class SamlClientLoader {
 
   private static SAML2Client assembleSaml2Client(String okapiUrl, String tenantId, SAML2ClientConfiguration cfg, String samlBinding) {
 
-    boolean mock = System.getProperty(HttpClientMock2.MOCK_MODE) == "true";
+    boolean mock = Boolean.parseBoolean(System.getProperty(HttpClientMock2.MOCK_MODE));
 
     if (StringUtils.hasText(samlBinding) && samlBinding.equals("REDIRECT")) {
       cfg.setDestinationBindingType(SAMLConstants.SAML2_REDIRECT_BINDING_URI);

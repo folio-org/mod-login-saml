@@ -138,7 +138,7 @@ public class SamlAPI implements Saml {
             SAML2Credentials credentials = client.getCredentials(webContext);
 
             // Get user id
-            List samlAttributeList = (List) credentials.getUserProfile().getAttribute(samlAttributeName);
+            List<?> samlAttributeList = (List<?>) credentials.getUserProfile().getAttribute(samlAttributeName);
             if (samlAttributeList == null || samlAttributeList.isEmpty()) {
               asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond400WithTextPlain("SAML attribute doesn't exist: " + samlAttributeName)));
               return;
@@ -412,13 +412,13 @@ public class SamlAPI implements Saml {
 
     Promise<Void> result = Promise.promise();
 
-    List<Future> futures = Arrays.asList(UrlUtil.checkIdpUrl(updatedConfig.getIdpUrl().toString(), vertx));
+    List<Future> futures = Arrays.asList(UrlUtil.checkIdpUrl(updatedConfig.getIdpUrl().toString(), vertx)); //NOSONAR
 
     CompositeFuture.all(futures)
       .onComplete(hnd -> {
         if (hnd.succeeded()) {
           // all success
-          Optional<Future> failedCheck = futures.stream()
+          Optional<Future> failedCheck = futures.stream() //NOSONAR
             .filter(future -> !((UrlCheckResult) future.result()).getStatus().equals(UrlCheckResult.Status.SUCCESS))
             .findFirst();
 

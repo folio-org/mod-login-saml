@@ -101,7 +101,7 @@ public class ConfigurationsClient {
 
     Promise<SamlConfiguration> result = Promise.promise();
 
-    List<Future> futures = entries.entrySet().stream()
+    List<Future> futures = entries.entrySet().stream() //NOSONAR
       .map(entry -> ConfigurationsClient.storeEntry(headers, entry.getKey(), entry.getValue()))
       .collect(Collectors.toList());
 
