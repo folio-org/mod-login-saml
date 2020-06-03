@@ -63,13 +63,7 @@ public class SamlAPITest {
       .setConfig(new JsonObject().put("http.port", MOCK_PORT))
       .setWorker(true);
 
-    mockVertx.deployVerticle(IdpMock.class.getName(), mockOptions, mockRes -> {
-      if(mockRes.failed()) {
-        context.fail(mockRes.cause());
-      } else {
-        context.asyncAssertSuccess();
-      }
-    });
+    mockVertx.deployVerticle(IdpMock.class.getName(), mockOptions, context.asyncAssertSuccess());
   }
 
   @Before
@@ -84,9 +78,7 @@ public class SamlAPITest {
     RestAssured.port = PORT;
     RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
 
-    vertx.deployVerticle(new RestVerticle(),
-        options,
-        context.asyncAssertSuccess());
+    vertx.deployVerticle(new RestVerticle(), options, context.asyncAssertSuccess());
   }
 
   @After
