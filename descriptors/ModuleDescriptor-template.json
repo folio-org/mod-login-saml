@@ -4,13 +4,14 @@
   "provides": [
     {
       "id": "login-saml",
-      "version": "1.0",
+      "version": "2.0",
       "handlers": [
         {
           "methods": [
             "POST"
           ],
           "pathPattern": "/saml/login",
+          "permissionsRequired": [],
           "modulePermissions": [
             "configuration.entries.collection.get"
           ]
@@ -20,6 +21,7 @@
             "POST"
           ],
           "pathPattern": "/saml/callback",
+          "permissionsRequired": [],
           "modulePermissions": [
             "auth.signtoken",
             "configuration.entries.collection.get",
@@ -45,16 +47,31 @@
             "GET"
           ],
           "pathPattern": "/saml/check",
+          "permissionsRequired": [],
           "modulePermissions": [
             "configuration.entries.collection.get"
           ]
         },
         {
           "methods": [
-            "GET",
+            "GET"
+          ],
+          "pathPattern": "/saml/configuration",
+          "permissionsRequired": [
+            "login-saml.configuration.get"
+          ],
+          "modulePermissions": [
+            "configuration.entries.collection.get"
+          ]
+        },
+        {
+          "methods": [
             "PUT"
           ],
           "pathPattern": "/saml/configuration",
+          "permissionsRequired": [
+            "login-saml.configuration.put"
+          ],
           "modulePermissions": [
             "configuration.entries.collection.get",
             "configuration.entries.item.post",
@@ -65,7 +82,8 @@
           "methods": [
             "GET"
           ],
-          "pathPattern": "/saml/validate"
+          "pathPattern": "/saml/validate",
+          "permissionsRequired": []
         }
       ]
     }
@@ -77,11 +95,25 @@
       "description": ""
     },
     {
+      "permissionName": "login-saml.configuration.get",
+      "displayName": "SAML configuration: view",
+      "description": "Grants the ability to view SAML configuration",
+      "visible": true
+    },
+    {
+      "permissionName": "login-saml.configuration.put",
+      "displayName": "SAML configuration: modify",
+      "description": "Grants the ability to modify SAML configuration",
+      "visible": true
+    },
+    {
       "permissionName": "login-saml.all",
       "displayName": "Login-SAML: administration",
       "description": "",
       "subPermissions": [
-        "login-saml.regenerate"
+        "login-saml.regenerate",
+        "login-saml.configuration.get",
+        "login-saml.configuration.put"
       ],
       "visible": true
     }
