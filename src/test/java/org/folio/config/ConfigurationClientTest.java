@@ -4,31 +4,25 @@ import static org.folio.config.ConfigurationsClient.MISSING_OKAPI_URL;
 import static org.folio.config.ConfigurationsClient.MISSING_TENANT;
 import static org.folio.config.ConfigurationsClient.MISSING_TOKEN;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-
-import java.io.IOException;
 
 import org.folio.config.ConfigurationsClient.MissingHeaderException;
-import org.folio.rest.tools.client.HttpClientFactory;
-import org.folio.rest.tools.client.test.HttpClientMock2;
 import org.folio.util.model.OkapiHeaders;
 import org.junit.Test;
-
-import io.vertx.core.json.JsonObject;
 
 public class ConfigurationClientTest {
 
   @Test
-  public void testVerifyOkapiHeaders() {
+  public void testVerifyOkapiHeadersAllPresent() throws MissingHeaderException {
     OkapiHeaders okapiHeaders = new OkapiHeaders();
     okapiHeaders.setTenant("tenant");
     okapiHeaders.setToken("token");
     okapiHeaders.setUrl("url");
-    try {
-      ConfigurationsClient.verifyOkapiHeaders(okapiHeaders);
-    } catch (MissingHeaderException e) {
-      fail(e.getMessage());
-    }
+    ConfigurationsClient.verifyOkapiHeaders(okapiHeaders);
+  }
+
+  @Test
+  public void testVerifyOkapiHeadersMissingToken() {
+    OkapiHeaders okapiHeaders = new OkapiHeaders();
 
     okapiHeaders = new OkapiHeaders();
     okapiHeaders.setTenant("tenant");
@@ -38,6 +32,11 @@ public class ConfigurationClientTest {
     } catch (MissingHeaderException e) {
       assertEquals(MISSING_TOKEN, e.getMessage());
     }
+  }
+
+  @Test
+  public void testVerifyOkapiHeadersMissingTenant() {
+    OkapiHeaders okapiHeaders = new OkapiHeaders();
 
     okapiHeaders = new OkapiHeaders();
     okapiHeaders.setToken("token");
@@ -47,6 +46,11 @@ public class ConfigurationClientTest {
     } catch (MissingHeaderException e) {
       assertEquals(MISSING_TENANT, e.getMessage());
     }
+  }
+
+  @Test
+  public void testVerifyOkapiHeadersMissingUrl() {
+    OkapiHeaders okapiHeaders = new OkapiHeaders();
 
     okapiHeaders = new OkapiHeaders();
     okapiHeaders.setTenant("tenant");
