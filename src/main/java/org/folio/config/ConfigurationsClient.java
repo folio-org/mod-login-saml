@@ -37,23 +37,33 @@ public class ConfigurationsClient {
   public static final String MODULE_NAME = "LOGIN-SAML";
   public static final String CONFIG_NAME = "saml";
 
-  public static Future<SamlConfiguration> getConfiguration(OkapiHeaders okapiHeaders) {
+  public static final String MISSING_OKAPI_URL = "Missing Okapi URL";
+  public static final String MISSING_TENANT = "Missing Tenant";
+  public static final String MISSING_TOKEN = "Missing Token";
 
+  private ConfigurationsClient() {
+
+  }
+
+  protected static void verifyOkapiHeaders(OkapiHeaders okapiHeaders) throws MissingHeaderException {
     if (Strings.isNullOrEmpty(okapiHeaders.getUrl())) {
-      return Future.failedFuture("Missing Okapi URL");
+      throw new MissingHeaderException(MISSING_OKAPI_URL);
     }
     if (Strings.isNullOrEmpty(okapiHeaders.getTenant())) {
-      return Future.failedFuture("Missing Tenant");
+      throw new MissingHeaderException(MISSING_TENANT);
     }
     if (Strings.isNullOrEmpty(okapiHeaders.getToken())) {
-      return Future.failedFuture("Missing Token");
+      throw new MissingHeaderException(MISSING_TOKEN);
     }
+  }
 
+  public static Future<SamlConfiguration> getConfiguration(OkapiHeaders okapiHeaders) {
     Promise<SamlConfiguration> future = Promise.promise();
 
     String query = "(module==" + MODULE_NAME + " AND configName==" + CONFIG_NAME + ")";
 
     try {
+      verifyOkapiHeaders(okapiHeaders);
       String encodedQuery = URLEncoder.encode(query, "UTF-8");
 
       Map<String, String> headers = new HashMap<>();
@@ -66,18 +76,18 @@ public class ConfigurationsClient {
           if (Response.isSuccess(response.getCode())) {
 
             JsonObject responseBody = response.getBody();
-            JsonArray configs = responseBody.getJsonArray("configs"); //{"configs": [],"total_records": 0}
+            JsonArray configs = responseBody.getJsonArray("configs");
 
             ConfigurationObjectMapper.map(configs, SamlConfiguration.class, future.future());
 
           } else {
-            log.warn("Cannot get configuration data: " + response.getError().toString());
+            log.warn("Cannot get configuration data: {}", response.getError());
             future.fail(response.getException());
           }
         });
 
     } catch (Exception e) {
-      log.warn("Cannot get configuration data: " + e.getMessage());
+      log.warn("Cannot get configuration data: {}", e.getMessage());
       future.fail(e);
     }
 
@@ -91,13 +101,13 @@ public class ConfigurationsClient {
 
     Promise<SamlConfiguration> result = Promise.promise();
 
-    List<Future> futures = entries.entrySet().stream()
+    List<Future> futures = entries.entrySet().stream() //NOSONAR
       .map(entry -> ConfigurationsClient.storeEntry(headers, entry.getKey(), entry.getValue()))
       .collect(Collectors.toList());
 
-    CompositeFuture.all(futures).setHandler(compositeEvent -> {
+    CompositeFuture.all(futures).onComplete(compositeEvent -> {
       if (compositeEvent.succeeded()) {
-        ConfigurationsClient.getConfiguration(headers).setHandler(newConfigHandler -> {
+        ConfigurationsClient.getConfiguration(headers).onComplete(newConfigHandler -> {
 
           if (newConfigHandler.succeeded()) {
             result.complete(newConfigHandler.result());
@@ -107,7 +117,7 @@ public class ConfigurationsClient {
 
         });
       } else {
-        log.warn("Cannot save configuration entries: " + compositeEvent.cause());
+        log.warn("Cannot save configuration entries: {}", compositeEvent.cause().getMessage());
         result.fail(compositeEvent.cause());
       }
     });
@@ -117,19 +127,7 @@ public class ConfigurationsClient {
 
 
   public static Future<Void> storeEntry(OkapiHeaders okapiHeaders, String code, String value) {
-
     Assert.hasText(code, "config entry CODE is mandatory");
-
-    if (Strings.isNullOrEmpty(okapiHeaders.getUrl())) {
-      return Future.failedFuture("Missing Okapi URL");
-    }
-    if (Strings.isNullOrEmpty(okapiHeaders.getTenant())) {
-      return Future.failedFuture("Missing Tenant");
-    }
-    if (Strings.isNullOrEmpty(okapiHeaders.getToken())) {
-      return Future.failedFuture("Missing Token");
-    }
-
 
     Promise<Void> result = Promise.promise();
 
@@ -141,7 +139,7 @@ public class ConfigurationsClient {
       .put("value", value);
 
     // decide to POST or PUT
-    checkEntry(okapiHeaders, code).setHandler(checkHandler -> {
+    checkEntry(okapiHeaders, code).onComplete(checkHandler -> {
       if (checkHandler.failed()) {
         result.fail(checkHandler.cause());
       } else {
@@ -155,6 +153,8 @@ public class ConfigurationsClient {
         headers.put(OkapiHeaders.OKAPI_TOKEN_HEADER, okapiHeaders.getToken());
 
         try {
+          verifyOkapiHeaders(okapiHeaders);
+
           HttpClientInterface storeEntryClient = HttpClientFactory.getHttpClient(okapiHeaders.getUrl(), okapiHeaders.getTenant(), true);
           storeEntryClient.setDefaultHeaders(headers);
           storeEntryClient.request(httpMethod, requestBody, endpoint, null)
@@ -183,7 +183,6 @@ public class ConfigurationsClient {
         } catch (Exception ex) {
           result.fail(ex);
         }
-
       }
     });
 
@@ -197,18 +196,9 @@ public class ConfigurationsClient {
   public static Future<String> checkEntry(OkapiHeaders okapiHeaders, String code) {
     Promise<String> result = Promise.promise();
 
-    if (Strings.isNullOrEmpty(okapiHeaders.getUrl())) {
-      return Future.failedFuture("Missing Okapi URL");
-    }
-    if (Strings.isNullOrEmpty(okapiHeaders.getTenant())) {
-      return Future.failedFuture("Missing Tenant");
-    }
-    if (Strings.isNullOrEmpty(okapiHeaders.getToken())) {
-      return Future.failedFuture("Missing Token");
-    }
-
     String query = "(module==" + MODULE_NAME + " AND configName==" + CONFIG_NAME + " AND code== " + code + ")";
     try {
+      verifyOkapiHeaders(okapiHeaders);
       String encodedQuery = URLEncoder.encode(query, "UTF-8");
 
       Map<String, String> headers = new HashMap<>();
@@ -219,7 +209,7 @@ public class ConfigurationsClient {
         .whenComplete((checkEntryResponse, throwable) -> {
           if (checkEntryResponse.getCode() != 200) {
             result.fail("Failed to check configuration entry: " + code
-              + " HTTP result was " + checkEntryResponse.getCode() + " " + String.valueOf(checkEntryResponse.getBody()));
+              + " HTTP result was " + checkEntryResponse.getCode() + " " + checkEntryResponse.getBody().encode());
           } else {
             JsonObject entries = checkEntryResponse.getBody();
             JsonArray configs = entries.getJsonArray("configs");
@@ -238,5 +228,13 @@ public class ConfigurationsClient {
     }
 
     return result.future();
+  }
+
+  public static class MissingHeaderException extends Exception {
+    private static final long serialVersionUID = 7340537453740028325L;
+
+    public MissingHeaderException(String message) {
+      super(message);
+    }
   }
 }

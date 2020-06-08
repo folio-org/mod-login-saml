@@ -1,57 +1,49 @@
 package org.folio.util;
 
-import io.vertx.core.Future;
-import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientOptions;
+import java.net.URI;
+
 import org.folio.util.model.UrlCheckResult;
 
-import javax.ws.rs.core.MediaType;
-import java.net.URI;
-import java.net.URISyntaxException;
+import io.vertx.core.Future;
+import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
+import io.vertx.ext.web.client.WebClient;
 
 /**
  * @author rsass
  */
 public class UrlUtil {
 
+  private UrlUtil() {
+
+  }
 
   public static URI parseBaseUrl(URI originalUrl) {
-    try {
-      return new URI(originalUrl.getScheme() + "://" + originalUrl.getAuthority());
-    } catch (URISyntaxException e) {
-      throw new IllegalStateException("Malformed URI...", e);
-    }
+      return URI.create(originalUrl.getScheme() + "://" + originalUrl.getAuthority());
   }
 
   public static Future<UrlCheckResult> checkIdpUrl(String url, Vertx vertx) {
-    HttpClient client = createClient(vertx);
-    return checkIdpUrl(url, client);
-  }
+    Promise<UrlCheckResult> promise = Promise.promise();
 
-  public static Future<UrlCheckResult> checkIdpUrl(String url, HttpClient client) {
+    WebClient client = WebClientFactory.getWebClient(vertx);
 
-    Future<UrlCheckResult> future = Future.future();
-
-
-    try {
-      client.getAbs(url, responseHandler -> {
-        String contentType = responseHandler.getHeader("Content-Type");
-        if (contentType.contains("xml")) {
-          future.complete(UrlCheckResult.emptySuccessResult());
-        } else {
-          future.complete(UrlCheckResult.failResult("Response content-type is not XML"));
+    client.getAbs(url).send(ar -> {
+      try {
+        if (ar.failed()) {
+          promise.complete(UrlCheckResult.failResult(ar.cause().getMessage()));
+          return;
         }
-      }).exceptionHandler(exc -> future.complete(UrlCheckResult.failResult(exc.getMessage()))).end();
-    } catch (Exception e) {
-      future.complete(UrlCheckResult.failResult(e.getMessage()));
-    }
+        String contentType = ar.result().getHeader("Content-Type");
+        if (contentType.contains("xml")) {
+          promise.complete(UrlCheckResult.emptySuccessResult());
+          return;
+        }
+        promise.complete(UrlCheckResult.failResult("Response content-type is not XML"));
+      } catch (Exception e) {
+        promise.complete(UrlCheckResult.failResult("Unexpected error: " + e.getMessage()));
+      }
+    });
 
-    return future;
-  }
-
-  private static HttpClient createClient(Vertx vertx) {
-    HttpClientOptions options = new HttpClientOptions().setKeepAlive(false).setConnectTimeout(5000);
-    return vertx.createHttpClient(options);
+    return promise.future();
   }
 }

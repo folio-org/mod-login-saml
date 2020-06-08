@@ -1,5 +1,32 @@
 package org.folio.rest.impl;
 
+import static io.restassured.RestAssured.given;
+import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
+import static org.folio.util.Base64AwareXsdMatcher.matchesBase64XsdInClasspath;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.URLEncoder;
+
+import org.folio.rest.RestVerticle;
+import org.folio.rest.jaxrs.model.SamlConfigRequest;
+import org.folio.rest.tools.client.HttpClientFactory;
+import org.folio.rest.tools.client.test.HttpClientMock2;
+import org.folio.rest.tools.utils.NetworkUtils;
+import org.folio.util.IdpMock;
+import org.folio.util.TestingClasspathResolver;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.w3c.dom.ls.LSResourceResolver;
+
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.http.Header;
@@ -9,28 +36,6 @@ import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import org.folio.rest.RestVerticle;
-import org.folio.rest.jaxrs.model.SamlConfigRequest;
-import org.folio.rest.tools.client.test.HttpClientMock2;
-import org.folio.util.TestingClasspathResolver;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.w3c.dom.ls.LSResourceResolver;
-
-import java.io.IOException;
-import java.net.URI;
-import java.net.URLEncoder;
-
-import static io.restassured.RestAssured.given;
-import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
-import static org.folio.util.Base64AwareXsdMatcher.matchesBase64XsdInClasspath;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
 
 /**
  * @author rsass
@@ -46,32 +51,44 @@ public class SamlAPITest {
   private static final String STRIPES_URL = "http://localhost:3000";
 
   public static final int PORT = 8081;
+  public static final int MOCK_PORT = NetworkUtils.nextFreePort();
+
+  private static Vertx mockVertx = Vertx.vertx();
+
   private Vertx vertx;
 
+  @BeforeClass
+  public static void setupOnce(TestContext context) throws Exception {
+    DeploymentOptions mockOptions = new DeploymentOptions()
+      .setConfig(new JsonObject().put("http.port", MOCK_PORT))
+      .setWorker(true);
+
+    mockVertx.deployVerticle(IdpMock.class.getName(), mockOptions, context.asyncAssertSuccess());
+  }
 
   @Before
   public void setUp(TestContext context) throws Exception {
     vertx = Vertx.vertx();
-
 
     DeploymentOptions options = new DeploymentOptions()
       .setConfig(new JsonObject().put("http.port", PORT)
         .put(HttpClientMock2.MOCK_MODE, "true")
       );
 
-
-    vertx.deployVerticle(new RestVerticle(),
-      options,
-      context.asyncAssertSuccess());
-
     RestAssured.port = PORT;
     RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
 
+    vertx.deployVerticle(new RestVerticle(), options, context.asyncAssertSuccess());
   }
 
   @After
   public void tearDown(TestContext context) throws Exception {
     vertx.close(context.asyncAssertSuccess());
+  }
+
+  @AfterClass
+  public static void tearDownOnce(TestContext context) throws Exception {
+    mockVertx.close(context.asyncAssertSuccess());
   }
 
   @Test
@@ -98,7 +115,7 @@ public class SamlAPITest {
   }
 
   @Test
-  public void loginEndpointTests() {
+  public void loginEndpointTests() throws IOException {
 
     // empty body
     given()
@@ -124,7 +141,6 @@ public class SamlAPITest {
       .body("bindingMethod", equalTo("POST"))
       .body("relayState", equalTo(STRIPES_URL))
       .statusCode(200);
-
   }
 
   @Test
@@ -185,13 +201,10 @@ public class SamlAPITest {
       .body("metadataInvalidated", equalTo(Boolean.FALSE));
   }
 
-  @Ignore("2 external http servers should be mocked")
   @Test
-  public void putConfigurationEndpoint() {
-
-
+  public void putConfigurationEndpoint(TestContext context) throws IOException {
     SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
-      .withIdpUrl(URI.create("http://localhost"))
+      .withIdpUrl(URI.create("http://localhost:" + MOCK_PORT + "/xml"))
       .withSamlAttribute("UserID")
       .withSamlBinding(SamlConfigRequest.SamlBinding.POST)
       .withUserProperty("externalSystemId")
@@ -210,7 +223,6 @@ public class SamlAPITest {
       .then()
       .statusCode(200)
       .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"));
-
   }
 
   @Test

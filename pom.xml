@@ -27,14 +27,12 @@
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
 
-    <folio.domain-models-runtime.version>29.3.1</folio.domain-models-runtime.version>
+    <folio.domain-models-runtime.version>30.0.1</folio.domain-models-runtime.version>
     <generate_routing_context>/saml/callback,/saml/regenerate,/saml/login,/saml/check,/saml/configuration
     </generate_routing_context>
 
-    <vertx.version>3.8.5</vertx.version>
     <pac4j.version>2.0.0</pac4j.version>
     <vertx-pac4j.version>3.0.0</vertx-pac4j.version>
-    <jackson.version>2.10.1</jackson.version>
 
     <ramlfiles_path>${basedir}/ramls</ramlfiles_path>
 
@@ -52,7 +50,6 @@
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-web-client</artifactId>
-      <version>${vertx.version}</version>
     </dependency>
 
     <dependency>
@@ -97,7 +94,6 @@
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-unit</artifactId>
-      <version>${vertx.version}</version>
       <scope>test</scope>
     </dependency>
 
@@ -107,28 +103,21 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
-        <groupId>io.vertx</groupId>
-        <artifactId>vertx-unit</artifactId>
-        <version>${vertx.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>io.vertx</groupId>
-        <artifactId>vertx-dropwizard-metrics</artifactId>
-        <version>${vertx.version}</version>
-      </dependency>
-
-      <dependency>
         <groupId>com.fasterxml.jackson</groupId>
         <artifactId>jackson-bom</artifactId>
-        <version>${jackson.version}</version>
+        <version>2.10.1</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
 
+      <dependency>
+        <groupId>io.vertx</groupId>
+        <artifactId>vertx-stack-depchain</artifactId>
+        <version>3.9.1</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
     </dependencies>
-
-
   </dependencyManagement>
 
   <distributionManagement>

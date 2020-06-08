@@ -1,12 +1,15 @@
 {
   "$schema": "http://json-schema.org/draft-03/schema#",
   "type": "object",
+  "description": "Indicates whether or not the SAML configuration is valid",
   "properties": {
     "valid": {
+      "description": "Indicates whether or not the SAML configuration is valid",
       "required": true,
       "type": "boolean"
     },
     "error": {
+      "description": "Describes errors with the SAML configuration",
       "required": false,
       "type": "string"
     }

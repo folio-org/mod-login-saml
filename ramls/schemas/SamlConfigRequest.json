@@ -1,13 +1,16 @@
 {
   "$schema": "http://json-schema.org/draft-03/schema#",
   "type": "object",
+  "description": "Holds SAML configuration properties",
   "properties": {
     "idpUrl": {
+      "description": "the URL of the identity provider",
       "type": "string",
       "format": "uri",
       "required": true
     },
     "samlBinding": {
+      "description": "the SAML binding to use",
       "type": "string",
       "enum": [
         "POST",
@@ -16,14 +19,17 @@
       "required": true
     },
     "samlAttribute": {
+      "description": "the SAML attribute to use for matching against a FOLIO user",
       "type": "string",
       "required": true
     },
     "userProperty": {
+      "description": "the property from the user record to use for matching against the SAML attribute",
       "type": "string",
       "required": true
     },
     "okapiUrl": {
+      "description": "Where to find OKAPI",
       "type": "string",
       "format": "uri",
       "required": true

@@ -4,6 +4,7 @@
   "description": "Wraps sp metadata XML content (base64 encoded) in JSON.",
   "properties": {
     "fileContent": {
+      "description": "sp metadata",
       "required": true,
       "type": "string"
     }
