@@ -101,6 +101,8 @@ public class ConfigurationsClient {
 
     Promise<SamlConfiguration> result = Promise.promise();
 
+    // CompositeFuture.all(...) called below only accepts a list of Future (raw type)
+    @SuppressWarnings("java:S3740")
     List<Future> futures = entries.entrySet().stream()
       .map(entry -> ConfigurationsClient.storeEntry(headers, entry.getKey(), entry.getValue()))
       .collect(Collectors.toList());
