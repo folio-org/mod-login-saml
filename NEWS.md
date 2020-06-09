@@ -8,9 +8,6 @@ This is a maintenance release focused on keeping dependencies up to date.  The m
  * [MODLOGSAML-64](https://issues.folio.org/browse/MODLOGSAML-64) - Upgrade to RMB v30
  * [MODLOGSAML-60](https://issues.folio.org/browse/MODLOGSAML-60) - Securing APIs by default
 
-### Bugs
- * [MODLOGSAML-55](https://issues.folio.org/browse/MODLOGSAML-55) - org.pac4j:pac4j-saml vulnerability found in pom.xml on Nov 6, 2019
-
 ## 1.3.0 2020-03-13
  * Rely on RMB's vertx. dependencies - in particular the Postgres driver
    which has been using specific versions with session usage fix
