@@ -1,4 +1,6 @@
-## 2.0.0 - Released
+## 2.1.0 - Unreleased
+
+## 2.0.0 - 2020-06-09
 
 This is a maintenance release focused on keeping dependencies up to date.  The major version change is due to the new permission requirements on APIs which were previously unrestricted.
  
