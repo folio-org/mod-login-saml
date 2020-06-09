@@ -59,9 +59,10 @@ public class UrlUtilTest {
 
   @Test
   public void checkIdpUrlNon200(TestContext context) {
-    UrlUtil.checkIdpUrl("http://localhost:0", vertx)
+    int port = NetworkUtils.nextFreePort();
+    UrlUtil.checkIdpUrl("http://localhost:" + port, vertx)
       .onComplete(context.asyncAssertSuccess(result -> {
-          context.assertEquals("Connection refused: localhost/127.0.0.1:0", result.getMessage());
+          context.assertEquals("Connection refused: localhost/127.0.0.1:" + port, result.getMessage());
       }));
   }
 

@@ -101,7 +101,9 @@ public class ConfigurationsClient {
 
     Promise<SamlConfiguration> result = Promise.promise();
 
-    List<Future> futures = entries.entrySet().stream() //NOSONAR
+    // CompositeFuture.all(...) called below only accepts a list of Future (raw type)
+    @SuppressWarnings("java:S3740")
+    List<Future> futures = entries.entrySet().stream()
       .map(entry -> ConfigurationsClient.storeEntry(headers, entry.getKey(), entry.getValue()))
       .collect(Collectors.toList());
 
@@ -153,8 +155,6 @@ public class ConfigurationsClient {
         headers.put(OkapiHeaders.OKAPI_TOKEN_HEADER, okapiHeaders.getToken());
 
         try {
-          verifyOkapiHeaders(okapiHeaders);
-
           HttpClientInterface storeEntryClient = HttpClientFactory.getHttpClient(okapiHeaders.getUrl(), okapiHeaders.getTenant(), true);
           storeEntryClient.setDefaultHeaders(headers);
           storeEntryClient.request(httpMethod, requestBody, endpoint, null)
