@@ -1,6 +1,62 @@
 package org.folio.rest.impl;
 
-import io.vertx.core.*;
+import static org.pac4j.saml.state.SAML2StateGenerator.SAML_RELAY_STATE_ATTRIBUTE;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import javax.ws.rs.core.NewCookie;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriBuilder;
+
+import org.folio.config.ConfigurationsClient;
+import org.folio.config.SamlClientLoader;
+import org.folio.config.SamlConfigHolder;
+import org.folio.config.model.SamlClientComposite;
+import org.folio.config.model.SamlConfiguration;
+import org.folio.rest.jaxrs.model.SamlCheck;
+import org.folio.rest.jaxrs.model.SamlConfig;
+import org.folio.rest.jaxrs.model.SamlConfigRequest;
+import org.folio.rest.jaxrs.model.SamlLogin;
+import org.folio.rest.jaxrs.model.SamlLoginRequest;
+import org.folio.rest.jaxrs.model.SamlRegenerateResponse;
+import org.folio.rest.jaxrs.model.SamlValidateGetType;
+import org.folio.rest.jaxrs.model.SamlValidateResponse;
+import org.folio.rest.jaxrs.resource.Saml;
+import org.folio.rest.jaxrs.resource.Saml.PostSamlCallbackResponse.HeadersFor302;
+import org.folio.rest.tools.client.HttpClientFactory;
+import org.folio.rest.tools.client.interfaces.HttpClientInterface;
+import org.folio.session.NoopSession;
+import org.folio.util.Base64Util;
+import org.folio.util.ConfigEntryUtil;
+import org.folio.util.HttpActionMapper;
+import org.folio.util.OkapiHelper;
+import org.folio.util.UrlUtil;
+import org.folio.util.VertxUtils;
+import org.folio.util.model.OkapiHeaders;
+import org.folio.util.model.UrlCheckResult;
+import org.pac4j.core.exception.HttpAction;
+import org.pac4j.core.redirect.RedirectAction;
+import org.pac4j.saml.client.SAML2Client;
+import org.pac4j.saml.config.SAML2Configuration;
+import org.pac4j.saml.credentials.SAML2Credentials;
+import org.pac4j.vertx.VertxWebContext;
+import org.springframework.util.StringUtils;
+
+import io.vertx.core.AsyncResult;
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Context;
+import io.vertx.core.Future;
+import io.vertx.core.Handler;
+import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
@@ -10,36 +66,6 @@ import io.vertx.ext.auth.PRNG;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.Session;
 import io.vertx.ext.web.sstore.impl.SharedDataSessionImpl;
-import org.folio.config.ConfigurationsClient;
-import org.folio.config.SamlClientLoader;
-import org.folio.config.SamlConfigHolder;
-import org.folio.config.model.SamlClientComposite;
-import org.folio.config.model.SamlConfiguration;
-import org.folio.rest.jaxrs.model.*;
-import org.folio.rest.jaxrs.resource.Saml;
-import org.folio.rest.jaxrs.resource.Saml.PostSamlCallbackResponse.HeadersFor302;
-import org.folio.rest.tools.client.HttpClientFactory;
-import org.folio.rest.tools.client.interfaces.HttpClientInterface;
-import org.folio.session.NoopSession;
-import org.folio.util.*;
-import org.folio.util.model.OkapiHeaders;
-import org.folio.util.model.UrlCheckResult;
-import org.pac4j.core.exception.HttpAction;
-import org.pac4j.core.redirect.RedirectAction;
-import org.pac4j.saml.client.SAML2Client;
-import org.pac4j.saml.client.SAML2ClientConfiguration;
-import org.pac4j.saml.credentials.SAML2Credentials;
-import org.pac4j.vertx.VertxWebContext;
-import org.springframework.util.StringUtils;
-
-import javax.ws.rs.core.NewCookie;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriBuilder;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
-
 /**
  * Main entry point of module
  *
@@ -76,7 +102,7 @@ public class SamlAPI implements Saml {
 
     // register non-persistent session (this request only) to overWrite relayState
     Session session = new SharedDataSessionImpl(new PRNG(vertxContext.owner()));
-    session.put("samlRelayState", stripesUrl);
+    session.put(SAML_RELAY_STATE_ATTRIBUTE, stripesUrl);
     routingContext.setSession(session);
 
 
@@ -452,16 +478,17 @@ public class SamlAPI implements Saml {
           SAML2Client saml2Client = handler.result().getClient();
 
           vertx.executeBlocking(blockingCode -> {
+            try {
+              SAML2Configuration cfg = saml2Client.getConfiguration();
 
-            SAML2ClientConfiguration cfg = saml2Client.getConfiguration();
-
-            // force metadata generation then init
-            cfg.setForceServiceProviderMetadataGeneration(true);
-            saml2Client.reinit(VertxUtils.createWebContext(routingContext));
-            cfg.setForceServiceProviderMetadataGeneration(false);
-
-            blockingCode.complete(saml2Client.getServiceProviderMetadataResolver().getMetadata());
-
+              // force metadata generation then init
+              cfg.setForceServiceProviderMetadataGeneration(true);
+              saml2Client.init();
+              blockingCode.complete(saml2Client.getServiceProviderMetadataResolver().getMetadata());
+              cfg.setForceServiceProviderMetadataGeneration(false);
+            } catch (IOException e) {
+              blockingCode.fail(e);
+            }
           }, result);
         }
       });
