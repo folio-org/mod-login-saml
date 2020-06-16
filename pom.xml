@@ -19,8 +19,12 @@
       <name>FOLIO Maven repository</name>
       <url>https://repository.folio.org/repository/maven-folio</url>
     </repository>
+    <repository>
+      <id>shibboleth-nexus</id>
+      <name>Shibboleth Public Repository</name>
+      <url>https://build.shibboleth.net/nexus/content/groups/public</url>
+    </repository>
   </repositories>
-
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
