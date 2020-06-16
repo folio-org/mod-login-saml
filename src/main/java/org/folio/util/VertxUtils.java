@@ -1,7 +1,5 @@
 package org.folio.util;
 
-import java.util.UUID;
-
 import org.folio.session.NoopSession;
 import org.pac4j.core.context.session.SessionStore;
 import org.pac4j.vertx.VertxWebContext;

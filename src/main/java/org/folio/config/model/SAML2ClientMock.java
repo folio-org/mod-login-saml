@@ -1,17 +1,15 @@
 package org.folio.config.model;
 
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.opensaml.saml.saml2.core.impl.ConditionsBuilder;
-import org.opensaml.saml.saml2.core.impl.NameIDBuilder;
 import org.opensaml.saml.saml2.core.Attribute;
 import org.opensaml.saml.saml2.core.Conditions;
 import org.opensaml.saml.saml2.core.NameID;
+import org.opensaml.saml.saml2.core.impl.ConditionsBuilder;
+import org.opensaml.saml.saml2.core.impl.NameIDBuilder;
 import org.pac4j.core.context.WebContext;
-import org.pac4j.core.exception.HttpAction;
 import org.pac4j.core.profile.CommonProfile;
 import org.pac4j.saml.client.SAML2Client;
 import org.pac4j.saml.config.SAML2Configuration;
@@ -30,7 +28,7 @@ public class SAML2ClientMock extends SAML2Client {
   }
 
   @Override
-  protected SAML2Credentials retrieveCredentials(WebContext context) throws HttpAction {
+  protected SAML2Credentials retrieveCredentials(WebContext context) {
     log.info("Mocking SAML2Client retrieveCredentials...");
 
     NameID nameId = new NameIDBuilder().buildObject();
