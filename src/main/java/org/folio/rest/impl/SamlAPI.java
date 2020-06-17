@@ -470,7 +470,7 @@ public class SamlAPI implements Saml {
     Promise<String> result = Promise.promise();
     final Vertx vertx = routingContext.vertx();
 
-    findSaml2Client(routingContext, false, false) // generate KeyStore if missing
+    findSaml2Client(routingContext, false, false)
       .onComplete(handler -> {
         if (handler.failed()) {
           result.fail(handler.cause());
@@ -484,8 +484,9 @@ public class SamlAPI implements Saml {
               // force metadata generation then init
               cfg.setForceServiceProviderMetadataGeneration(true);
               saml2Client.init();
-              blockingCode.complete(saml2Client.getServiceProviderMetadataResolver().getMetadata());
               cfg.setForceServiceProviderMetadataGeneration(false);
+
+              blockingCode.complete(saml2Client.getServiceProviderMetadataResolver().getMetadata());
             } catch (IOException e) {
               blockingCode.fail(e);
             }

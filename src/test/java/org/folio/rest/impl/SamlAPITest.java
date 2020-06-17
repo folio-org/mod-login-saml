@@ -5,6 +5,7 @@ import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInC
 import static org.folio.util.Base64AwareXsdMatcher.matchesBase64XsdInClasspath;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertNotEquals;
 
 import java.io.IOException;
 import java.net.URI;
@@ -13,6 +14,7 @@ import java.net.URLEncoder;
 import org.folio.rest.RestVerticle;
 import org.folio.rest.jaxrs.model.SamlConfigRequest;
 import org.folio.rest.tools.client.HttpClientFactory;
+import org.folio.rest.tools.client.interfaces.HttpClientInterface;
 import org.folio.rest.tools.client.test.HttpClientMock2;
 import org.folio.rest.tools.utils.NetworkUtils;
 import org.folio.util.IdpMock;
@@ -52,6 +54,7 @@ public class SamlAPITest {
 
   public static final int PORT = 8081;
   public static final int MOCK_PORT = NetworkUtils.nextFreePort();
+  public HttpClientMock2 mock;
 
   private static Vertx mockVertx = Vertx.vertx();
 
@@ -77,6 +80,9 @@ public class SamlAPITest {
 
     RestAssured.port = PORT;
     RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
+
+    mock = new HttpClientMock2("http://localhost:9130", "saml-test");
+    mock.setMockJsonContent("mock_content.json");
 
     vertx.deployVerticle(new RestVerticle(), options, context.asyncAssertSuccess());
   }
@@ -144,12 +150,12 @@ public class SamlAPITest {
   }
 
   @Test
-  public void regenerateEndpointTests() {
+  public void regenerateEndpointTests() throws IOException {
 
 
     LSResourceResolver resolver = new TestingClasspathResolver("schemas/");
 
-    given()
+    String metadata = given()
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
       .header(OKAPI_URL_HEADER)
@@ -158,8 +164,45 @@ public class SamlAPITest {
       .contentType(ContentType.JSON)
       .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlRegenerateResponse.json"))
       .body("fileContent", matchesBase64XsdInClasspath("schemas/saml-schema-metadata-2.0.xsd", resolver))
-      .statusCode(200);
+      .statusCode(200)
+      .extract().asString();
 
+    // Update the config
+    mock.setMockJsonContent("after_regenerate.json");
+    SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
+        .withIdpUrl(URI.create("http://localhost:" + MOCK_PORT + "/xml"))
+        .withSamlAttribute("UserID")
+        .withSamlBinding(SamlConfigRequest.SamlBinding.REDIRECT)
+        .withUserProperty("externalSystemId")
+        .withOkapiUrl(URI.create("http://localhost:9130"));
+
+    String jsonString = Json.encode(samlConfigRequest);
+
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .header(JSON_CONTENT_TYPE_HEADER)
+      .body(jsonString)
+      .put("/saml/configuration")
+      .then()
+      .statusCode(200)
+      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"));
+
+    // Get metadata, ensure it's changed
+    String regeneratedMetadata = given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .get("/saml/regenerate")
+      .then()
+      .contentType(ContentType.JSON)
+      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlRegenerateResponse.json"))
+      .body("fileContent", matchesBase64XsdInClasspath("schemas/saml-schema-metadata-2.0.xsd", resolver))
+      .statusCode(200)
+      .extract().asString();
+
+    assertNotEquals(metadata, regeneratedMetadata);
   }
 
   @Test
