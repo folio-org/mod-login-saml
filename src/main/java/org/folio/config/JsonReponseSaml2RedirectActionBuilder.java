@@ -17,6 +17,8 @@ import org.pac4j.saml.sso.impl.SAML2AuthnRequestBuilder;
 import org.pac4j.saml.transport.Pac4jSAMLResponse;
 
 import io.vertx.core.json.Json;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import net.shibboleth.utilities.java.support.codec.Base64Support;
 import net.shibboleth.utilities.java.support.xml.SerializeSupport;
 
@@ -27,6 +29,8 @@ import net.shibboleth.utilities.java.support.xml.SerializeSupport;
  * @author rsass
  */
 public class JsonReponseSaml2RedirectActionBuilder implements RedirectActionBuilder {
+
+  private static final Logger log = LoggerFactory.getLogger(JsonReponseSaml2RedirectActionBuilder.class);
 
   private final SAML2Client client;
   private final SAML2AuthnRequestBuilder saml2ObjectBuilder;
@@ -70,6 +74,7 @@ public class JsonReponseSaml2RedirectActionBuilder implements RedirectActionBuil
 
       return RedirectAction.success(Json.encode(samlLogin));
     } catch (Exception e) {
+      log.error("Exception processing SAML login request", e);
       throw HttpAction.status(500, webContext);
     }
 
