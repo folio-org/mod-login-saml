@@ -1,31 +1,33 @@
 package org.folio.config;
 
-import com.google.common.base.Strings;
-import io.vertx.core.CompositeFuture;
-import io.vertx.core.Future;
-import io.vertx.core.Promise;
-import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.ext.web.RoutingContext;
+import java.net.MalformedURLException;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+
 import org.apache.commons.lang3.RandomStringUtils;
 import org.folio.config.model.SAML2ClientMock;
 import org.folio.config.model.SamlClientComposite;
 import org.folio.config.model.SamlConfiguration;
 import org.folio.rest.tools.client.test.HttpClientMock2;
 import org.folio.util.OkapiHelper;
-import org.folio.util.VertxUtils;
 import org.folio.util.model.OkapiHeaders;
 import org.opensaml.saml.common.xml.SAMLConstants;
 import org.pac4j.core.util.CommonHelper;
 import org.pac4j.saml.client.SAML2Client;
-import org.pac4j.saml.client.SAML2ClientConfiguration;
+import org.pac4j.saml.config.SAML2Configuration;
+import org.pac4j.saml.state.SAML2StateGenerator;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.util.StringUtils;
 
-import java.net.MalformedURLException;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
+import com.google.common.base.Strings;
+
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
+import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.ext.web.RoutingContext;
 
 /**
  * Load Pac4j {@link SAML2Client} from configuration
@@ -80,7 +82,7 @@ public class SamlClientLoader {
               SAML2Client saml2Client = configureSaml2Client(okapiUrl, tenantId, idpUrl, actualKeystorePassword, actualPrivateKeyPassword, keystoreFileName, samlBinding);
 
               vertx.executeBlocking(blockingHandler -> {
-                  saml2Client.init(VertxUtils.createWebContext(routingContext));
+                  saml2Client.init();
                   blockingHandler.complete();
                 },
                 samlClientInitHandler -> {
@@ -200,7 +202,7 @@ public class SamlClientLoader {
 
 
   private static SAML2Client configureSaml2Client(String okapiUrl, String tenantId, String idpUrl, String keystorePassword, String actualPrivateKeyPassword, String keystoreFileName, String samlBinding) {
-    final SAML2ClientConfiguration cfg = new SAML2ClientConfiguration(keystoreFileName,
+    final SAML2Configuration cfg = new SAML2Configuration(keystoreFileName,
       keystorePassword,
       actualPrivateKeyPassword,
       idpUrl);
@@ -211,7 +213,7 @@ public class SamlClientLoader {
 
   private static SAML2Client configureSaml2Client(String okapiUrl, String tenantId, String keystorePassword, String privateKeyPassword, UrlResource idpUrlResource, ByteArrayResource keystoreResource, String samlBinding) {
 
-    final SAML2ClientConfiguration byteArrayCfg = new SAML2ClientConfiguration(keystoreResource,
+    final SAML2Configuration byteArrayCfg = new SAML2Configuration(keystoreResource,
       keystorePassword,
       privateKeyPassword,
       idpUrlResource);
@@ -220,22 +222,22 @@ public class SamlClientLoader {
     return assembleSaml2Client(okapiUrl, tenantId, byteArrayCfg, samlBinding);
   }
 
-  private static SAML2Client assembleSaml2Client(String okapiUrl, String tenantId, SAML2ClientConfiguration cfg, String samlBinding) {
+  private static SAML2Client assembleSaml2Client(String okapiUrl, String tenantId, SAML2Configuration cfg, String samlBinding) {
 
     boolean mock = Boolean.parseBoolean(System.getProperty(HttpClientMock2.MOCK_MODE));
 
     if (StringUtils.hasText(samlBinding) && samlBinding.equals("REDIRECT")) {
-      cfg.setDestinationBindingType(SAMLConstants.SAML2_REDIRECT_BINDING_URI);
+      cfg.setAuthnRequestBindingType(SAMLConstants.SAML2_REDIRECT_BINDING_URI);
     } else {
       // POST is the default
-      cfg.setDestinationBindingType(SAMLConstants.SAML2_POST_BINDING_URI);
+      cfg.setAuthnRequestBindingType(SAMLConstants.SAML2_POST_BINDING_URI);
     }
 
     SAML2Client saml2Client = mock ? new SAML2ClientMock(cfg) : new SAML2Client(cfg);
     saml2Client.setName(tenantId);
-    saml2Client.setIncludeClientNameInCallbackUrl(false);
     saml2Client.setCallbackUrl(buildCallbackUrl(okapiUrl, tenantId));
     saml2Client.setRedirectActionBuilder(new JsonReponseSaml2RedirectActionBuilder(saml2Client));
+    saml2Client.setStateGenerator(new SAML2StateGenerator(saml2Client));
 
     return saml2Client;
   }
