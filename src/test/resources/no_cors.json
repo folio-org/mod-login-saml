@@ -7,13 +7,6 @@
       "receivedData": {
         "configs": [
           {
-            "id": "60eead4f-de97-437c-9cb7-09966ce50e49",
-            "module": "LOGIN-SAML",
-            "configName": "saml",
-            "code": "idp.url",
-            "value": "https://idp.ssocircle.com"
-          },
-          {
             "id": "022d8342-fa51-44d1-8b2b-27da36e11f07",
             "module": "LOGIN-SAML",
             "configName": "saml",
@@ -54,17 +47,10 @@
             "configName": "saml",
             "code": "okapi.url",
             "value": "http://localhost:9130"
-          },
-          {
-            "id": "1928eb9c-75c8-4d89-b1a3-3ccf02b3e70a",
-            "module": "LOGIN-SAML",
-            "configName": "saml",
-            "code": "cors.allowable.origins",
-            "value": "[\"http://localhost\",\"https://idp.ssocircle.com\"]"
           }
 
         ],
-        "totalRecords": 7
+        "totalRecords": 6
       },
       "receivedPath": "",
       "sendData": {}

@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
@@ -57,6 +58,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.Cookie;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
@@ -93,18 +95,29 @@ public class SamlAPI implements Saml {
       });
   }
 
-
   @Override
   public void postSamlLogin(SamlLoginRequest requestEntity, RoutingContext routingContext, Map<String, String> okapiHeaders,
                             Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
-    String stripesUrl = requestEntity.getStripesUrl();
+    StringBuilder stripesUrl = new StringBuilder(requestEntity.getStripesUrl());
+
+    String host = routingContext.request().host();
+    String hostNoPort = host.substring(0, host.indexOf(':'));
+
+    String csrfToken = UUID.randomUUID().toString();
+    stripesUrl.append(requestEntity.getStripesUrl().indexOf('?') >= 0 ? '&' : '?')
+      .append("csrfToken=")
+      .append(csrfToken);
+
+    Cookie csrfCookie = Cookie.cookie("csrfToken", csrfToken);
+    csrfCookie.setDomain(hostNoPort);
+    csrfCookie.setPath("/");
+    routingContext.addCookie(csrfCookie);
 
     // register non-persistent session (this request only) to overWrite relayState
     Session session = new SharedDataSessionImpl(new PRNG(vertxContext.owner()));
-    session.put(SAML_RELAY_STATE_ATTRIBUTE, stripesUrl);
+    session.put(SAML_RELAY_STATE_ATTRIBUTE, stripesUrl.toString());
     routingContext.setSession(session);
-
 
     findSaml2Client(routingContext, false, false) // do not allow login, if config is missing
       .onComplete(samlClientHandler -> {
@@ -146,6 +159,12 @@ public class SamlAPI implements Saml {
     }
     final URI originalUrl = relayStateUrl;
     final URI stripesBaseUrl = UrlUtil.parseBaseUrl(originalUrl);
+
+    Cookie csrfTokenCookie = routingContext.getCookie("csrfToken");
+    if(!verifyCsrfToken(csrfTokenCookie, originalUrl)) {
+      asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond403WithTextPlain("CSRF attempt detected")));
+      return;
+    }
 
     findSaml2Client(routingContext, false, false)
       .onComplete(samlClientHandler -> {
@@ -576,4 +595,57 @@ public class SamlAPI implements Saml {
     return samlConfig;
   }
 
+  @Override
+  public void optionsSamlLogin(String origin, RoutingContext routingContext, Map<String, String> okapiHeaders,
+      Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    handleCors(origin, routingContext);
+  }
+
+  @Override
+  public void optionsSamlCallback(String origin, RoutingContext routingContext, Map<String, String> okapiHeaders,
+      Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    handleCors(origin, routingContext);
+  }
+
+  private void handleCors(String origin, RoutingContext routingContext) {
+    if (origin == null || origin.isEmpty()) {
+      // CorsHandler by default ignores the request in this case and calls next(), resulting in a 404.
+      // However, the default 404 returned by vertx is text/html so we handle this case ourselves to
+      // keep the response just a simple 404 with no body.
+      // Arguably this should be a 400 not a 404, but this is consistent with what you'd get if OKAPI
+      // was handling CORS, which it is in most cases.
+      routingContext.response()
+        .setStatusCode(404)
+        .end();
+      return;
+    }
+
+    findSaml2Client(routingContext, false, false)
+      .onComplete(samlClientHandler -> {
+        if (samlClientHandler.failed()) {
+          log.error("Error finding Saml2Client", samlClientHandler.cause());
+          preflightFailure(routingContext, "Internal Server Error");
+        } else {
+          SamlClientComposite clientComposite = samlClientHandler.result();
+          if (clientComposite == null || clientComposite.getCorsHelper() == null) {
+            log.error("Failing preflight CORS request because CORS is not configured");
+            preflightFailure(routingContext, "CORS not configured");
+          }
+          clientComposite.getCorsHelper().handle(routingContext);
+        }
+      });
+  }
+
+  private void preflightFailure(RoutingContext routingContext, String message) {
+    routingContext.response()
+      .setStatusCode(500)
+      .end(message);
+  }
+
+  private boolean verifyCsrfToken(Cookie csrfTokenCookie, URI relayStateUrl) {
+    if(csrfTokenCookie == null) {
+      return false;
+    }
+    return relayStateUrl.getQuery().contains("csrfToken="+csrfTokenCookie.getValue()) ? true : false;
+  }
 }

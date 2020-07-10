@@ -1,7 +1,12 @@
 package org.folio.config.model;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.vertx.core.json.JsonArray;
 
 /**
  * POJO for strongly typed configuration client
@@ -20,6 +25,7 @@ public class SamlConfiguration {
   public static final String USER_PROPERTY_CODE = "user.property";
   public static final String METADATA_INVALIDATED_CODE = "metadata.invalidated";
   public static final String OKAPI_URL= "okapi.url";
+  public static final String CORS_ALLOWABLE_ORIGINS = "cors.allowable.origins";
 
   @JsonProperty(IDP_URL_CODE)
   private String idpUrl;
@@ -38,10 +44,10 @@ public class SamlConfiguration {
   @JsonProperty(METADATA_INVALIDATED_CODE)
   private String metadataInvalidated = "true";
 
-
   @JsonProperty(OKAPI_URL)
   private String okapiUrl;
-
+  @JsonProperty(CORS_ALLOWABLE_ORIGINS)
+  private List<String> corsAllowableOrigins = new ArrayList<>();
 
   public String getIdpUrl() {
     return idpUrl;
@@ -106,11 +112,20 @@ public class SamlConfiguration {
   public void setMetadataInvalidated(String metadataInvalidated) {
     this.metadataInvalidated = metadataInvalidated;
   }
+
   public String getOkapiUrl() {
     return okapiUrl;
   }
 
   public void setOkapiUrl(String okapiUrl) {
     this.okapiUrl = okapiUrl;
+  }
+
+  public List<String> getCorsAllowableOrigins() {
+    return corsAllowableOrigins;
+  }
+
+  public void setCorsAllowableOrigins(String corsAllowableOrigins) {
+    new JsonArray(corsAllowableOrigins).forEach(o -> this.corsAllowableOrigins.add(o.toString()));
   }
 }

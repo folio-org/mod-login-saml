@@ -47,6 +47,19 @@ types:
           body:
             text/plain:
               example: "Internal server error"
+    options:
+      description: "Preflight CORS for /saml/login"
+      headers:
+        Origin:
+          required: true
+      responses:
+        200:
+          description: "Return with appropriate CORS headers"
+        500:
+          description: "Internal server error"
+          body:
+            text/plain:
+              example: "Internal server error"
   /callback:
     post:
       description: Redirect browser to sso-landing page with generated token.
@@ -74,6 +87,19 @@ types:
           body:
             text/plain:
               example: "Forbidden"
+        500:
+          description: "Internal server error"
+          body:
+            text/plain:
+              example: "Internal server error"
+    options:
+      description: "Preflight CORS for /saml/callback"
+      headers:
+        Origin:
+          required: true
+      responses:
+        200:
+          description: "Return with appropriate CORS headers"
         500:
           description: "Internal server error"
           body:

@@ -60,7 +60,7 @@
             "module": "LOGIN-SAML",
             "configName": "saml",
             "code": "cors.allowable.origins",
-            "value": "[\"http://localhost\",\"https://idp.ssocircle.com\"]"
+            "value": "[\"*\"]"
           }
 
         ],
