@@ -31,7 +31,7 @@
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
 
-    <folio.domain-models-runtime.version>30.0.1</folio.domain-models-runtime.version>
+    <folio.domain-models-runtime.version>30.2.4</folio.domain-models-runtime.version>
     <generate_routing_context>/saml/callback,/saml/regenerate,/saml/login,/saml/check,/saml/configuration
     </generate_routing_context>
 
