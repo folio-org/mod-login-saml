@@ -2,6 +2,7 @@ package org.folio.util;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.List;
 
 import org.folio.config.model.SamlConfiguration;
 import org.folio.okapi.common.XOkapiHeaders;
@@ -23,25 +24,7 @@ public class CorsHelper {
   public CorsHelper(SamlConfiguration configuration) {
     Assert.notNull(configuration, "Configuration cannot be null!");
 
-    StringBuilder sb = new StringBuilder();
-    sb.append(REGEX_PREFIX);
-    boolean appendPipe = false;
-    for (String originStr : configuration.getCorsAllowableOrigins()) {
-      try {
-        URL url = new URL(originStr);
-        if (appendPipe) {
-          sb.append("|");
-        }
-        sb.append("(")
-          .append(url.getHost() + (url.getPort() != 80 && url.getPort() != 443 ? ":" + url.getPort() : ""))
-          .append(")");
-        appendPipe = true;
-      } catch (MalformedURLException e) {
-        log.warn("Invalid URL for origin: {}", originStr, e);
-      }
-    }
-
-    String allowableOrigins = sb.toString();
+    String allowableOrigins = formAllowedOriginRegex(configuration.getCorsAllowableOrigins());
     if (allowableOrigins.equals(REGEX_PREFIX)) {
       log.warn("No Allowable Origins were configured");
     } else {
@@ -65,6 +48,29 @@ public class CorsHelper {
         .exposedHeader(XOkapiHeaders.REQUEST_ID)
         .exposedHeader(XOkapiHeaders.MODULE_ID);
     }
+  }
+
+  protected String formAllowedOriginRegex(List<String> allowed) {
+    StringBuilder sb = new StringBuilder();
+    sb.append(REGEX_PREFIX);
+    boolean appendPipe = false;
+    for (String originStr : allowed) {
+      try {
+        URL url = new URL(originStr);
+        if (appendPipe) {
+          sb.append("|");
+        }
+        int port = url.getPort();
+        sb.append("(")
+          .append(url.getHost())
+          .append((port > 0 ? ":" + port : ""))
+          .append(")");
+        appendPipe = true;
+      } catch (MalformedURLException e) {
+        log.warn("Invalid URL for origin: {}", originStr, e);
+      }
+    }
+    return sb.toString();
   }
 
   public void handle(RoutingContext routingContext) {

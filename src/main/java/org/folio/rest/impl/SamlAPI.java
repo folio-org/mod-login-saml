@@ -123,12 +123,14 @@ public class SamlAPI implements Saml {
       .onComplete(samlClientHandler -> {
         Response response;
         if (samlClientHandler.succeeded()) {
-          SAML2Client saml2Client = samlClientHandler.result().getClient();
+          SamlClientComposite samlClientComposite = samlClientHandler.result();
+          SAML2Client saml2Client = samlClientComposite.getClient();
           try {
             RedirectAction redirectAction = saml2Client.getRedirectAction(VertxUtils.createWebContext(routingContext));
             String responseJsonString = redirectAction.getContent();
             SamlLogin dto = Json.decodeValue(responseJsonString, SamlLogin.class);
             routingContext.response().headers().clear(); // saml2Client sets Content-Type: text/html header
+            samlClientComposite.getCorsHelper().handle(routingContext);
             response = PostSamlLoginResponse.respond200WithApplicationJson(dto);
           } catch (HttpAction httpAction) {
             response = HttpActionMapper.toResponse(httpAction);
@@ -179,7 +181,7 @@ public class SamlAPI implements Saml {
             String userPropertyName = configuration.getUserProperty() == null ? "externalSystemId" : configuration.getUserProperty();
             String samlAttributeName = configuration.getSamlAttribute() == null ? "UserID" : configuration.getSamlAttribute();
 
-
+            samlClientComposite.getCorsHelper().handle(routingContext);
             SAML2Credentials credentials = client.getCredentials(webContext);
 
             // Get user id
