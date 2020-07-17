@@ -49,8 +49,11 @@ public class SamlClientLoader {
     OkapiHeaders okapiHeaders = OkapiHelper.okapiHeaders(routingContext);
     final String tenantId = okapiHeaders.getTenant();
 
-    ConfigurationsClient.getConfiguration(okapiHeaders)
-      .compose(samlConfiguration -> {
+    ConfigurationsClient.getConfiguration(okapiHeaders).onComplete(ar -> {
+      if(ar.failed()) {
+        result.fail(ar.cause());
+      } else {
+        SamlConfiguration samlConfiguration = ar.result();
 
         final Promise<SamlClientComposite> clientInstantiationFuture = Promise.promise();
 
@@ -135,11 +138,9 @@ public class SamlClientLoader {
             });
           }
         }
-
-
         clientInstantiationFuture.future().onComplete(result.future()::handle);
-        return result.future();
-      });
+      }
+    });
 
     return result.future();
   }
