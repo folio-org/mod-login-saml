@@ -8,20 +8,22 @@
       "handlers": [
         {
           "methods": [
-            "POST"
+            "POST", "OPTIONS"
           ],
           "pathPattern": "/saml/login",
           "permissionsRequired": [],
+          "delegateCORS": true,
           "modulePermissions": [
             "configuration.entries.collection.get"
           ]
         },
         {
           "methods": [
-            "POST"
+            "POST", "OPTIONS"
           ],
           "pathPattern": "/saml/callback",
           "permissionsRequired": [],
+          "delegateCORS": true,
           "modulePermissions": [
             "auth.signtoken",
             "configuration.entries.collection.get",
