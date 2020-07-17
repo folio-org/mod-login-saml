@@ -648,6 +648,6 @@ public class SamlAPI implements Saml {
     if(csrfTokenCookie == null) {
       return false;
     }
-    return relayStateUrl.getQuery().contains("csrfToken="+csrfTokenCookie.getValue()) ? true : false;
+    return relayStateUrl.getQuery().contains("csrfToken="+csrfTokenCookie.getValue());
   }
 }

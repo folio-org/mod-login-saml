@@ -18,14 +18,14 @@ import io.vertx.ext.web.handler.CorsHandler;
 public class CorsHelper {
   private static final Logger log = LoggerFactory.getLogger(CorsHelper.class.getName());
 
-  private static final String REGEX_PREFIX = "http[s]?://";
-  private CorsHandler handler;
+  protected static final String REGEX_PREFIX = "http[s]?://(";
+  protected CorsHandler handler;
 
   public CorsHelper(SamlConfiguration configuration) {
     Assert.notNull(configuration, "Configuration cannot be null!");
 
     String allowableOrigins = formAllowedOriginRegex(configuration.getCorsAllowableOrigins());
-    if (allowableOrigins.equals(REGEX_PREFIX)) {
+    if (allowableOrigins.equals(REGEX_PREFIX + ")")) {
       log.warn("No Allowable Origins were configured");
     } else {
       log.info("Allowable Origins: {}", allowableOrigins);
@@ -50,7 +50,7 @@ public class CorsHelper {
     }
   }
 
-  protected String formAllowedOriginRegex(List<String> allowed) {
+  protected static String formAllowedOriginRegex(List<String> allowed) {
     StringBuilder sb = new StringBuilder();
     sb.append(REGEX_PREFIX);
     boolean appendPipe = false;
@@ -61,15 +61,18 @@ public class CorsHelper {
           sb.append("|");
         }
         int port = url.getPort();
-        sb.append("(")
-          .append(url.getHost())
-          .append((port > 0 ? ":" + port : ""))
-          .append(")");
+        sb.append(url.getHost());
+
+        if (port > 0) {
+          sb.append(":")
+            .append(port);
+        }
         appendPipe = true;
       } catch (MalformedURLException e) {
         log.warn("Invalid URL for origin: {}", originStr, e);
       }
     }
+    sb.append(")");
     return sb.toString();
   }
 
