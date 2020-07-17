@@ -33,7 +33,7 @@ public class CorsHelper {
           sb.append("|");
         }
         sb.append("(")
-          .append(url.getHost())
+          .append(url.getHost() + (url.getPort() != 80 && url.getPort() != 443 ? ":" + url.getPort() : ""))
           .append(")");
         appendPipe = true;
       } catch (MalformedURLException e) {
@@ -47,7 +47,7 @@ public class CorsHelper {
     } else {
       log.info("Allowable Origins: {}", allowableOrigins);
 
-      this.handler = CorsHandler.create(allowableOrigins)
+      this.handler = new CorsHandlerImpl(allowableOrigins)
         .allowedMethod(HttpMethod.PUT)
         .allowedMethod(HttpMethod.GET)
         .allowedMethod(HttpMethod.POST)
