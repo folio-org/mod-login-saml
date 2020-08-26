@@ -31,7 +31,7 @@
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
 
-    <folio.domain-models-runtime.version>30.0.1</folio.domain-models-runtime.version>
+    <folio.domain-models-runtime.version>30.2.6</folio.domain-models-runtime.version>
     <generate_routing_context>/saml/callback,/saml/regenerate,/saml/login,/saml/check,/saml/configuration
     </generate_routing_context>
 
@@ -83,14 +83,14 @@
     <dependency>
       <groupId>io.rest-assured</groupId>
       <artifactId>rest-assured</artifactId>
-      <version>3.0.3</version>
+      <version>4.3.1</version>
       <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>io.rest-assured</groupId>
       <artifactId>json-schema-validator</artifactId>
-      <version>3.0.3</version>
+      <version>4.3.1</version>
       <scope>test</scope>
     </dependency>
 
@@ -115,7 +115,7 @@
       <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-stack-depchain</artifactId>
-        <version>3.9.1</version>
+        <version>3.9.2</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
