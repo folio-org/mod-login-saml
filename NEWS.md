@@ -1,5 +1,8 @@
 ## 2.1.0 - Unreleased
 
+## 2.0.1 - 2020-08-28
+ * [MODLOGSAML-73](https://issues.folio.org/browse/MODLOGSAML-73) Upgrade raml-module-builder (RMB) from 30.0.1 to 30.2.6
+
 ## 2.0.0 - 2020-06-09
 
 This is a maintenance release focused on keeping dependencies up to date.  The major version change is due to the new permission requirements on APIs which were previously unrestricted.
