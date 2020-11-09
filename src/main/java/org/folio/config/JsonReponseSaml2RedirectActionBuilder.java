@@ -45,14 +45,14 @@ public class JsonReponseSaml2RedirectActionBuilder implements RedirectionActionB
   @Override
   public Optional<RedirectionAction> getRedirectionAction(WebContext webContext) {
 
-    final SAML2MessageContext context = this.client.getContextProvider().buildContext(webContext);
-    final String relayState = this.client.getStateGenerator().generateValue(webContext);
-
-    final AuthnRequest authnRequest = this.saml2ObjectBuilder.build(context);
-    String destination = authnRequest.getDestination();
-
     try {
-      // Signtiture, etc.
+      final SAML2MessageContext context = this.client.getContextProvider().buildContext(webContext);
+      final String relayState = this.client.getStateGenerator().generateValue(webContext);
+
+      final AuthnRequest authnRequest = this.saml2ObjectBuilder.build(context);
+      String destination = authnRequest.getDestination();
+
+      // Signature, etc.
       this.client.getProfileHandler().send(context, authnRequest, relayState);
       final Pac4jSAMLResponse adapter = context.getProfileRequestContextOutboundMessageTransportResponse();
 
