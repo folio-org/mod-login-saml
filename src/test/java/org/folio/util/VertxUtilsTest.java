@@ -72,21 +72,21 @@ public class VertxUtilsTest {
       SessionStore<VertxWebContext> sessionStore = new DummySessionStore(vertx, null);
 
       VertxWebContext ctx = VertxUtils.createWebContext(rc);
-      assertNull(sessionStore.get(ctx, KEY));
+      assertNull(sessionStore.get(ctx, KEY).orElse(null));
       assertEquals("", sessionStore.getOrCreateSessionId(ctx));
-      
-      sessionStore = sessionStore.buildFromTrackableSession(ctx, session);
-      assertEquals(VALUE, sessionStore.get(ctx, KEY));
+
+      sessionStore = sessionStore.buildFromTrackableSession(ctx, session).get();
+      assertEquals(VALUE, sessionStore.get(ctx, KEY).get());
 
       sessionStore.set(ctx, KEY, VALUE2);
-      assertEquals(VALUE2, sessionStore.get(ctx, KEY));
+      assertEquals(VALUE2, sessionStore.get(ctx, KEY).get());
 
       assertNotNull(sessionStore.getOrCreateSessionId(ctx));
 
       assertTrue(sessionStore.renewSession(ctx));
 
       assertTrue(sessionStore.destroySession(ctx));
-      assertNull(sessionStore.getTrackableSession(ctx));
+      assertNull(sessionStore.getTrackableSession(ctx).orElse(null));
 
       rc.response()
         .setStatusCode(200)
