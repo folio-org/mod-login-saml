@@ -11,9 +11,10 @@ public class JsonReponseSaml2RedirectActionBuilderTest {
 
   @Test
   public void statusAction500() {
+    JsonReponseSaml2RedirectActionBuilder builder =
+        new JsonReponseSaml2RedirectActionBuilder(mock(SAML2Client.class));
     Assert.assertEquals("Performing a 500 HTTP action", Assert.assertThrows(StatusAction.class, () ->
-      new JsonReponseSaml2RedirectActionBuilder(mock(SAML2Client.class))
-      .getRedirectionAction(null)).getMessage());
+      builder.getRedirectionAction(null)).getMessage());
   }
 
 }

@@ -139,7 +139,8 @@ public class SamlClientLoader {
 
         clientInstantiationFuture.future().onComplete(result.future()::handle);
         return result.future();
-      });
+      })
+      .onFailure(result::tryFail);
 
     return result.future();
   }

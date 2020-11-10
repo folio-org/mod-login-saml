@@ -105,37 +105,32 @@ public class SamlAPI implements Saml {
     session.put(SAML_RELAY_STATE_ATTRIBUTE, stripesUrl);
     routingContext.setSession(session);
 
-
     findSaml2Client(routingContext, false, false) // do not allow login, if config is missing
-      .onComplete(samlClientHandler -> {
-        Response response;
-        if (samlClientHandler.succeeded()) {
-          SAML2Client saml2Client = samlClientHandler.result().getClient();
-          try {
-            RedirectionAction redirectionAction = saml2Client
-                .getRedirectionAction(VertxUtils.createWebContext(routingContext))
-                .orElse(null);
-            if (! (redirectionAction instanceof OkAction)) {
-              throw new IllegalStateException("redirectionAction must be OkAction: " + redirectionAction);
-            }
-            String responseJsonString = ((OkAction) redirectionAction).getContent();
-            SamlLogin dto = Json.decodeValue(responseJsonString, SamlLogin.class);
-            routingContext.response().headers().clear(); // saml2Client sets Content-Type: text/html header
-            response = PostSamlLoginResponse.respond200WithApplicationJson(dto);
-          } catch (HttpAction httpAction) {
-            response = HttpActionMapper.toResponse(httpAction);
-          } catch (Exception e) {
-            log.warn(e.getMessage(), e);
-            response = PostSamlLoginResponse.respond500WithTextPlain("Internal Server Error");
-          }
-        } else {
-          log.warn("Login called but cannot load client to handle", samlClientHandler.cause());
-          response = PostSamlLoginResponse.respond500WithTextPlain("Login called but cannot load client to handle");
-        }
-        asyncResultHandler.handle(Future.succeededFuture(response));
-      });
+      .map(SamlClientComposite::getClient)
+      .map(saml2client -> postSamlLoginResponse(routingContext, saml2client))
+      .recover(e -> {
+        log.warn(e.getMessage(), e);
+        return Future.succeededFuture(PostSamlLoginResponse.respond500WithTextPlain("Internal Server Error"));
+      })
+      .onSuccess(response -> asyncResultHandler.handle(Future.succeededFuture(response)));
   }
 
+  private Response postSamlLoginResponse(RoutingContext routingContext, SAML2Client saml2Client) {
+    try {
+      RedirectionAction redirectionAction = saml2Client
+          .getRedirectionAction(VertxUtils.createWebContext(routingContext))
+          .orElse(null);
+      if (! (redirectionAction instanceof OkAction)) {
+        throw new IllegalStateException("redirectionAction must be OkAction: " + redirectionAction);
+      }
+      String responseJsonString = ((OkAction) redirectionAction).getContent();
+      SamlLogin dto = Json.decodeValue(responseJsonString, SamlLogin.class);
+      routingContext.response().headers().clear(); // saml2Client sets Content-Type: text/html header
+      return PostSamlLoginResponse.respond200WithApplicationJson(dto);
+    } catch (HttpAction httpAction) {
+      return HttpActionMapper.toResponse(httpAction);
+    }
+  }
 
   @Override
   public void postSamlCallback(RoutingContext routingContext, Map<String, String> okapiHeaders,
