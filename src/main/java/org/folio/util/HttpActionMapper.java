@@ -1,8 +1,7 @@
 package org.folio.util;
 
-import org.pac4j.core.exception.HttpAction;
-
 import javax.ws.rs.core.Response;
+import org.pac4j.core.exception.http.HttpAction;
 
 /**
  * @author rsass

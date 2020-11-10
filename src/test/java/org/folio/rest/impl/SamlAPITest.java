@@ -6,15 +6,13 @@ import static org.folio.util.Base64AwareXsdMatcher.matchesBase64XsdInClasspath;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNotEquals;
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
-
+import java.util.Optional;
+import org.folio.config.SamlConfigHolder;
 import org.folio.rest.RestVerticle;
 import org.folio.rest.jaxrs.model.SamlConfigRequest;
-import org.folio.rest.tools.client.HttpClientFactory;
-import org.folio.rest.tools.client.interfaces.HttpClientInterface;
 import org.folio.rest.tools.client.test.HttpClientMock2;
 import org.folio.rest.tools.utils.NetworkUtils;
 import org.folio.util.IdpMock;
@@ -25,8 +23,11 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.pac4j.core.context.HttpConstants;
+import org.pac4j.core.context.WebContext;
+import org.pac4j.core.exception.http.RedirectionAction;
+import org.pac4j.core.exception.http.TemporaryRedirectAction;
+import org.pac4j.core.redirect.RedirectionActionBuilder;
 import org.w3c.dom.ls.LSResourceResolver;
 
 import io.restassured.RestAssured;
@@ -44,8 +45,6 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
  */
 @RunWith(VertxUnitRunner.class)
 public class SamlAPITest {
-  private static final Logger log = LoggerFactory.getLogger(SamlAPITest.class);
-
   private static final Header TENANT_HEADER = new Header("X-Okapi-Tenant", "saml-test");
   private static final Header TOKEN_HEADER = new Header("X-Okapi-Token", "saml-test");
   private static final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", "http://localhost:9130");
@@ -100,23 +99,34 @@ public class SamlAPITest {
   @Test
   public void checkEndpointTests() {
 
-
     // bad
     given()
       .get("/saml/check")
       .then()
       .statusCode(400);
 
-    // good
+    SamlConfigHolder.getInstance().removeClient("saml-test");
+
+    // missing OKAPI_URL_HEADER -> "active": false
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .get("/saml/check")
+      .then()
+      .statusCode(200)
+      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlCheck.json"))
+      .body("active", equalTo(false));
+
+    // good -> "active": true
     given()
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
       .header(OKAPI_URL_HEADER)
       .get("/saml/check")
       .then()
+      .statusCode(200)
       .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlCheck.json"))
-      .body("active", equalTo(Boolean.TRUE))
-      .statusCode(200);
+      .body("active", equalTo(true));
 
   }
 
@@ -147,6 +157,39 @@ public class SamlAPITest {
       .body("bindingMethod", equalTo("POST"))
       .body("relayState", equalTo(STRIPES_URL))
       .statusCode(200);
+
+    // AJAX 401
+    given()
+      .header(HttpConstants.AJAX_HEADER_NAME, HttpConstants.AJAX_HEADER_VALUE)
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .header(JSON_CONTENT_TYPE_HEADER)
+      .body("{\"stripesUrl\":\"" + STRIPES_URL + "\"}")
+      .post("/saml/login")
+      .then()
+      .statusCode(401);
+
+    // configure a wrong redirection action: TemporaryRedirectAction
+    RedirectionActionBuilder redirectionActionBuilder = new RedirectionActionBuilder() {
+      @Override
+      public Optional<RedirectionAction> getRedirectionAction(WebContext context) {
+        return Optional.of(new TemporaryRedirectAction("foo"));
+      }
+    };
+    SamlConfigHolder.getInstance().findClient("saml-test").getClient()
+    .setRedirectionActionBuilder(redirectionActionBuilder);
+
+    // 500 internal server error
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .header(JSON_CONTENT_TYPE_HEADER)
+      .body("{\"stripesUrl\":\"" + STRIPES_URL + "\"}")
+      .post("/saml/login")
+      .then()
+      .statusCode(500);
   }
 
   @Test

@@ -7,6 +7,7 @@ import org.pac4j.vertx.VertxWebContext;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.Session;
+import java.util.Optional;
 
 /**
  * Vert.x utils
@@ -41,8 +42,8 @@ public class VertxUtils {
     }
 
     @Override
-    public Object get(VertxWebContext context, String key) {
-      return session.get(key);
+    public Optional<Object> get(VertxWebContext context, String key) {
+      return Optional.ofNullable(session.get(key));
     }
 
     @Override
@@ -57,13 +58,13 @@ public class VertxUtils {
     }
 
     @Override
-    public Object getTrackableSession(VertxWebContext context) {
-      return session;
+    public Optional getTrackableSession(VertxWebContext context) {
+      return Optional.ofNullable(session);
     }
 
     @Override
-    public SessionStore<VertxWebContext> buildFromTrackableSession(VertxWebContext context, Object trackableSession) {
-      return new DummySessionStore(vertx, (Session) trackableSession);
+    public Optional<SessionStore<VertxWebContext>> buildFromTrackableSession(VertxWebContext context, Object trackableSession) {
+      return Optional.of(new DummySessionStore(vertx, (Session) trackableSession));
     }
 
     @Override

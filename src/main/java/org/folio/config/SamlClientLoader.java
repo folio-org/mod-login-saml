@@ -139,7 +139,8 @@ public class SamlClientLoader {
 
         clientInstantiationFuture.future().onComplete(result.future()::handle);
         return result.future();
-      });
+      })
+      .onFailure(result::tryFail);
 
     return result.future();
   }
@@ -236,7 +237,7 @@ public class SamlClientLoader {
     SAML2Client saml2Client = mock ? new SAML2ClientMock(cfg) : new SAML2Client(cfg);
     saml2Client.setName(tenantId);
     saml2Client.setCallbackUrl(buildCallbackUrl(okapiUrl, tenantId));
-    saml2Client.setRedirectActionBuilder(new JsonReponseSaml2RedirectActionBuilder(saml2Client));
+    saml2Client.setRedirectionActionBuilder(new JsonReponseSaml2RedirectActionBuilder(saml2Client));
     saml2Client.setStateGenerator(new SAML2StateGenerator(saml2Client));
 
     return saml2Client;

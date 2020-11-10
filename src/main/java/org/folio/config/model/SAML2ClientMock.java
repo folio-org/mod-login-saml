@@ -3,7 +3,7 @@ package org.folio.config.model;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
+import java.util.Optional;
 import org.opensaml.saml.saml2.core.Attribute;
 import org.opensaml.saml.saml2.core.Conditions;
 import org.opensaml.saml.saml2.core.NameID;
@@ -28,7 +28,7 @@ public class SAML2ClientMock extends SAML2Client {
   }
 
   @Override
-  protected SAML2Credentials retrieveCredentials(WebContext context) {
+  protected Optional<SAML2Credentials> retrieveCredentials(WebContext context) {
     log.info("Mocking SAML2Client retrieveCredentials...");
 
     NameID nameId = new NameIDBuilder().buildObject();
@@ -41,7 +41,7 @@ public class SAML2ClientMock extends SAML2Client {
     CommonProfile userProfile = new CommonProfile();
     userProfile.addAttribute("UserID", Arrays.asList(SAML_USER_ID));
     cred.setUserProfile(userProfile);
-    return cred;
+    return Optional.of(cred);
   }
 
 }
