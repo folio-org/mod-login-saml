@@ -19,12 +19,12 @@ public class ConfigurationObjectMapper {
   /**
    * Future-completer version of {@link #map(JsonArray, Class)}
    */
-  public static <T> void map(JsonArray array, Class<T> clazz, Future<T> future) {
+  public static <T> Future<T> map1(JsonArray array, Class<T> clazz) {
     try {
       T mappedValue = map(array, clazz);
-      future.complete(mappedValue);
+      return Future.succeededFuture(mappedValue);
     } catch (Exception ex) {
-      future.fail(ex);
+      return Future.failedFuture(ex);
     }
   }
 

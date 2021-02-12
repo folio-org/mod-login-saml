@@ -3,6 +3,7 @@ package org.folio.session;
 import io.vertx.ext.web.Session;
 
 import java.util.Map;
+import java.util.function.Function;
 
 /**
  * @author rsass
@@ -21,6 +22,16 @@ public class NoopSession implements Session {
   @Override
   public Session put(String key, Object obj) {
     return this;
+  }
+
+  @Override
+  public Session putIfAbsent(String s, Object o) {
+    return this;
+  }
+
+  @Override
+  public Session computeIfAbsent(String s, Function<String, Object> function) {
+    return null;
   }
 
   @Override

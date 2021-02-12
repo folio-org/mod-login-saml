@@ -13,8 +13,6 @@ import java.net.URLEncoder;
 
 import org.folio.rest.RestVerticle;
 import org.folio.rest.jaxrs.model.SamlConfigRequest;
-import org.folio.rest.tools.client.HttpClientFactory;
-import org.folio.rest.tools.client.interfaces.HttpClientInterface;
 import org.folio.rest.tools.client.test.HttpClientMock2;
 import org.folio.rest.tools.utils.NetworkUtils;
 import org.folio.util.IdpMock;
@@ -65,7 +63,7 @@ public class SamlAPITest {
     DeploymentOptions mockOptions = new DeploymentOptions()
       .setConfig(new JsonObject().put("http.port", MOCK_PORT))
       .setWorker(true);
-
+    RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
     mockVertx.deployVerticle(IdpMock.class.getName(), mockOptions, context.asyncAssertSuccess());
   }
 
@@ -121,8 +119,7 @@ public class SamlAPITest {
   }
 
   @Test
-  public void loginEndpointTests() throws IOException {
-
+  public void loginEndpointTestsBad() throws IOException {
     // empty body
     given()
       .header(TENANT_HEADER)
@@ -132,7 +129,10 @@ public class SamlAPITest {
       .post("/saml/login")
       .then()
       .statusCode(400);
+  }
 
+  @Test
+  public void loginEndpointTestsGood() throws IOException {
     // good
     given()
       .header(TENANT_HEADER)
@@ -142,11 +142,11 @@ public class SamlAPITest {
       .body("{\"stripesUrl\":\"" + STRIPES_URL + "\"}")
       .post("/saml/login")
       .then()
+      .statusCode(200)
       .contentType(ContentType.JSON)
       .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlLogin.json"))
       .body("bindingMethod", equalTo("POST"))
-      .body("relayState", equalTo(STRIPES_URL))
-      .statusCode(200);
+      .body("relayState", equalTo(STRIPES_URL));
   }
 
   @Test

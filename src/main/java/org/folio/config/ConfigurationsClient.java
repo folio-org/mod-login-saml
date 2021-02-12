@@ -58,11 +58,11 @@ public class ConfigurationsClient {
   }
 
   public static Future<SamlConfiguration> getConfiguration(OkapiHeaders okapiHeaders) {
-    Promise<SamlConfiguration> future = Promise.promise();
 
     String query = "(module==" + MODULE_NAME + " AND configName==" + CONFIG_NAME + ")";
 
     try {
+      Promise<SamlConfiguration> promise = Promise.promise();
       verifyOkapiHeaders(okapiHeaders);
       String encodedQuery = URLEncoder.encode(query, "UTF-8");
 
@@ -78,20 +78,17 @@ public class ConfigurationsClient {
             JsonObject responseBody = response.getBody();
             JsonArray configs = responseBody.getJsonArray("configs");
 
-            ConfigurationObjectMapper.map(configs, SamlConfiguration.class, future.future());
-
+            promise.handle(ConfigurationObjectMapper.map1(configs, SamlConfiguration.class));
           } else {
             log.warn("Cannot get configuration data: {}", response.getError());
-            future.fail(response.getException());
+            promise.fail(response.getException());
           }
         });
-
+      return promise.future();
     } catch (Exception e) {
       log.warn("Cannot get configuration data: {}", e.getMessage());
-      future.fail(e);
+      return Future.failedFuture(e);
     }
-
-    return future.future();
   }
 
   public static Future<SamlConfiguration> storeEntries(OkapiHeaders headers, Map<String, String> entries) {
