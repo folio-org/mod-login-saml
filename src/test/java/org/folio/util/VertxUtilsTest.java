@@ -6,6 +6,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.folio.rest.tools.utils.NetworkUtils;
 import org.folio.util.VertxUtils.DummySessionStore;
 import org.junit.After;
@@ -14,8 +16,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.pac4j.core.context.session.SessionStore;
 import org.pac4j.vertx.VertxWebContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
@@ -30,7 +30,7 @@ import io.vertx.ext.web.sstore.impl.SharedDataSessionImpl;
 @RunWith(VertxUnitRunner.class)
 public class VertxUtilsTest {
 
-  public static final Logger logger = LoggerFactory.getLogger(VertxUtilsTest.class);
+  public static final Logger logger = LogManager.getLogger(VertxUtilsTest.class);
 
   public static final String KEY = "key";
   public static final String VALUE = "foo";
@@ -74,7 +74,7 @@ public class VertxUtilsTest {
       VertxWebContext ctx = VertxUtils.createWebContext(rc);
       assertNull(sessionStore.get(ctx, KEY));
       assertEquals("", sessionStore.getOrCreateSessionId(ctx));
-      
+
       sessionStore = sessionStore.buildFromTrackableSession(ctx, session);
       assertEquals(VALUE, sessionStore.get(ctx, KEY));
 
