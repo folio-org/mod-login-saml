@@ -42,8 +42,9 @@ import org.folio.util.UrlUtil;
 import org.folio.util.VertxUtils;
 import org.folio.util.model.OkapiHeaders;
 import org.folio.util.model.UrlCheckResult;
-import org.pac4j.core.exception.HttpAction;
-import org.pac4j.core.redirect.RedirectAction;
+import org.pac4j.core.context.WebContext;
+import org.pac4j.core.exception.http.HttpAction;
+import org.pac4j.core.http.adapter.HttpActionAdapter;
 import org.pac4j.saml.client.SAML2Client;
 import org.pac4j.saml.config.SAML2Configuration;
 import org.pac4j.saml.credentials.SAML2Credentials;
@@ -112,6 +113,13 @@ public class SamlAPI implements Saml {
         if (samlClientHandler.succeeded()) {
           SAML2Client saml2Client = samlClientHandler.result().getClient();
           try {
+            /*
+             HTTP actions are no longer applied automatically to the web context (the setResponseStatus and
+             writeResponseContent methods have been removed from the WebContext interface), an HttpActionAdapter
+             must be used for that. Multiple HTTP actions (inheriting from HttpAction) are created to handle the
+             necessary HTTP actions. The RedirectAction is replaced by the new HTTP actions inheriting from
+             RedirectionAction. The redirect method is renamed as getRedirectionAction.
+            */
             RedirectAction redirectAction = saml2Client.getRedirectAction(VertxUtils.createWebContext(routingContext));
             String responseJsonString = redirectAction.getContent();
             SamlLogin dto = Json.decodeValue(responseJsonString, SamlLogin.class);
