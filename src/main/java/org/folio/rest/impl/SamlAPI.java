@@ -139,10 +139,14 @@ public class SamlAPI implements Saml {
     registerFakeSession(routingContext);
 
     final VertxWebContext webContext = VertxUtils.createWebContext(routingContext);
-    final String relayState = webContext.getRequestParameter("RelayState").orElse(null); // There is no better way to get RelayState.
-    URI relayStateUrl = null;
+    final Optional<String> relayState = webContext.getRequestParameter("RelayState"); // There is no better way to get RelayState.
+    if (relayState.isEmpty()) {
+      asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond400WithTextPlain("RelayState is empty")));
+      return;
+    }
+    URI relayStateUrl;
     try {
-      relayStateUrl = new URI(relayState);
+      relayStateUrl = new URI(relayState.get());
     } catch (URISyntaxException e1) {
       asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond400WithTextPlain("Invalid relay state url: " + relayState)));
       return;
