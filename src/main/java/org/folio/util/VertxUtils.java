@@ -1,5 +1,7 @@
 package org.folio.util;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.folio.session.NoopSession;
 import org.pac4j.core.context.session.SessionStore;
 import org.pac4j.vertx.VertxWebContext;
@@ -16,6 +18,8 @@ import java.util.Optional;
  * @author rsass
  */
 public class VertxUtils {
+
+  public static final Logger logger = LogManager.getLogger(VertxUtils.class);
 
   /**
    * Create a Pac4j {@link VertxWebContext} from {@link RoutingContext} with {@code null} SessionStore
@@ -44,7 +48,7 @@ public class VertxUtils {
 
     @Override
     public Optional<Object> get(VertxWebContext vertxWebContext, String key) {
-      return session.get(key);
+      return Optional.ofNullable(session.get(key));
     }
 
     @Override
@@ -60,7 +64,7 @@ public class VertxUtils {
 
     @Override
     public Optional getTrackableSession(VertxWebContext vertxWebContext) {
-      return Optional.of(session);
+      return Optional.ofNullable(session);
     }
 
     @Override

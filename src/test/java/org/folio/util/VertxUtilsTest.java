@@ -27,6 +27,8 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.Session;
 import io.vertx.ext.web.sstore.impl.SharedDataSessionImpl;
 
+import java.util.Optional;
+
 @RunWith(VertxUnitRunner.class)
 public class VertxUtilsTest {
 
@@ -61,7 +63,7 @@ public class VertxUtilsTest {
   public void testVertxUtils(TestContext context) {
     given().get("http://localhost:" + port + "/foo")
       .then()
-      .statusCode(200);
+      .statusCode(200).log().ifValidationFails();
   }
 
   private void handle(RoutingContext rc) {
@@ -72,26 +74,30 @@ public class VertxUtilsTest {
       SessionStore<VertxWebContext> sessionStore = new DummySessionStore(vertx, null);
 
       VertxWebContext ctx = VertxUtils.createWebContext(rc);
-      assertNull(sessionStore.get(ctx, KEY));
+      assertTrue(sessionStore.get(ctx, KEY).isEmpty());
       assertEquals("", sessionStore.getOrCreateSessionId(ctx));
 
-      sessionStore = sessionStore.buildFromTrackableSession(ctx, session);
-      assertEquals(VALUE, sessionStore.get(ctx, KEY));
+      Optional<SessionStore<VertxWebContext>> optSessionStore = sessionStore.buildFromTrackableSession(ctx, session);
+      assertTrue(optSessionStore.isPresent());
+
+      sessionStore = optSessionStore.get();
+
+      assertEquals(VALUE, sessionStore.get(ctx, KEY).get());
 
       sessionStore.set(ctx, KEY, VALUE2);
-      assertEquals(VALUE2, sessionStore.get(ctx, KEY));
+      assertEquals(VALUE2, sessionStore.get(ctx, KEY).get());
 
       assertNotNull(sessionStore.getOrCreateSessionId(ctx));
 
       assertTrue(sessionStore.renewSession(ctx));
 
       assertTrue(sessionStore.destroySession(ctx));
-      assertNull(sessionStore.getTrackableSession(ctx));
+      assertTrue(sessionStore.getTrackableSession(ctx).isEmpty());
 
       rc.response()
         .setStatusCode(200)
         .end();
-    } catch (Throwable t) {
+    } catch (Exception t) {
       logger.error("Unexpected Error", t);
       rc.response()
         .setStatusCode(500)

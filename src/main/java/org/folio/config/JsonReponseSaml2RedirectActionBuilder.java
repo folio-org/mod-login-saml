@@ -1,15 +1,16 @@
 package org.folio.config;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 
 import org.folio.rest.jaxrs.model.SamlLogin;
 import org.opensaml.core.xml.util.XMLObjectSupport;
 import org.opensaml.saml.common.xml.SAMLConstants;
 import org.opensaml.saml.saml2.core.AuthnRequest;
 import org.pac4j.core.context.WebContext;
-import org.pac4j.core.exception.HttpAction;
-import org.pac4j.core.redirect.RedirectAction;
-import org.pac4j.core.redirect.RedirectActionBuilder;
+import org.pac4j.core.exception.http.HttpAction;
+import org.pac4j.core.exception.http.RedirectionAction;
+import org.pac4j.core.redirect.RedirectionActionBuilder;
 import org.pac4j.core.util.CommonHelper;
 import org.pac4j.saml.client.SAML2Client;
 import org.pac4j.saml.context.SAML2MessageContext;
@@ -23,12 +24,12 @@ import net.shibboleth.utilities.java.support.codec.Base64Support;
 import net.shibboleth.utilities.java.support.xml.SerializeSupport;
 
 /**
- * Builds a {@link RedirectAction} that contains a JSON-serialized {@link SamlLogin} object instead of
+ * Builds a {@link RedirectionAction} that contains a JSON-serialized {@link SamlLogin} object instead of
  * HTML content. Always contains content (in redirect binding case too).
  *
  * @author rsass
  */
-public class JsonReponseSaml2RedirectActionBuilder implements RedirectActionBuilder {
+public class JsonReponseSaml2RedirectActionBuilder implements RedirectionActionBuilder {
 
   private static final Logger log = LoggerFactory.getLogger(JsonReponseSaml2RedirectActionBuilder.class);
 
@@ -42,10 +43,10 @@ public class JsonReponseSaml2RedirectActionBuilder implements RedirectActionBuil
   }
 
   @Override
-  public RedirectAction redirect(WebContext webContext) {
+  public Optional<RedirectionAction> getRedirectionAction(WebContext webContext) {
 
     final SAML2MessageContext context = this.client.getContextProvider().buildContext(webContext);
-    final String relayState = this.client.getStateGenerator().generateState(webContext);
+    final String relayState = this.client.getStateGenerator().generateValue(webContext);
 
     final AuthnRequest authnRequest = this.saml2ObjectBuilder.build(context);
     String destination = authnRequest.getDestination();
@@ -71,11 +72,20 @@ public class JsonReponseSaml2RedirectActionBuilder implements RedirectActionBuil
         samlLogin.setBindingMethod(SamlLogin.BindingMethod.GET);
         samlLogin.setLocation(redirectUrl);
       }
-
-      return RedirectAction.success(Json.encode(samlLogin));
+      return Optional.of(new RedirectionAction(200) {
+        @Override
+        public String toString() {
+          return Json.encode(samlLogin);
+        }
+      });
     } catch (Exception e) {
       log.error("Exception processing SAML login request", e);
-      throw HttpAction.status(500, webContext);
+      return Optional.of(new RedirectionAction(500) {
+        @Override
+        public String toString() {
+          return e.getMessage();
+        }
+      });
     }
 
   }

@@ -1,6 +1,6 @@
 package org.folio.util;
 
-import org.pac4j.core.exception.HttpAction;
+import org.pac4j.core.exception.http.HttpAction;
 
 import javax.ws.rs.core.Response;
 

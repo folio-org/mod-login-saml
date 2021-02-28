@@ -44,6 +44,7 @@ import org.folio.util.model.OkapiHeaders;
 import org.folio.util.model.UrlCheckResult;
 import org.pac4j.core.context.WebContext;
 import org.pac4j.core.exception.http.HttpAction;
+import org.pac4j.core.exception.http.RedirectionAction;
 import org.pac4j.core.http.adapter.HttpActionAdapter;
 import org.pac4j.saml.client.SAML2Client;
 import org.pac4j.saml.config.SAML2Configuration;
@@ -120,8 +121,13 @@ public class SamlAPI implements Saml {
              necessary HTTP actions. The RedirectAction is replaced by the new HTTP actions inheriting from
              RedirectionAction. The redirect method is renamed as getRedirectionAction.
             */
-            RedirectAction redirectAction = saml2Client.getRedirectAction(VertxUtils.createWebContext(routingContext));
-            String responseJsonString = redirectAction.getContent();
+
+            Optional<RedirectionAction> redirectAction = saml2Client.getRedirectionAction(VertxUtils.createWebContext(routingContext));
+            if (redirectAction.isEmpty()) {
+              PostSamlLoginResponse.respond500WithTextPlain("empty redirectionAction");
+              return;
+            }
+            String responseJsonString = redirectAction.get().getMessage();
             SamlLogin dto = Json.decodeValue(responseJsonString, SamlLogin.class);
             routingContext.response().headers().clear(); // saml2Client sets Content-Type: text/html header
             response = PostSamlLoginResponse.respond200WithApplicationJson(dto);
@@ -144,10 +150,14 @@ public class SamlAPI implements Saml {
     registerFakeSession(routingContext);
 
     final VertxWebContext webContext = VertxUtils.createWebContext(routingContext);
-    final String relayState = webContext.getRequestParameter("RelayState"); // There is no better way to get RelayState.
-    URI relayStateUrl = null;
+    final Optional<String> relayState = webContext.getRequestParameter("RelayState"); // There is no better way to get RelayState.
+    if (relayState.isEmpty()) {
+      asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond400WithTextPlain("Missing RelayState")));
+      return;
+    }
+    URI relayStateUrl;
     try {
-      relayStateUrl = new URI(relayState);
+      relayStateUrl = new URI(relayState.get());
     } catch (URISyntaxException e1) {
       asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond400WithTextPlain("Invalid relay state url: " + relayState)));
       return;
@@ -169,10 +179,13 @@ public class SamlAPI implements Saml {
             String samlAttributeName = configuration.getSamlAttribute() == null ? "UserID" : configuration.getSamlAttribute();
 
 
-            SAML2Credentials credentials = client.getCredentials(webContext);
-
+            Optional<SAML2Credentials> credentials = client.getCredentials(webContext);
+            if (credentials.isEmpty()) {
+              asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond400WithTextPlain("SAML missing credentials")));
+              return;
+            }
             // Get user id
-            List<?> samlAttributeList = (List<?>) credentials.getUserProfile().getAttribute(samlAttributeName);
+            List<?> samlAttributeList = (List<?>) credentials.get().getUserProfile().getAttribute(samlAttributeName);
             if (samlAttributeList == null || samlAttributeList.isEmpty()) {
               asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond400WithTextPlain("SAML attribute doesn't exist: " + samlAttributeName)));
               return;
@@ -486,22 +499,17 @@ public class SamlAPI implements Saml {
           SAML2Client saml2Client = handler.result().getClient();
 
           vertx.executeBlocking(blockingCode -> {
-            try {
-              SAML2Configuration cfg = saml2Client.getConfiguration();
+            SAML2Configuration cfg = saml2Client.getConfiguration();
 
-              // force metadata generation then init
-              cfg.setForceServiceProviderMetadataGeneration(true);
-              saml2Client.init();
-              cfg.setForceServiceProviderMetadataGeneration(false);
+            // force metadata generation then init
+            cfg.setForceServiceProviderMetadataGeneration(true);
+            saml2Client.init();
+            cfg.setForceServiceProviderMetadataGeneration(false);
 
-              blockingCode.complete(saml2Client.getServiceProviderMetadataResolver().getMetadata());
-            } catch (IOException e) {
-              blockingCode.fail(e);
-            }
+            blockingCode.complete(saml2Client.getServiceProviderMetadataResolver().getMetadata());
           }, result);
         }
       });
-
     return result.future();
   }
 
