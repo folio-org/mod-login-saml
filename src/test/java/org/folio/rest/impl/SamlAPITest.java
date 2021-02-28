@@ -11,6 +11,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.folio.rest.RestVerticle;
 import org.folio.rest.jaxrs.model.SamlConfigRequest;
 import org.folio.rest.tools.client.test.HttpClientMock2;
@@ -23,8 +25,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.w3c.dom.ls.LSResourceResolver;
 
 import io.restassured.RestAssured;
@@ -42,7 +42,7 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
  */
 @RunWith(VertxUnitRunner.class)
 public class SamlAPITest {
-  private static final Logger log = LoggerFactory.getLogger(SamlAPITest.class);
+  private static final Logger log = LogManager.getLogger(SamlAPITest.class);
 
   private static final Header TENANT_HEADER = new Header("X-Okapi-Tenant", "saml-test");
   private static final Header TOKEN_HEADER = new Header("X-Okapi-Token", "saml-test");

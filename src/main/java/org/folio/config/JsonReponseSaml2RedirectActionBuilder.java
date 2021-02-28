@@ -3,12 +3,13 @@ package org.folio.config;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.folio.rest.jaxrs.model.SamlLogin;
 import org.opensaml.core.xml.util.XMLObjectSupport;
 import org.opensaml.saml.common.xml.SAMLConstants;
 import org.opensaml.saml.saml2.core.AuthnRequest;
 import org.pac4j.core.context.WebContext;
-import org.pac4j.core.exception.http.HttpAction;
 import org.pac4j.core.exception.http.RedirectionAction;
 import org.pac4j.core.redirect.RedirectionActionBuilder;
 import org.pac4j.core.util.CommonHelper;
@@ -18,8 +19,6 @@ import org.pac4j.saml.sso.impl.SAML2AuthnRequestBuilder;
 import org.pac4j.saml.transport.Pac4jSAMLResponse;
 
 import io.vertx.core.json.Json;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import net.shibboleth.utilities.java.support.codec.Base64Support;
 import net.shibboleth.utilities.java.support.xml.SerializeSupport;
 
@@ -31,7 +30,7 @@ import net.shibboleth.utilities.java.support.xml.SerializeSupport;
  */
 public class JsonReponseSaml2RedirectActionBuilder implements RedirectionActionBuilder {
 
-  private static final Logger log = LoggerFactory.getLogger(JsonReponseSaml2RedirectActionBuilder.class);
+  private static final Logger log = LogManager.getLogger(JsonReponseSaml2RedirectActionBuilder.class);
 
   private final SAML2Client client;
   private final SAML2AuthnRequestBuilder saml2ObjectBuilder;
@@ -52,7 +51,7 @@ public class JsonReponseSaml2RedirectActionBuilder implements RedirectionActionB
     String destination = authnRequest.getDestination();
 
     try {
-      // Signtiture, etc.
+      // Signature, etc.
       this.client.getProfileHandler().send(context, authnRequest, relayState);
       final Pac4jSAMLResponse adapter = context.getProfileRequestContextOutboundMessageTransportResponse();
 

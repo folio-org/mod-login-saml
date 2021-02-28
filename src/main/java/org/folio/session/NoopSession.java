@@ -31,7 +31,7 @@ public class NoopSession implements Session {
 
   @Override
   public Session computeIfAbsent(String s, Function<String, Object> function) {
-    return null;
+    return this;
   }
 
   @Override

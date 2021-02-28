@@ -3,14 +3,14 @@ package org.folio.util;
 import java.io.IOException;
 import java.net.MalformedURLException;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.folio.rest.tools.utils.NetworkUtils;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
@@ -21,7 +21,7 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 @RunWith(VertxUnitRunner.class)
 public class UrlUtilTest {
 
-  private static final Logger log = LoggerFactory.getLogger(UrlUtilTest.class);
+  private static final Logger log = LogManager.getLogger(UrlUtilTest.class);
 
   public static final int MOCK_PORT = NetworkUtils.nextFreePort();
 

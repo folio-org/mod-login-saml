@@ -16,6 +16,8 @@ import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.folio.config.ConfigurationsClient;
 import org.folio.config.SamlClientLoader;
 import org.folio.config.SamlConfigHolder;
@@ -42,10 +44,8 @@ import org.folio.util.UrlUtil;
 import org.folio.util.VertxUtils;
 import org.folio.util.model.OkapiHeaders;
 import org.folio.util.model.UrlCheckResult;
-import org.pac4j.core.context.WebContext;
 import org.pac4j.core.exception.http.HttpAction;
 import org.pac4j.core.exception.http.RedirectionAction;
-import org.pac4j.core.http.adapter.HttpActionAdapter;
 import org.pac4j.saml.client.SAML2Client;
 import org.pac4j.saml.config.SAML2Configuration;
 import org.pac4j.saml.credentials.SAML2Credentials;
@@ -62,8 +62,6 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.auth.PRNG;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.Session;
@@ -75,7 +73,7 @@ import io.vertx.ext.web.sstore.impl.SharedDataSessionImpl;
  */
 public class SamlAPI implements Saml {
 
-  private static final Logger log = LoggerFactory.getLogger(SamlAPI.class);
+  private static final Logger log = LogManager.getLogger(SamlAPI.class);
   public static final String QUOTATION_MARK_CHARACTER = "\"";
 
   /**

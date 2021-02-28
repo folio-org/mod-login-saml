@@ -8,13 +8,13 @@ import io.vertx.core.Promise;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.folio.config.model.SamlConfiguration;
 import org.folio.rest.tools.client.HttpClientFactory;
 import org.folio.rest.tools.client.Response;
 import org.folio.rest.tools.client.interfaces.HttpClientInterface;
 import org.folio.util.model.OkapiHeaders;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
 
 import java.net.URLEncoder;
@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
  */
 public class ConfigurationsClient {
 
-  private static final Logger log = LoggerFactory.getLogger(ConfigurationsClient.class);
+  private static final Logger log = LogManager.getLogger(ConfigurationsClient.class);
 
   public static final String CONFIGURATIONS_ENTRIES_ENDPOINT_URL = "/configurations/entries";
   public static final String MODULE_NAME = "LOGIN-SAML";
