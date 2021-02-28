@@ -69,14 +69,14 @@ public class SamlClientLoader {
           if (!generateMissingKeyStore) {
             return Future.failedFuture("No KeyStore stored in configuration and regeneration is not allowed.");
           }
-            // Generate new KeyStore
+          // Generate new KeyStore
 
-            final String randomId = RandomStringUtils.randomAlphanumeric(12);
-            final String randomFileName = RandomStringUtils.randomAlphanumeric(12);
+          final String randomId = RandomStringUtils.randomAlphanumeric(12);
+          final String randomFileName = RandomStringUtils.randomAlphanumeric(12);
 
-            final String actualKeystorePassword = Strings.isNullOrEmpty(keystorePassword) ? randomId : keystorePassword;
-            final String actualPrivateKeyPassword = Strings.isNullOrEmpty(privateKeyPassword) ? randomId : privateKeyPassword;
-            final String keystoreFileName = "temp_" + randomFileName + ".jks";
+          final String actualKeystorePassword = Strings.isNullOrEmpty(keystorePassword) ? randomId : keystorePassword;
+          final String actualPrivateKeyPassword = Strings.isNullOrEmpty(privateKeyPassword) ? randomId : privateKeyPassword;
+          final String keystoreFileName = "temp_" + randomFileName + ".jks";
 
           SAML2Client saml2Client = configureSaml2Client(okapiUrl, tenantId, idpUrl, actualKeystorePassword, actualPrivateKeyPassword, keystoreFileName, samlBinding);
 
