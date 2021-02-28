@@ -6,13 +6,13 @@ import static org.folio.util.Base64AwareXsdMatcher.matchesBase64XsdInClasspath;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNotEquals;
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import java.util.Optional;
+import org.folio.config.SamlConfigHolder;
 import org.folio.rest.RestVerticle;
 import org.folio.rest.jaxrs.model.SamlConfigRequest;
 import org.folio.rest.tools.client.test.HttpClientMock2;
@@ -25,6 +25,11 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.pac4j.core.context.HttpConstants;
+import org.pac4j.core.context.WebContext;
+import org.pac4j.core.exception.http.RedirectionAction;
+import org.pac4j.core.exception.http.TemporaryRedirectAction;
+import org.pac4j.core.redirect.RedirectionActionBuilder;
 import org.w3c.dom.ls.LSResourceResolver;
 
 import io.restassured.RestAssured;
@@ -98,23 +103,34 @@ public class SamlAPITest {
   @Test
   public void checkEndpointTests() {
 
-
     // bad
     given()
       .get("/saml/check")
       .then()
       .statusCode(400);
 
-    // good
+    SamlConfigHolder.getInstance().removeClient("saml-test");
+
+    // missing OKAPI_URL_HEADER -> "active": false
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .get("/saml/check")
+      .then()
+      .statusCode(200)
+      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlCheck.json"))
+      .body("active", equalTo(false));
+
+    // good -> "active": true
     given()
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
       .header(OKAPI_URL_HEADER)
       .get("/saml/check")
       .then()
+      .statusCode(200)
       .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlCheck.json"))
-      .body("active", equalTo(Boolean.TRUE))
-      .statusCode(200);
+      .body("active", equalTo(true));
 
   }
 
@@ -147,6 +163,39 @@ public class SamlAPITest {
       .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlLogin.json"))
       .body("bindingMethod", equalTo("POST"))
       .body("relayState", equalTo(STRIPES_URL));
+
+    // AJAX 401
+    given()
+      .header(HttpConstants.AJAX_HEADER_NAME, HttpConstants.AJAX_HEADER_VALUE)
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .header(JSON_CONTENT_TYPE_HEADER)
+      .body("{\"stripesUrl\":\"" + STRIPES_URL + "\"}")
+      .post("/saml/login")
+      .then()
+      .statusCode(401);
+
+    // configure a wrong redirection action: TemporaryRedirectAction
+    RedirectionActionBuilder redirectionActionBuilder = new RedirectionActionBuilder() {
+      @Override
+      public Optional<RedirectionAction> getRedirectionAction(WebContext context) {
+        return Optional.of(new TemporaryRedirectAction("foo"));
+      }
+    };
+    SamlConfigHolder.getInstance().findClient("saml-test").getClient()
+    .setRedirectionActionBuilder(redirectionActionBuilder);
+
+    // 500 internal server error
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .header(JSON_CONTENT_TYPE_HEADER)
+      .body("{\"stripesUrl\":\"" + STRIPES_URL + "\"}")
+      .post("/saml/login")
+      .then()
+      .statusCode(500);
   }
 
   @Test

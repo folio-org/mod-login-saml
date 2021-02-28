@@ -36,6 +36,11 @@ production environment, use it for testing only! Default value is `false`.
 
 Refer to the user documentation [Guide](GUIDE.md).
 
+For upgrading see [NEWS](NEWS.md) or [Releases](releases).
+
+This module is based on the [https://www.pac4j.org/](PAC4J) library, more authentication methods supported by PAC4J
+can be added to this module if needed.
+
 Other [modules](https://dev.folio.org/source-code/#server-side) are described,
 with further FOLIO Developer documentation at [dev.folio.org](https://dev.folio.org/)
 

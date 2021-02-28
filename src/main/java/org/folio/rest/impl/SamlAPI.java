@@ -2,7 +2,6 @@ package org.folio.rest.impl;
 
 import static org.pac4j.saml.state.SAML2StateGenerator.SAML_RELAY_STATE_ATTRIBUTE;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
@@ -45,6 +44,7 @@ import org.folio.util.VertxUtils;
 import org.folio.util.model.OkapiHeaders;
 import org.folio.util.model.UrlCheckResult;
 import org.pac4j.core.exception.http.HttpAction;
+import org.pac4j.core.exception.http.OkAction;
 import org.pac4j.core.exception.http.RedirectionAction;
 import org.pac4j.saml.client.SAML2Client;
 import org.pac4j.saml.config.SAML2Configuration;
@@ -105,41 +105,32 @@ public class SamlAPI implements Saml {
     session.put(SAML_RELAY_STATE_ATTRIBUTE, stripesUrl);
     routingContext.setSession(session);
 
-
     findSaml2Client(routingContext, false, false) // do not allow login, if config is missing
-      .onComplete(samlClientHandler -> {
-        Response response;
-        if (samlClientHandler.succeeded()) {
-          SAML2Client saml2Client = samlClientHandler.result().getClient();
-          try {
-            /*
-             HTTP actions are no longer applied automatically to the web context (the setResponseStatus and
-             writeResponseContent methods have been removed from the WebContext interface), an HttpActionAdapter
-             must be used for that. Multiple HTTP actions (inheriting from HttpAction) are created to handle the
-             necessary HTTP actions. The RedirectAction is replaced by the new HTTP actions inheriting from
-             RedirectionAction. The redirect method is renamed as getRedirectionAction.
-            */
-
-            Optional<RedirectionAction> redirectAction = saml2Client.getRedirectionAction(VertxUtils.createWebContext(routingContext));
-            if (redirectAction.isEmpty()) {
-              PostSamlLoginResponse.respond500WithTextPlain("empty redirectionAction");
-              return;
-            }
-            String responseJsonString = redirectAction.get().getMessage();
-            SamlLogin dto = Json.decodeValue(responseJsonString, SamlLogin.class);
-            routingContext.response().headers().clear(); // saml2Client sets Content-Type: text/html header
-            response = PostSamlLoginResponse.respond200WithApplicationJson(dto);
-          } catch (HttpAction httpAction) {
-            response = HttpActionMapper.toResponse(httpAction);
-          }
-        } else {
-          log.warn("Login called but cannot load client to handle", samlClientHandler.cause());
-          response = PostSamlLoginResponse.respond500WithTextPlain("Login called but cannot load client to handle");
-        }
-        asyncResultHandler.handle(Future.succeededFuture(response));
-      });
+      .map(SamlClientComposite::getClient)
+      .map(saml2client -> postSamlLoginResponse(routingContext, saml2client))
+      .recover(e -> {
+        log.warn(e.getMessage(), e);
+        return Future.succeededFuture(PostSamlLoginResponse.respond500WithTextPlain("Internal Server Error"));
+      })
+      .onSuccess(response -> asyncResultHandler.handle(Future.succeededFuture(response)));
   }
 
+  private Response postSamlLoginResponse(RoutingContext routingContext, SAML2Client saml2Client) {
+    try {
+      RedirectionAction redirectionAction = saml2Client
+          .getRedirectionAction(VertxUtils.createWebContext(routingContext))
+          .orElse(null);
+      if (! (redirectionAction instanceof OkAction)) {
+        throw new IllegalStateException("redirectionAction must be OkAction: " + redirectionAction);
+      }
+      String responseJsonString = ((OkAction) redirectionAction).getContent();
+      SamlLogin dto = Json.decodeValue(responseJsonString, SamlLogin.class);
+      routingContext.response().headers().clear(); // saml2Client sets Content-Type: text/html header
+      return PostSamlLoginResponse.respond200WithApplicationJson(dto);
+    } catch (HttpAction httpAction) {
+      return HttpActionMapper.toResponse(httpAction);
+    }
+  }
 
   @Override
   public void postSamlCallback(RoutingContext routingContext, Map<String, String> okapiHeaders,
@@ -148,14 +139,10 @@ public class SamlAPI implements Saml {
     registerFakeSession(routingContext);
 
     final VertxWebContext webContext = VertxUtils.createWebContext(routingContext);
-    final Optional<String> relayState = webContext.getRequestParameter("RelayState"); // There is no better way to get RelayState.
-    if (relayState.isEmpty()) {
-      asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond400WithTextPlain("Missing RelayState")));
-      return;
-    }
-    URI relayStateUrl;
+    final String relayState = webContext.getRequestParameter("RelayState").orElse(null); // There is no better way to get RelayState.
+    URI relayStateUrl = null;
     try {
-      relayStateUrl = new URI(relayState.get());
+      relayStateUrl = new URI(relayState);
     } catch (URISyntaxException e1) {
       asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond400WithTextPlain("Invalid relay state url: " + relayState)));
       return;
@@ -177,13 +164,10 @@ public class SamlAPI implements Saml {
             String samlAttributeName = configuration.getSamlAttribute() == null ? "UserID" : configuration.getSamlAttribute();
 
 
-            Optional<SAML2Credentials> credentials = client.getCredentials(webContext);
-            if (credentials.isEmpty()) {
-              asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond400WithTextPlain("SAML missing credentials")));
-              return;
-            }
+            SAML2Credentials credentials = client.getCredentials(webContext).get();
+
             // Get user id
-            List<?> samlAttributeList = (List<?>) credentials.get().getUserProfile().getAttribute(samlAttributeName);
+            List<?> samlAttributeList = (List<?>) credentials.getUserProfile().getAttribute(samlAttributeName);
             if (samlAttributeList == null || samlAttributeList.isEmpty()) {
               asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond400WithTextPlain("SAML attribute doesn't exist: " + samlAttributeName)));
               return;
@@ -504,7 +488,11 @@ public class SamlAPI implements Saml {
             saml2Client.init();
             cfg.setForceServiceProviderMetadataGeneration(false);
 
-            blockingCode.complete(saml2Client.getServiceProviderMetadataResolver().getMetadata());
+            try {
+              blockingCode.complete(saml2Client.getServiceProviderMetadataResolver().getMetadata());
+            } catch (Exception e) {
+              blockingCode.fail(e);
+            }
           }, result);
         }
       });

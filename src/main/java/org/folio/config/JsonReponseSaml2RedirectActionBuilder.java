@@ -2,7 +2,6 @@ package org.folio.config;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.rest.jaxrs.model.SamlLogin;
@@ -11,6 +10,8 @@ import org.opensaml.saml.common.xml.SAMLConstants;
 import org.opensaml.saml.saml2.core.AuthnRequest;
 import org.pac4j.core.context.WebContext;
 import org.pac4j.core.exception.http.RedirectionAction;
+import org.pac4j.core.exception.http.OkAction;
+import org.pac4j.core.exception.http.StatusAction;
 import org.pac4j.core.redirect.RedirectionActionBuilder;
 import org.pac4j.core.util.CommonHelper;
 import org.pac4j.saml.client.SAML2Client;
@@ -44,13 +45,13 @@ public class JsonReponseSaml2RedirectActionBuilder implements RedirectionActionB
   @Override
   public Optional<RedirectionAction> getRedirectionAction(WebContext webContext) {
 
-    final SAML2MessageContext context = this.client.getContextProvider().buildContext(webContext);
-    final String relayState = this.client.getStateGenerator().generateValue(webContext);
-
-    final AuthnRequest authnRequest = this.saml2ObjectBuilder.build(context);
-    String destination = authnRequest.getDestination();
-
     try {
+      final SAML2MessageContext context = this.client.getContextProvider().buildContext(webContext);
+      final String relayState = this.client.getStateGenerator().generateValue(webContext);
+
+      final AuthnRequest authnRequest = this.saml2ObjectBuilder.build(context);
+      String destination = authnRequest.getDestination();
+
       // Signature, etc.
       this.client.getProfileHandler().send(context, authnRequest, relayState);
       final Pac4jSAMLResponse adapter = context.getProfileRequestContextOutboundMessageTransportResponse();
@@ -71,20 +72,11 @@ public class JsonReponseSaml2RedirectActionBuilder implements RedirectionActionB
         samlLogin.setBindingMethod(SamlLogin.BindingMethod.GET);
         samlLogin.setLocation(redirectUrl);
       }
-      return Optional.of(new RedirectionAction(200) {
-        @Override
-        public String toString() {
-          return Json.encode(samlLogin);
-        }
-      });
+
+      return Optional.of(new OkAction(Json.encode(samlLogin)));
     } catch (Exception e) {
-      log.error("Exception processing SAML login request", e);
-      return Optional.of(new RedirectionAction(500) {
-        @Override
-        public String toString() {
-          return e.getMessage();
-        }
-      });
+      log.error("Exception processing SAML login request: " + e.getMessage(), e);
+      throw new StatusAction(500);
     }
 
   }
