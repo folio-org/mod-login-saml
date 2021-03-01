@@ -23,7 +23,9 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
 import org.pac4j.core.context.HttpConstants;
 import org.pac4j.core.context.WebContext;
@@ -62,6 +64,14 @@ public class SamlAPITest {
   private static Vertx mockVertx = Vertx.vertx();
 
   private Vertx vertx;
+
+  @Rule
+  public TestName testName = new TestName();
+
+  @Before
+  public void printTestMethod() {
+    log.info("Running {}", testName.getMethodName());
+  }
 
   @BeforeClass
   public static void setupOnce(TestContext context) throws Exception {
