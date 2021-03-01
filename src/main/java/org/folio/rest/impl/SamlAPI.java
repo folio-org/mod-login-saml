@@ -541,7 +541,7 @@ public class SamlAPI implements Saml {
   }
 
   /**
-   * Registers a no-op session. Pac4j want to access session variablas and fails if there is no session.
+   * Registers a no-op session. Pac4j want to access session variables and fails if there is no session.
    *
    * @param routingContext the current routing context
    */
