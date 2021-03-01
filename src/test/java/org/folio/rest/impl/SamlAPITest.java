@@ -168,11 +168,11 @@ public class SamlAPITest {
       .body("{\"stripesUrl\":\"" + STRIPES_URL + "\"}")
       .post("/saml/login")
       .then()
-      .statusCode(200)
       .contentType(ContentType.JSON)
       .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlLogin.json"))
       .body("bindingMethod", equalTo("POST"))
-      .body("relayState", equalTo(STRIPES_URL));
+      .body("relayState", equalTo(STRIPES_URL))
+      .statusCode(200);
 
     // AJAX 401
     given()
