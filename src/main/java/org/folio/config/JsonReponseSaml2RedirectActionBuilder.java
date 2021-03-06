@@ -75,7 +75,7 @@ public class JsonReponseSaml2RedirectActionBuilder implements RedirectionActionB
 
       return Optional.of(new OkAction(Json.encode(samlLogin)));
     } catch (Exception e) {
-      log.error("Exception processing SAML login request: " + e.getMessage(), e);
+      log.error("Exception processing SAML login request: {}", e.getMessage(), e);
       throw new StatusAction(500);
     }
 
