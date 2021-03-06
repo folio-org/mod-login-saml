@@ -78,7 +78,7 @@ public class ConfigurationsClient {
             JsonObject responseBody = response.getBody();
             JsonArray configs = responseBody.getJsonArray("configs");
 
-            promise.handle(ConfigurationObjectMapper.map1(configs, SamlConfiguration.class));
+            promise.handle(ConfigurationObjectMapper.map(configs, SamlConfiguration.class));
           } else {
             log.warn("Cannot get configuration data: {}", response.getError());
             promise.fail(response.getException());

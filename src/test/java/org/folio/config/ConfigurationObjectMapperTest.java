@@ -1,12 +1,11 @@
 package org.folio.config;
 
+import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.folio.config.model.SamlConfiguration;
+import org.junit.Assert;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 
 public class ConfigurationObjectMapperTest {
 
@@ -16,7 +15,7 @@ public class ConfigurationObjectMapperTest {
   private static final String PRIVATEKEY_PASSWORD_VALUE = "p455word";
 
   @Test
-  public void map() throws Exception {
+  public void map() {
 
     JsonArray jsonArray = new JsonArray()
       .add(new JsonObject().put("code", "idp.url").put("value", IDP_URL_VALUE))
@@ -25,13 +24,22 @@ public class ConfigurationObjectMapperTest {
       .add(new JsonObject().put("code", "keystore.privatekey.password").put("value", PRIVATEKEY_PASSWORD_VALUE))
       .add(new JsonObject().put("code", "unknownCode").put("value", "unknownValue"));
 
-    SamlConfiguration pojo = ConfigurationObjectMapper.map(jsonArray, SamlConfiguration.class);
-    assertNotNull(pojo);
+    Future<SamlConfiguration> pojoFuture = ConfigurationObjectMapper.map(jsonArray, SamlConfiguration.class);
+    Assert.assertTrue(pojoFuture.isComplete());
+    Assert.assertTrue(pojoFuture.succeeded());
+    SamlConfiguration pojo = pojoFuture.result();
+    Assert.assertNotNull(pojoFuture.result());
 
-    assertEquals(IDP_URL_VALUE, pojo.getIdpUrl());
-    assertEquals(KEYSTORE_FILE_VALUE, pojo.getKeystore());
-    assertEquals(KEYSTORE_PASSWORD_VALUE, pojo.getKeystorePassword());
-    assertEquals(PRIVATEKEY_PASSWORD_VALUE, pojo.getPrivateKeyPassword());
+    Assert.assertEquals(IDP_URL_VALUE, pojo.getIdpUrl());
+    Assert.assertEquals(KEYSTORE_FILE_VALUE, pojo.getKeystore());
+    Assert.assertEquals(KEYSTORE_PASSWORD_VALUE, pojo.getKeystorePassword());
+    Assert.assertEquals(PRIVATEKEY_PASSWORD_VALUE, pojo.getPrivateKeyPassword());
   }
 
+  @Test
+  public void map1Fail() {
+    Future<SamlConfiguration> samlConfigurationFuture = ConfigurationObjectMapper.map(null, SamlConfiguration.class);
+    Assert.assertTrue(samlConfigurationFuture.isComplete());
+    Assert.assertTrue(samlConfigurationFuture.failed());
+  }
 }
