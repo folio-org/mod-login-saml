@@ -376,4 +376,19 @@ public class SamlAPITest {
         .body(containsString("There is no IdP configuration stored"));
   }
 
+  @Test
+  public void regenerateEndpointNoKeystore() throws IOException {
+    mock.setMockJsonContent("mock_nokeystore.json");
+
+    given()
+        .header(TENANT_HEADER)
+        .header(TOKEN_HEADER)
+        .header(OKAPI_URL_HEADER)
+        .get("/saml/regenerate")
+        .then()
+        .statusCode(500)
+        .contentType(ContentType.TEXT)
+        .body(containsString("No KeyStore stored in configuration and regeneration is not allowed"));
+  }
+
 }
