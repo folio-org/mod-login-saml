@@ -14,7 +14,7 @@ This module provides SAML2 SSO functionality for FOLIO.
 1. On Stripes UI find Settings->Organization->SSO settings, paste the IdP metadata.xml URL.
   - This configuration is stored per tenant in mod-configuration under module=LOGIN-SAML, configName=saml, code=idp.url
 2. Call GET /saml/regenerate to generate keyfile with random passwords and store them in mod-configuration too.
-  - Don't forget to send X-Okapi-tenant header
+  - Don't forget to send X-Okapi-Tenant header
   - UI button will replace this manual step
   - Response is sp-metadata.xml that needs to be uploaded to IdP's configuration.
 3. Make sure there is a user stored with `externalSystemId` matches `UserID` SAML attribute.
