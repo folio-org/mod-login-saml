@@ -9,6 +9,7 @@ import static org.junit.Assert.assertNotEquals;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import java.util.Optional;
@@ -80,6 +81,11 @@ public class SamlAPITest {
       .setWorker(true);
     RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
     mockVertx.deployVerticle(IdpMock.class.getName(), mockOptions, context.asyncAssertSuccess());
+  }
+
+  @AfterClass
+  public static void afterClass(TestContext context) {
+    mockVertx.close();
   }
 
   @Before
@@ -336,6 +342,22 @@ public class SamlAPITest {
       .then()
       .statusCode(200);
 
+  }
+
+  @Test
+  public void testWithConfiguration400(TestContext context) throws IOException {
+
+    mock.setMockJsonContent("mock_400.json");
+
+    // GET
+    given()
+        .header(TENANT_HEADER)
+        .header(TOKEN_HEADER)
+        .header(OKAPI_URL_HEADER)
+        .header(JSON_CONTENT_TYPE_HEADER)
+        .get("/saml/configuration")
+        .then()
+        .statusCode(500);
   }
 
 }
