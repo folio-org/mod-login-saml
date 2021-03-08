@@ -346,7 +346,6 @@ public class SamlAPITest {
 
   @Test
   public void testWithConfiguration400(TestContext context) throws IOException {
-
     mock.setMockJsonContent("mock_400.json");
 
     // GET
@@ -354,10 +353,27 @@ public class SamlAPITest {
         .header(TENANT_HEADER)
         .header(TOKEN_HEADER)
         .header(OKAPI_URL_HEADER)
-        .header(JSON_CONTENT_TYPE_HEADER)
         .get("/saml/configuration")
         .then()
-        .statusCode(500);
+        .statusCode(500)
+        .contentType(ContentType.TEXT)
+        .body(containsString("Cannot get configuration"));
+  }
+
+
+  @Test
+  public void regenerateEndpointNoIdP() throws IOException {
+    mock.setMockJsonContent("mock_noidp.json");
+
+    given()
+        .header(TENANT_HEADER)
+        .header(TOKEN_HEADER)
+        .header(OKAPI_URL_HEADER)
+        .get("/saml/regenerate")
+        .then()
+        .statusCode(500)
+        .contentType(ContentType.TEXT)
+        .body(containsString("There is no IdP configuration stored"));
   }
 
 }
