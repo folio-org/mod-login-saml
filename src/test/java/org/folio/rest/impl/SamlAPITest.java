@@ -74,7 +74,7 @@ public class SamlAPITest {
   }
 
   @BeforeClass
-  public static void setupOnce(TestContext context) throws Exception {
+  public static void setupOnce(TestContext context) {
     DeploymentOptions mockOptions = new DeploymentOptions()
       .setConfig(new JsonObject().put("http.port", MOCK_PORT))
       .setWorker(true);
@@ -83,7 +83,7 @@ public class SamlAPITest {
   }
 
   @Before
-  public void setUp(TestContext context) throws Exception {
+  public void setUp(TestContext context) throws IOException {
     vertx = Vertx.vertx();
 
     DeploymentOptions options = new DeploymentOptions()
@@ -101,12 +101,12 @@ public class SamlAPITest {
   }
 
   @After
-  public void tearDown(TestContext context) throws Exception {
+  public void tearDown(TestContext context) {
     vertx.close(context.asyncAssertSuccess());
   }
 
   @AfterClass
-  public static void tearDownOnce(TestContext context) throws Exception {
+  public static void tearDownOnce(TestContext context) {
     mockVertx.close(context.asyncAssertSuccess());
   }
 
@@ -145,7 +145,7 @@ public class SamlAPITest {
   }
 
   @Test
-  public void loginEndpointTestsBad() throws IOException {
+  public void loginEndpointTestsBad() {
     // empty body
     given()
       .header(TENANT_HEADER)
@@ -158,7 +158,7 @@ public class SamlAPITest {
   }
 
   @Test
-  public void loginEndpointTestsGood() throws IOException {
+  public void loginEndpointTestsGood() {
     // good
     given()
       .header(TENANT_HEADER)
@@ -304,7 +304,7 @@ public class SamlAPITest {
   }
 
   @Test
-  public void putConfigurationEndpoint(TestContext context) throws IOException {
+  public void putConfigurationEndpoint(TestContext context) {
     SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
       .withIdpUrl(URI.create("http://localhost:" + MOCK_PORT + "/xml"))
       .withSamlAttribute("UserID")
