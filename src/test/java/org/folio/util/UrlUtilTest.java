@@ -1,8 +1,5 @@
 package org.folio.util;
 
-import java.io.IOException;
-import java.net.MalformedURLException;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.rest.tools.utils.NetworkUtils;
@@ -30,7 +27,7 @@ public class UrlUtilTest {
   private Vertx vertx;
 
   @BeforeClass
-  public static void setupOnce(TestContext context) throws Exception {
+  public static void setupOnce(TestContext context) {
     DeploymentOptions mockOptions = new DeploymentOptions().setConfig(new JsonObject()
         .put("http.port", MOCK_PORT))
         .setWorker(true);
@@ -39,7 +36,7 @@ public class UrlUtilTest {
   }
 
   @Before
-  public void before(TestContext context) throws IOException {
+  public void before(TestContext context) {
     vertx = Vertx.vertx();
     WebClientFactory.init(vertx);
   }
@@ -50,7 +47,7 @@ public class UrlUtilTest {
   }
 
   @Test
-  public void checkIdpUrl(TestContext context) throws MalformedURLException {
+  public void checkIdpUrl(TestContext context) {
     UrlUtil.checkIdpUrl("http://localhost:" + MOCK_PORT + "/xml", vertx)
       .onComplete(context.asyncAssertSuccess(result -> {
         context.assertEquals("", result.getMessage());

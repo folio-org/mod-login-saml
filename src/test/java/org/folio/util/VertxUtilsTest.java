@@ -49,7 +49,7 @@ public class VertxUtilsTest {
     router.route("/foo")
       .handler(this::handle);
 
-    server.requestHandler(router::handle)
+    server.requestHandler(router)
       .listen(port, context.asyncAssertSuccess());
   }
 

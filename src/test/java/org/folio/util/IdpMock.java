@@ -23,7 +23,7 @@ public class IdpMock extends AbstractVerticle {
     router.route("/json").handler(this::handleJson);
     router.route("/").handler(this::handleNoContentType);
     System.out.println("Running IdpMock on port " + port);
-    server.requestHandler(router::handle).listen(port, result -> {
+    server.requestHandler(router).listen(port, result -> {
       if (result.failed()) {
         promise.fail(result.cause());
       } else {

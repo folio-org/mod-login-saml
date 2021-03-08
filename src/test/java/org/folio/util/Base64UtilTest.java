@@ -22,7 +22,7 @@ public class Base64UtilTest {
   public RunTestOnContext rule = new RunTestOnContext();
 
   @Test
-  public void encode(TestContext context) throws Exception {
+  public void encode(TestContext context) {
 
     Base64Util.encode(rule.vertx().getOrCreateContext(), HELLO)
       .onComplete(context.asyncAssertSuccess(result -> context.assertEquals(HELLO_AS_BASE64, result.toString(StandardCharsets.UTF_8))));

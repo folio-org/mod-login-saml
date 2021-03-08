@@ -12,6 +12,8 @@ import java.net.URLEncoder;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import org.folio.config.SamlConfigHolder;
 import org.folio.rest.RestVerticle;
@@ -271,7 +273,7 @@ public class SamlAPITest {
   }
 
   @Test
-  public void callbackEndpointTests() throws IOException {
+  public void callbackEndpointTests() {
 
 
     final String testPath = "/test/path";
@@ -285,7 +287,7 @@ public class SamlAPITest {
       .post("/saml/callback")
       .then()
       .statusCode(302)
-      .header("Location", containsString(URLEncoder.encode(testPath, "UTF-8")))
+      .header("Location", containsString(URLEncoder.encode(testPath, StandardCharsets.UTF_8)))
       .header("x-okapi-token", "saml-token")
       .cookie("ssoToken", "saml-token");
 
