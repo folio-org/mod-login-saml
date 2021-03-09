@@ -61,8 +61,9 @@ java -jar target/mod-login-saml-fat.jar -Dhttp.port=8081
 
 ### ModuleDescriptor
 
-See the built `target/ModuleDescriptor.json` for the interfaces that this module
-requires and provides, the permissions, and the additional module metadata.
+See the [ModuleDescriptor](descriptors/ModuleDescriptor-template.json)
+for the interfaces that this module requires and provides, the permissions,
+and the additional module metadata.
 
 ### API documentation
 
