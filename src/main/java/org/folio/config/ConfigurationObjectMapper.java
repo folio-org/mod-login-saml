@@ -16,25 +16,21 @@ public class ConfigurationObjectMapper {
   private ConfigurationObjectMapper() {
   }
 
-  /**
-   * Future-completer version of {@link #map(JsonArray, Class)}
-   */
-  public static <T> void map(JsonArray array, Class<T> clazz, Future<T> future) {
+  public static <T> Future<T> map(JsonArray array, Class<T> clazz) {
     try {
-      T mappedValue = map(array, clazz);
-      future.complete(mappedValue);
+      T mappedValue = mapInternal(array, clazz);
+      return Future.succeededFuture(mappedValue);
     } catch (Exception ex) {
-      future.fail(ex);
+      return Future.failedFuture(ex);
     }
   }
 
-  public static <T> T map(JsonArray array, Class<T> clazz) {
+  private static <T> T mapInternal(JsonArray array, Class<T> clazz) {
 
     return array.stream()
       .filter(JsonObject.class::isInstance)
       .map(JsonObject.class::cast)
       .collect(toSamlConfiguration(clazz));
-
   }
 
   private static <T> Collector<JsonObject, JsonObject, T> toSamlConfiguration(Class<T> clazz) {

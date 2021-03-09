@@ -1,9 +1,8 @@
 package org.folio.util;
 
-
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.xml.security.stax.impl.util.ConcreteLSInput;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
 import org.w3c.dom.ls.LSInput;
 import org.w3c.dom.ls.LSResourceResolver;
@@ -16,7 +15,7 @@ import java.io.InputStream;
  */
 public class TestingClasspathResolver implements LSResourceResolver {
 
-  private final Logger log = LoggerFactory.getLogger(TestingClasspathResolver.class);
+  private final Logger log = LogManager.getLogger(TestingClasspathResolver.class);
   private final String basePath;
 
   /**

@@ -1,13 +1,12 @@
 package org.folio.util;
 
-import org.folio.session.NoopSession;
-import org.pac4j.core.context.session.SessionStore;
-import org.pac4j.vertx.VertxWebContext;
-
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.Session;
 import java.util.Optional;
+import org.folio.session.NoopSession;
+import org.pac4j.core.context.session.SessionStore;
+import org.pac4j.vertx.VertxWebContext;
 
 /**
  * Vert.x utils

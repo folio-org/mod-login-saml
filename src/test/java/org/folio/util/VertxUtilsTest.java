@@ -3,9 +3,10 @@ package org.folio.util;
 import static io.restassured.RestAssured.given;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.folio.rest.tools.utils.NetworkUtils;
 import org.folio.util.VertxUtils.DummySessionStore;
 import org.junit.After;
@@ -14,8 +15,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.pac4j.core.context.session.SessionStore;
 import org.pac4j.vertx.VertxWebContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
@@ -27,10 +26,12 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.Session;
 import io.vertx.ext.web.sstore.impl.SharedDataSessionImpl;
 
+import java.util.Optional;
+
 @RunWith(VertxUnitRunner.class)
 public class VertxUtilsTest {
 
-  public static final Logger logger = LoggerFactory.getLogger(VertxUtilsTest.class);
+  public static final Logger logger = LogManager.getLogger(VertxUtilsTest.class);
 
   public static final String KEY = "key";
   public static final String VALUE = "foo";
@@ -48,7 +49,7 @@ public class VertxUtilsTest {
     router.route("/foo")
       .handler(this::handle);
 
-    server.requestHandler(router::handle)
+    server.requestHandler(router)
       .listen(port, context.asyncAssertSuccess());
   }
 
@@ -61,7 +62,7 @@ public class VertxUtilsTest {
   public void testVertxUtils(TestContext context) {
     given().get("http://localhost:" + port + "/foo")
       .then()
-      .statusCode(200);
+      .statusCode(200).log().ifValidationFails();
   }
 
   private void handle(RoutingContext rc) {
@@ -72,10 +73,14 @@ public class VertxUtilsTest {
       SessionStore<VertxWebContext> sessionStore = new DummySessionStore(vertx, null);
 
       VertxWebContext ctx = VertxUtils.createWebContext(rc);
-      assertNull(sessionStore.get(ctx, KEY).orElse(null));
+      assertTrue(sessionStore.get(ctx, KEY).isEmpty());
       assertEquals("", sessionStore.getOrCreateSessionId(ctx));
 
-      sessionStore = sessionStore.buildFromTrackableSession(ctx, session).get();
+      Optional<SessionStore<VertxWebContext>> optSessionStore = sessionStore.buildFromTrackableSession(ctx, session);
+      assertTrue(optSessionStore.isPresent());
+
+      sessionStore = optSessionStore.get();
+
       assertEquals(VALUE, sessionStore.get(ctx, KEY).get());
 
       sessionStore.set(ctx, KEY, VALUE2);
@@ -86,12 +91,12 @@ public class VertxUtilsTest {
       assertTrue(sessionStore.renewSession(ctx));
 
       assertTrue(sessionStore.destroySession(ctx));
-      assertNull(sessionStore.getTrackableSession(ctx).orElse(null));
+      assertTrue(sessionStore.getTrackableSession(ctx).isEmpty());
 
       rc.response()
         .setStatusCode(200)
         .end();
-    } catch (Throwable t) {
+    } catch (Exception t) {
       logger.error("Unexpected Error", t);
       rc.response()
         .setStatusCode(500)

@@ -9,6 +9,11 @@ import static org.junit.Assert.assertNotEquals;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import org.folio.config.SamlConfigHolder;
 import org.folio.rest.RestVerticle;
@@ -21,7 +26,9 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
 import org.pac4j.core.context.HttpConstants;
 import org.pac4j.core.context.WebContext;
@@ -45,6 +52,8 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
  */
 @RunWith(VertxUnitRunner.class)
 public class SamlAPITest {
+  private static final Logger log = LogManager.getLogger(SamlAPITest.class);
+
   private static final Header TENANT_HEADER = new Header("X-Okapi-Tenant", "saml-test");
   private static final Header TOKEN_HEADER = new Header("X-Okapi-Token", "saml-test");
   private static final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", "http://localhost:9130");
@@ -59,17 +68,30 @@ public class SamlAPITest {
 
   private Vertx vertx;
 
+  @Rule
+  public TestName testName = new TestName();
+
+  @Before
+  public void printTestMethod() {
+    log.info("Running {}", testName.getMethodName());
+  }
+
   @BeforeClass
-  public static void setupOnce(TestContext context) throws Exception {
+  public static void setupOnce(TestContext context) {
     DeploymentOptions mockOptions = new DeploymentOptions()
       .setConfig(new JsonObject().put("http.port", MOCK_PORT))
       .setWorker(true);
-
+    RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
     mockVertx.deployVerticle(IdpMock.class.getName(), mockOptions, context.asyncAssertSuccess());
   }
 
+  @AfterClass
+  public static void afterClass(TestContext context) {
+    mockVertx.close();
+  }
+
   @Before
-  public void setUp(TestContext context) throws Exception {
+  public void setUp(TestContext context) throws IOException {
     vertx = Vertx.vertx();
 
     DeploymentOptions options = new DeploymentOptions()
@@ -87,12 +109,12 @@ public class SamlAPITest {
   }
 
   @After
-  public void tearDown(TestContext context) throws Exception {
+  public void tearDown(TestContext context) {
     vertx.close(context.asyncAssertSuccess());
   }
 
   @AfterClass
-  public static void tearDownOnce(TestContext context) throws Exception {
+  public static void tearDownOnce(TestContext context) {
     mockVertx.close(context.asyncAssertSuccess());
   }
 
@@ -131,8 +153,7 @@ public class SamlAPITest {
   }
 
   @Test
-  public void loginEndpointTests() throws IOException {
-
+  public void loginEndpointTestsBad() {
     // empty body
     given()
       .header(TENANT_HEADER)
@@ -142,7 +163,10 @@ public class SamlAPITest {
       .post("/saml/login")
       .then()
       .statusCode(400);
+  }
 
+  @Test
+  public void loginEndpointTestsGood() {
     // good
     given()
       .header(TENANT_HEADER)
@@ -249,7 +273,7 @@ public class SamlAPITest {
   }
 
   @Test
-  public void callbackEndpointTests() throws IOException {
+  public void callbackEndpointTests() {
 
 
     final String testPath = "/test/path";
@@ -263,7 +287,7 @@ public class SamlAPITest {
       .post("/saml/callback")
       .then()
       .statusCode(302)
-      .header("Location", containsString(URLEncoder.encode(testPath, "UTF-8")))
+      .header("Location", containsString(URLEncoder.encode(testPath, StandardCharsets.UTF_8)))
       .header("x-okapi-token", "saml-token")
       .cookie("ssoToken", "saml-token");
 
@@ -288,7 +312,7 @@ public class SamlAPITest {
   }
 
   @Test
-  public void putConfigurationEndpoint(TestContext context) throws IOException {
+  public void putConfigurationEndpoint(TestContext context) {
     SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
       .withIdpUrl(URI.create("http://localhost:" + MOCK_PORT + "/xml"))
       .withSamlAttribute("UserID")
@@ -320,6 +344,53 @@ public class SamlAPITest {
       .then()
       .statusCode(200);
 
+  }
+
+  @Test
+  public void testWithConfiguration400(TestContext context) throws IOException {
+    mock.setMockJsonContent("mock_400.json");
+
+    // GET
+    given()
+        .header(TENANT_HEADER)
+        .header(TOKEN_HEADER)
+        .header(OKAPI_URL_HEADER)
+        .get("/saml/configuration")
+        .then()
+        .statusCode(500)
+        .contentType(ContentType.TEXT)
+        .body(containsString("Cannot get configuration"));
+  }
+
+
+  @Test
+  public void regenerateEndpointNoIdP() throws IOException {
+    mock.setMockJsonContent("mock_noidp.json");
+
+    given()
+        .header(TENANT_HEADER)
+        .header(TOKEN_HEADER)
+        .header(OKAPI_URL_HEADER)
+        .get("/saml/regenerate")
+        .then()
+        .statusCode(500)
+        .contentType(ContentType.TEXT)
+        .body(containsString("There is no IdP configuration stored"));
+  }
+
+  @Test
+  public void regenerateEndpointNoKeystore() throws IOException {
+    mock.setMockJsonContent("mock_nokeystore.json");
+
+    given()
+        .header(TENANT_HEADER)
+        .header(TOKEN_HEADER)
+        .header(OKAPI_URL_HEADER)
+        .get("/saml/regenerate")
+        .then()
+        .statusCode(500)
+        .contentType(ContentType.TEXT)
+        .body(containsString("No KeyStore stored in configuration and regeneration is not allowed"));
   }
 
 }

@@ -15,6 +15,8 @@ import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.folio.config.ConfigurationsClient;
 import org.folio.config.SamlClientLoader;
 import org.folio.config.SamlConfigHolder;
@@ -60,8 +62,6 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.auth.PRNG;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.Session;
@@ -73,7 +73,7 @@ import io.vertx.ext.web.sstore.impl.SharedDataSessionImpl;
  */
 public class SamlAPI implements Saml {
 
-  private static final Logger log = LoggerFactory.getLogger(SamlAPI.class);
+  private static final Logger log = LogManager.getLogger(SamlAPI.class);
   public static final String QUOTATION_MARK_CHARACTER = "\"";
 
   /**
@@ -139,8 +139,9 @@ public class SamlAPI implements Saml {
     registerFakeSession(routingContext);
 
     final VertxWebContext webContext = VertxUtils.createWebContext(routingContext);
-    final String relayState = webContext.getRequestParameter("RelayState").orElse(null); // There is no better way to get RelayState.
-    URI relayStateUrl = null;
+    // Form parameters "RelayState" is not part webContext.
+    final String relayState = routingContext.request().getFormAttribute("RelayState");
+    URI relayStateUrl;
     try {
       relayStateUrl = new URI(relayState);
     } catch (URISyntaxException e1) {
@@ -481,14 +482,14 @@ public class SamlAPI implements Saml {
           SAML2Client saml2Client = handler.result().getClient();
 
           vertx.executeBlocking(blockingCode -> {
+            SAML2Configuration cfg = saml2Client.getConfiguration();
+
+            // force metadata generation then init
+            cfg.setForceServiceProviderMetadataGeneration(true);
+            saml2Client.init();
+            cfg.setForceServiceProviderMetadataGeneration(false);
+
             try {
-              SAML2Configuration cfg = saml2Client.getConfiguration();
-
-              // force metadata generation then init
-              cfg.setForceServiceProviderMetadataGeneration(true);
-              saml2Client.init();
-              cfg.setForceServiceProviderMetadataGeneration(false);
-
               blockingCode.complete(saml2Client.getServiceProviderMetadataResolver().getMetadata());
             } catch (Exception e) {
               blockingCode.fail(e);
@@ -496,7 +497,6 @@ public class SamlAPI implements Saml {
           }, result);
         }
       });
-
     return result.future();
   }
 
@@ -538,7 +538,7 @@ public class SamlAPI implements Saml {
   }
 
   /**
-   * Registers a no-op session. Pac4j want to access session variablas and fails if there is no session.
+   * Registers a no-op session. Pac4j want to access session variables and fails if there is no session.
    *
    * @param routingContext the current routing context
    */

@@ -23,8 +23,6 @@ public class ConfigurationClientTest {
   @Test
   public void testVerifyOkapiHeadersMissingToken() {
     OkapiHeaders okapiHeaders = new OkapiHeaders();
-
-    okapiHeaders = new OkapiHeaders();
     okapiHeaders.setTenant("tenant");
     okapiHeaders.setUrl("url");
     try {
@@ -37,8 +35,6 @@ public class ConfigurationClientTest {
   @Test
   public void testVerifyOkapiHeadersMissingTenant() {
     OkapiHeaders okapiHeaders = new OkapiHeaders();
-
-    okapiHeaders = new OkapiHeaders();
     okapiHeaders.setToken("token");
     okapiHeaders.setUrl("url");
     try {
@@ -51,8 +47,6 @@ public class ConfigurationClientTest {
   @Test
   public void testVerifyOkapiHeadersMissingUrl() {
     OkapiHeaders okapiHeaders = new OkapiHeaders();
-
-    okapiHeaders = new OkapiHeaders();
     okapiHeaders.setTenant("tenant");
     okapiHeaders.setToken("token");
     try {
