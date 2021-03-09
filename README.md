@@ -36,7 +36,7 @@ production environment, use it for testing only! Default value is `false`.
 
 Refer to the user documentation [Guide](GUIDE.md).
 
-For upgrading see [NEWS](NEWS.md) or [Releases](releases).
+For upgrading see [NEWS](NEWS.md) or [Releases](https://github.com/folio-org/mod-login-saml/releases).
 
 This module is based on the [https://www.pac4j.org/](PAC4J) library, more authentication methods supported by PAC4J
 can be added to this module if needed.
@@ -61,8 +61,9 @@ java -jar target/mod-login-saml-fat.jar -Dhttp.port=8081
 
 ### ModuleDescriptor
 
-See the built `target/ModuleDescriptor.json` for the interfaces that this module
-requires and provides, the permissions, and the additional module metadata.
+See the [ModuleDescriptor](descriptors/ModuleDescriptor-template.json)
+for the interfaces that this module requires and provides, the permissions,
+and the additional module metadata.
 
 ### API documentation
 
