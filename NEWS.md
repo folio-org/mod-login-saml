@@ -1,6 +1,12 @@
-## 2.1.0 - Unreleased
+## 2.1.0 - 2021-03-09
+
+No new functionality but Vert.x 4 + vertx-pac4j update as well as RMB.
+
+ * [MODLOGSAML-88](https://issues.folio.org/browse/MODLOGSAML-88) Upgrade to RMB 33 pre-1 with Maven Plugin
+ * [MODLOGSAML-82](https://issues.folio.org/browse/MODLOGSAML-82) Add personal data disclosure form
 
 ## 2.0.1 - 2020-08-28
+
  * [MODLOGSAML-73](https://issues.folio.org/browse/MODLOGSAML-73) Upgrade raml-module-builder (RMB) from 30.0.1 to 30.2.6
  * [MODLOGSAML-50](https://issues.folio.org/browse/MODLOGSAML-50) Upgrade Pac4j from 2.0.0 to 3.8.3. This requires new sp-metadata.xml uploaded to the IdP, for details see [MODLOGSAML-75](https://issues.folio.org/browse/MODLOGSAML-75).
 
@@ -18,14 +24,14 @@ This is a maintenance release focused on keeping dependencies up to date.  The m
  * Rely on RMB's vertx. dependencies - in particular the Postgres driver
    which has been using specific versions with session usage fix
  * Update to RMB 29.3.1 (#55)
- * MODLOGSAML-53 Use JVM features to manage container memory
- * MODLOGSAML-51 Fix com.fasterxml.jackson.core:jackson-databind vulnerability
+ * [MODLOGSAML-53](https://issues.folio.org/browse/MODLOGSAML-53) Use JVM features to manage container memory
+ * [MODLOGSAML-51](https://issues.folio.org/browse/MODLOGSAML-51) Fix com.fasterxml.jackson.core:jackson-databind vulnerability
 
 ## 1.2.2 - 2019-08-01
- * MODLOGSAML-45 Fix security vulnerabilities reported in
+ * [MODLOGSAML-45](https://issues.folio.org/browse/MODLOGSAML-45) Fix security vulnerabilities reported in
    jackson-databind >= 2.0.0, < 2.9.9.1
- * MODLOGSAML-40 api fails to validate idpurl if the content type
-   contains charset (MODLOGSAML-46 dup)
+ * [MODLOGSAML-40](https://issues.folio.org/browse/MODLOGSAML-40) api fails to validate idpurl if the content type
+   contains charset ([MODLOGSAML-46](https://issues.folio.org/browse/MODLOGSAML-46) dup)
 
 ## 1.2.1
 
