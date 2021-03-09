@@ -36,7 +36,7 @@ production environment, use it for testing only! Default value is `false`.
 
 Refer to the user documentation [Guide](GUIDE.md).
 
-For upgrading see [NEWS](NEWS.md) or [Releases](releases).
+For upgrading see [NEWS](NEWS.md) or [Releases](https://github.com/folio-org/mod-login-saml/releases).
 
 This module is based on the [https://www.pac4j.org/](PAC4J) library, more authentication methods supported by PAC4J
 can be added to this module if needed.
