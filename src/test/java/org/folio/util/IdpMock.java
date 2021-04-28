@@ -7,7 +7,6 @@ import java.nio.file.Paths;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServer;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -24,7 +23,7 @@ public class IdpMock extends AbstractVerticle {
     router.route("/json").handler(this::handleJson);
     router.route("/").handler(this::handleNoContentType);
     System.out.println("Running IdpMock on port " + port);
-    server.requestHandler(router::handle).listen(port, result -> {
+    server.requestHandler(router).listen(port, result -> {
       if (result.failed()) {
         promise.fail(result.cause());
       } else {

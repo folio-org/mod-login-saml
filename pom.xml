@@ -3,7 +3,7 @@
   <groupId>org.folio</groupId>
   <artifactId>mod-login-saml</artifactId>
   <packaging>jar</packaging>
-  <version>2.1.0-SNAPSHOT</version>
+  <version>2.2.0-SNAPSHOT</version>
   <name>mod-login-saml</name>
 
   <licenses>
@@ -26,30 +26,46 @@
     </repository>
   </repositories>
 
+  <pluginRepositories>
+    <pluginRepository>
+      <id>folio-nexus</id>
+      <name>FOLIO Maven repository</name>
+      <url>https://repository.folio.org/repository/maven-folio</url>
+    </pluginRepository>
+  </pluginRepositories>
+
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.source>1.8</maven.compiler.source>
-    <maven.compiler.target>1.8</maven.compiler.target>
-
-    <folio.domain-models-runtime.version>30.2.6</folio.domain-models-runtime.version>
+    <raml-module-builder-version>33.0.0-pre1</raml-module-builder-version>
     <generate_routing_context>/saml/callback,/saml/regenerate,/saml/login,/saml/check,/saml/configuration
     </generate_routing_context>
 
-    <pac4j.version>3.8.3</pac4j.version>
+    <pac4j.version>4.3.0</pac4j.version>
     <rest-assured.version>4.3.1</rest-assured.version>
-    <vertx-pac4j.version>4.1.1</vertx-pac4j.version>
+    <vertx-pac4j.version>5.0.2-FOLIO</vertx-pac4j.version>
 
     <ramlfiles_path>${basedir}/ramls</ramlfiles_path>
 
   </properties>
 
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>io.vertx</groupId>
+        <artifactId>vertx-stack-depchain</artifactId>
+        <version>4.0.2</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <dependencies>
 
     <dependency>
       <groupId>org.folio</groupId>
       <artifactId>domain-models-runtime</artifactId>
-      <version>${folio.domain-models-runtime.version}</version>
+      <version>${raml-module-builder-version}</version>
     </dependency>
 
     <dependency>
@@ -71,7 +87,7 @@
 
     <dependency>
       <groupId>org.pac4j</groupId>
-      <artifactId>pac4j-saml</artifactId>
+      <artifactId>pac4j-saml-opensamlv3</artifactId>
       <version>${pac4j.version}</version>
     </dependency>
 
@@ -98,7 +114,7 @@
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>4.12</version>
+      <version>4.13.1</version>
       <scope>test</scope>
     </dependency>
 
@@ -108,20 +124,14 @@
       <scope>test</scope>
     </dependency>
 
-  </dependencies>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>3.6.0</version>
+      <scope>test</scope>
+    </dependency>
 
-  <!-- Overriding versions coming from RMB -->
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>io.vertx</groupId>
-        <artifactId>vertx-stack-depchain</artifactId>
-        <version>3.9.2</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
+  </dependencies>
 
   <distributionManagement>
     <repository>
@@ -151,61 +161,39 @@
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.1</version>
+        <version>3.8.1</version>
         <configuration>
-          <source>${maven.compiler.source}</source>
-          <target>${maven.compiler.target}</target>
+          <release>11</release>
           <encoding>UTF-8</encoding>
         </configuration>
       </plugin>
 
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <version>1.6.0</version>
+        <groupId>org.folio</groupId>
+        <artifactId>domain-models-maven-plugin</artifactId>
+        <version>${raml-module-builder-version}</version>
         <executions>
           <execution>
             <id>generate_interfaces</id>
-            <phase>generate-sources</phase>
             <goals>
               <goal>java</goal>
             </goals>
             <configuration>
-              <mainClass>org.folio.rest.tools.GenerateRunner</mainClass>
-              <!-- <executable>java</executable> -->
-              <cleanupDaemonThreads>false</cleanupDaemonThreads>
-              <systemProperties>
-                <systemProperty>
-                  <key>project.basedir</key>
-                  <value>${basedir}</value>
-                </systemProperty>
-                <systemProperty>
-                  <key>raml_files</key>
-                  <value>${ramlfiles_path}</value>
-                </systemProperty>
-              </systemProperties>
+              <generateClients>true</generateClients>
             </configuration>
           </execution>
         </executions>
       </plugin>
-
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.22.1</version>
-        <configuration>
-          <!-- TODO: update to version 3.0.0 and remove useSystemClassLoader
-               https://issues.folio.org/browse/FOLIO-1609
-               https://issues.apache.org/jira/browse/SUREFIRE-1588
-          -->
-          <useSystemClassLoader>false</useSystemClassLoader>
-        </configuration>
+        <version>3.0.0-M4</version>
       </plugin>
 
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
+        <groupId>com.nickwongdev</groupId>
         <artifactId>aspectj-maven-plugin</artifactId>
-        <version>1.8</version>
+        <version>1.12.6</version>
         <configuration>
           <verbose>true</verbose>
           <showWeaveInfo>false</showWeaveInfo>
@@ -235,12 +223,12 @@
           <dependency>
             <groupId>org.aspectj</groupId>
             <artifactId>aspectjrt</artifactId>
-            <version>1.8.9</version>
+            <version>1.9.6</version>
           </dependency>
           <dependency>
             <groupId>org.aspectj</groupId>
             <artifactId>aspectjtools</artifactId>
-            <version>1.8.9</version>
+            <version>1.9.6</version>
           </dependency>
         </dependencies>
       </plugin>
@@ -331,7 +319,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
-        <version>2.3</version>
+        <version>3.2.4</version>
         <executions>
           <execution>
             <phase>package</phase>
@@ -346,6 +334,7 @@
                     <exclude>META-INF/*.SF</exclude>
                     <exclude>META-INF/*.DSA</exclude>
                     <exclude>META-INF/*.RSA</exclude>
+                    <exclude>**/Log4j2Plugins.dat</exclude>
                   </excludes>
                 </filter>
               </filters>
@@ -357,6 +346,7 @@
                   <manifestEntries>
                     <Main-Class>org.folio.rest.RestLauncher</Main-Class>
                     <Main-Verticle>org.folio.rest.RestVerticle</Main-Verticle>
+                    <Multi-Release>true</Multi-Release>
                   </manifestEntries>
                 </transformer>
               </transformers>

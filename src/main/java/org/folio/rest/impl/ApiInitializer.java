@@ -1,9 +1,8 @@
 package org.folio.rest.impl;
 
-
 import io.vertx.core.*;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.folio.rest.resource.interfaces.InitAPI;
 import org.folio.util.WebClientFactory;
 
@@ -16,7 +15,7 @@ import java.security.cert.X509Certificate;
 
 public class ApiInitializer implements InitAPI {
 
-  private final Logger log = LoggerFactory.getLogger(ApiInitializer.class);
+  private final Logger log = LogManager.getLogger(ApiInitializer.class);
 
   @Override
   public void init(Vertx vertx, Context context, Handler<AsyncResult<Boolean>> handler) {

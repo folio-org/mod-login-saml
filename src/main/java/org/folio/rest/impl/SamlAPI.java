@@ -2,7 +2,6 @@ package org.folio.rest.impl;
 
 import static org.pac4j.saml.state.SAML2StateGenerator.SAML_RELAY_STATE_ATTRIBUTE;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
@@ -16,6 +15,8 @@ import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.folio.config.ConfigurationsClient;
 import org.folio.config.SamlClientLoader;
 import org.folio.config.SamlConfigHolder;
@@ -42,8 +43,9 @@ import org.folio.util.UrlUtil;
 import org.folio.util.VertxUtils;
 import org.folio.util.model.OkapiHeaders;
 import org.folio.util.model.UrlCheckResult;
-import org.pac4j.core.exception.HttpAction;
-import org.pac4j.core.redirect.RedirectAction;
+import org.pac4j.core.exception.http.HttpAction;
+import org.pac4j.core.exception.http.OkAction;
+import org.pac4j.core.exception.http.RedirectionAction;
 import org.pac4j.saml.client.SAML2Client;
 import org.pac4j.saml.config.SAML2Configuration;
 import org.pac4j.saml.credentials.SAML2Credentials;
@@ -60,8 +62,6 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.auth.PRNG;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.Session;
@@ -73,7 +73,7 @@ import io.vertx.ext.web.sstore.impl.SharedDataSessionImpl;
  */
 public class SamlAPI implements Saml {
 
-  private static final Logger log = LoggerFactory.getLogger(SamlAPI.class);
+  private static final Logger log = LogManager.getLogger(SamlAPI.class);
   public static final String QUOTATION_MARK_CHARACTER = "\"";
 
   /**
@@ -105,29 +105,32 @@ public class SamlAPI implements Saml {
     session.put(SAML_RELAY_STATE_ATTRIBUTE, stripesUrl);
     routingContext.setSession(session);
 
-
     findSaml2Client(routingContext, false, false) // do not allow login, if config is missing
-      .onComplete(samlClientHandler -> {
-        Response response;
-        if (samlClientHandler.succeeded()) {
-          SAML2Client saml2Client = samlClientHandler.result().getClient();
-          try {
-            RedirectAction redirectAction = saml2Client.getRedirectAction(VertxUtils.createWebContext(routingContext));
-            String responseJsonString = redirectAction.getContent();
-            SamlLogin dto = Json.decodeValue(responseJsonString, SamlLogin.class);
-            routingContext.response().headers().clear(); // saml2Client sets Content-Type: text/html header
-            response = PostSamlLoginResponse.respond200WithApplicationJson(dto);
-          } catch (HttpAction httpAction) {
-            response = HttpActionMapper.toResponse(httpAction);
-          }
-        } else {
-          log.warn("Login called but cannot load client to handle", samlClientHandler.cause());
-          response = PostSamlLoginResponse.respond500WithTextPlain("Login called but cannot load client to handle");
-        }
-        asyncResultHandler.handle(Future.succeededFuture(response));
-      });
+      .map(SamlClientComposite::getClient)
+      .map(saml2client -> postSamlLoginResponse(routingContext, saml2client))
+      .recover(e -> {
+        log.warn(e.getMessage(), e);
+        return Future.succeededFuture(PostSamlLoginResponse.respond500WithTextPlain("Internal Server Error"));
+      })
+      .onSuccess(response -> asyncResultHandler.handle(Future.succeededFuture(response)));
   }
 
+  private Response postSamlLoginResponse(RoutingContext routingContext, SAML2Client saml2Client) {
+    try {
+      RedirectionAction redirectionAction = saml2Client
+          .getRedirectionAction(VertxUtils.createWebContext(routingContext))
+          .orElse(null);
+      if (! (redirectionAction instanceof OkAction)) {
+        throw new IllegalStateException("redirectionAction must be OkAction: " + redirectionAction);
+      }
+      String responseJsonString = ((OkAction) redirectionAction).getContent();
+      SamlLogin dto = Json.decodeValue(responseJsonString, SamlLogin.class);
+      routingContext.response().headers().clear(); // saml2Client sets Content-Type: text/html header
+      return PostSamlLoginResponse.respond200WithApplicationJson(dto);
+    } catch (HttpAction httpAction) {
+      return HttpActionMapper.toResponse(httpAction);
+    }
+  }
 
   @Override
   public void postSamlCallback(RoutingContext routingContext, Map<String, String> okapiHeaders,
@@ -136,8 +139,9 @@ public class SamlAPI implements Saml {
     registerFakeSession(routingContext);
 
     final VertxWebContext webContext = VertxUtils.createWebContext(routingContext);
-    final String relayState = webContext.getRequestParameter("RelayState"); // There is no better way to get RelayState.
-    URI relayStateUrl = null;
+    // Form parameters "RelayState" is not part webContext.
+    final String relayState = routingContext.request().getFormAttribute("RelayState");
+    URI relayStateUrl;
     try {
       relayStateUrl = new URI(relayState);
     } catch (URISyntaxException e1) {
@@ -161,7 +165,7 @@ public class SamlAPI implements Saml {
             String samlAttributeName = configuration.getSamlAttribute() == null ? "UserID" : configuration.getSamlAttribute();
 
 
-            SAML2Credentials credentials = client.getCredentials(webContext);
+            SAML2Credentials credentials = client.getCredentials(webContext).get();
 
             // Get user id
             List<?> samlAttributeList = (List<?>) credentials.getUserProfile().getAttribute(samlAttributeName);
@@ -478,22 +482,21 @@ public class SamlAPI implements Saml {
           SAML2Client saml2Client = handler.result().getClient();
 
           vertx.executeBlocking(blockingCode -> {
+            SAML2Configuration cfg = saml2Client.getConfiguration();
+
+            // force metadata generation then init
+            cfg.setForceServiceProviderMetadataGeneration(true);
+            saml2Client.init();
+            cfg.setForceServiceProviderMetadataGeneration(false);
+
             try {
-              SAML2Configuration cfg = saml2Client.getConfiguration();
-
-              // force metadata generation then init
-              cfg.setForceServiceProviderMetadataGeneration(true);
-              saml2Client.init();
-              cfg.setForceServiceProviderMetadataGeneration(false);
-
               blockingCode.complete(saml2Client.getServiceProviderMetadataResolver().getMetadata());
-            } catch (IOException e) {
+            } catch (Exception e) {
               blockingCode.fail(e);
             }
           }, result);
         }
       });
-
     return result.future();
   }
 
@@ -535,7 +538,7 @@ public class SamlAPI implements Saml {
   }
 
   /**
-   * Registers a no-op session. Pac4j want to access session variablas and fails if there is no session.
+   * Registers a no-op session. Pac4j want to access session variables and fails if there is no session.
    *
    * @param routingContext the current routing context
    */

@@ -8,13 +8,13 @@ import io.vertx.core.Promise;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.folio.config.model.SamlConfiguration;
 import org.folio.rest.tools.client.HttpClientFactory;
 import org.folio.rest.tools.client.Response;
 import org.folio.rest.tools.client.interfaces.HttpClientInterface;
 import org.folio.util.model.OkapiHeaders;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
 
 import java.net.URLEncoder;
@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
  */
 public class ConfigurationsClient {
 
-  private static final Logger log = LoggerFactory.getLogger(ConfigurationsClient.class);
+  private static final Logger log = LogManager.getLogger(ConfigurationsClient.class);
 
   public static final String CONFIGURATIONS_ENTRIES_ENDPOINT_URL = "/configurations/entries";
   public static final String MODULE_NAME = "LOGIN-SAML";
@@ -58,11 +58,11 @@ public class ConfigurationsClient {
   }
 
   public static Future<SamlConfiguration> getConfiguration(OkapiHeaders okapiHeaders) {
-    Promise<SamlConfiguration> future = Promise.promise();
 
     String query = "(module==" + MODULE_NAME + " AND configName==" + CONFIG_NAME + ")";
 
     try {
+      Promise<SamlConfiguration> promise = Promise.promise();
       verifyOkapiHeaders(okapiHeaders);
       String encodedQuery = URLEncoder.encode(query, "UTF-8");
 
@@ -78,20 +78,17 @@ public class ConfigurationsClient {
             JsonObject responseBody = response.getBody();
             JsonArray configs = responseBody.getJsonArray("configs");
 
-            ConfigurationObjectMapper.map(configs, SamlConfiguration.class, future.future());
-
+            promise.handle(ConfigurationObjectMapper.map(configs, SamlConfiguration.class));
           } else {
             log.warn("Cannot get configuration data: {}", response.getError());
-            future.fail(response.getException());
+            promise.fail(response.getException());
           }
         });
-
+      return promise.future();
     } catch (Exception e) {
       log.warn("Cannot get configuration data: {}", e.getMessage());
-      future.fail(e);
+      return Future.failedFuture(e);
     }
-
-    return future.future();
   }
 
   public static Future<SamlConfiguration> storeEntries(OkapiHeaders headers, Map<String, String> entries) {
