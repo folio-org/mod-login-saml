@@ -50,6 +50,8 @@ Which FOLIO user attribute we want to match with SAML attribute. For example Ext
 
 ## Testing
 
+### SSOCircle
+
 In this example we will describe how to use SSOCircle public SAML test service.
 
 1. Register an account on [SSOCircle](https://www.ssocircle.com).
@@ -64,9 +66,31 @@ In this example we will describe how to use SSOCircle public SAML test service.
  * Attributes: check UserID at least
  * Insert SAML metadata (paste previously copied sp-metadata.xml content)
  * On top of the page you can check your UserID (that will be sent in the assertion) then submit this configuration.
-5. On FOLIO side, make sure that there is a user in the system with externalSystemId param set to whatever the UserID is in SSOCircle. For example you can set the externalSystemId of the administrator (diku_admin) account.
+5. On FOLIO side, make sure that there is a user in the system with externalSystemId param set to whatever the UserID is in SSOCircle. For example you can set the externalSystemId of the administrator (diku\_admin) account.
 6. Logout, refresh browser, SSO Login button will appear below normal login button.
 7. Click on SSO Login button. Log in to SSOCircle. If the user was previously logged in, a recaptcha verification is still needed (which is an SSOCircle speciality) then click on Continue SAML Single Sign On button. This redirects us back to FOLIO.
 8. SSO landing page will be displayed. In a couple of seconds, it will redirect us to the main landing page.
 
 Note: the Single Sign *Out* functionality is not part of mod-login-saml module.
+
+### samltest.id
+
+The samltest.id site doesn't require an account to configure a FOLIO installation.
+
+* SAML Binding: Redirect Binding
+* SAML attribute: uid
+* User property: username
+* Identity provider URL: https://samltest.id/saml/idp
+
+Save the settings, then click the Download metadata button to retrieve sp-metadata.xml. Upload this file at https://samltest.id/upload.php
+
+The three hardcoded logins that samltest.id provides are:
+
+```
+rick    psych
+morty   panic
+sheldon bazinga
+```
+
+They are mod-users sample data and get automatically installed at FOLIO demo and tests sites if sample data is enabled.
+

@@ -30,6 +30,19 @@ Endpoints are documented in [RAML file](ramls/saml-login.raml)
 `TRUST_ALL_CERTIFICATES`: if value is `true` then HTTPS certificates not checked. This is a security issue in
 production environment, use it for testing only! Default value is `false`.
 
+### Sample users for samltest.id
+
+mod-users ships with three sample users that allow SSO login using
+https://samltest.id/ IdP, for configuration see [Guide](GUIDE.md).
+
+Usernames and passwords are
+
+```
+rick    psych
+morty   panic
+sheldon bazinga
+```
+
 ## Additional information
 
 ### Other documentation
