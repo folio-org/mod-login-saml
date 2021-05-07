@@ -24,6 +24,7 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.Session;
+import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.sstore.impl.SharedDataSessionImpl;
 
 import java.util.Optional;
@@ -46,6 +47,7 @@ public class VertxUtilsTest {
     Router router = Router.router(vertx);
     server = vertx.createHttpServer();
 
+    router.route().handler(BodyHandler.create());
     router.route("/foo")
       .handler(this::handle);
 
@@ -60,7 +62,10 @@ public class VertxUtilsTest {
 
   @Test
   public void testVertxUtils(TestContext context) {
-    given().get("http://localhost:" + port + "/foo")
+    given()
+      .formParam("form0", "value0")
+      .param("param1", "value1")
+      .post("http://localhost:" + port + "/foo")
       .then()
       .statusCode(200).log().ifValidationFails();
   }
@@ -75,6 +80,10 @@ public class VertxUtilsTest {
       VertxWebContext ctx = VertxUtils.createWebContext(rc);
       assertTrue(sessionStore.get(ctx, KEY).isEmpty());
       assertEquals("", sessionStore.getOrCreateSessionId(ctx));
+      assertEquals("value0", ctx.getRequestParameter("form0").get());
+      assertTrue(ctx.getRequestParameter("form1").isEmpty());
+      assertEquals("value1", ctx.getRequestParameter("param1").get());
+      assertTrue(ctx.getRequestParameter("param2").isEmpty());
 
       Optional<SessionStore<VertxWebContext>> optSessionStore = sessionStore.buildFromTrackableSession(ctx, session);
       assertTrue(optSessionStore.isPresent());

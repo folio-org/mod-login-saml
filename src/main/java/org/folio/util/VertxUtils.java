@@ -19,10 +19,27 @@ public class VertxUtils {
    * Create a Pac4j {@link VertxWebContext} from {@link RoutingContext} with {@code null} SessionStore
    */
   public static VertxWebContext createWebContext(RoutingContext routingContext) {
-    return new VertxWebContext(routingContext, new DummySessionStore(routingContext.vertx(), routingContext.session()));
+    return new VertxWebContext2(routingContext, new DummySessionStore(routingContext.vertx(), routingContext.session()));
   }
 
   private VertxUtils() {}
+
+  private static class VertxWebContext2 extends VertxWebContext {
+
+    private RoutingContext routingContext;
+
+    public VertxWebContext2(RoutingContext routingContext, SessionStore<VertxWebContext> sessionStore) {
+      super(routingContext, sessionStore);
+      this.routingContext = routingContext;
+    }
+
+    @Override
+    public Optional<String> getRequestParameter(String name) {
+      Optional<String> param = super.getRequestParameter(name);
+      return param.isPresent() ? param : Optional.ofNullable(routingContext.request().formAttributes().get(name));
+    }
+
+  }
 
   public static class DummySessionStore implements SessionStore<VertxWebContext>  {
 
