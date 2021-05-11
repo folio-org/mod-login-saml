@@ -31,6 +31,8 @@ public class SAML2ClientMock extends SAML2Client {
   protected Optional<SAML2Credentials> retrieveCredentials(WebContext context) {
     log.info("Mocking SAML2Client retrieveCredentials...");
 
+    assert(context.getRequestParameter("SAMLResponse").isPresent());
+
     NameID nameId = new NameIDBuilder().buildObject();
     String issuerId = this.getClass().getName();
     List<Attribute> samlAttributes = new ArrayList<>();
