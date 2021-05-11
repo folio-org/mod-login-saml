@@ -1,3 +1,7 @@
+## 2.1.1 - 2021-05-11
+
+ * [MODLOGSAML-97](https://issues.folio.org/browse/MODLOGSAML-97) Single-Sign-On (SSO) always fails
+
 ## 2.1.0 - 2021-03-09
 
 No new functionality but Vert.x 4 + vertx-pac4j update as well as RMB.
