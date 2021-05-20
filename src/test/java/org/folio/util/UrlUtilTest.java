@@ -79,7 +79,7 @@ public class UrlUtilTest {
   public void checkIdpUrlJson(TestContext context) {
     UrlUtil.checkIdpUrl("http://localhost:" + MOCK_PORT + "/json", vertx)
       .onComplete(context.asyncAssertSuccess(result -> {
-        context.assertEquals("Unexpected error: Response content-type is not XML", result.getMessage());
+        context.assertEquals("Response content-type is not XML", result.getMessage());
       }));
   }
 }

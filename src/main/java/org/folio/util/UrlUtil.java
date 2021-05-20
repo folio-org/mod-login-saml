@@ -28,7 +28,7 @@ public class UrlUtil {
     .map(httpResponse -> {
       String contentType = httpResponse.getHeader("Content-Type");
       if (! contentType.contains("xml")) {
-        throw new IllegalArgumentException("Response content-type is not XML");
+        return UrlCheckResult.failResult("Response content-type is not XML");
       }
       return UrlCheckResult.emptySuccessResult();
     })
