@@ -1,5 +1,8 @@
 package org.folio.util;
 
+import static org.hamcrest.CoreMatchers.startsWith;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.rest.tools.utils.NetworkUtils;
@@ -59,7 +62,8 @@ public class UrlUtilTest {
     int port = NetworkUtils.nextFreePort();
     UrlUtil.checkIdpUrl("http://localhost:" + port, vertx)
       .onComplete(context.asyncAssertSuccess(result -> {
-          context.assertEquals("Connection refused: localhost/127.0.0.1:" + port, result.getMessage());
+          // check locale independent prefix only.
+          assertThat(result.getMessage(), startsWith("ConnectException: "));
       }));
   }
 
