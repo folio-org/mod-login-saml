@@ -1,5 +1,13 @@
 package org.folio.rest.impl;
 
+import static io.vertx.core.http.HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS;
+import static io.vertx.core.http.HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS;
+import static io.vertx.core.http.HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS;
+import static io.vertx.core.http.HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN;
+import static io.vertx.core.http.HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS;
+import static io.vertx.core.http.HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD;
+import static io.vertx.core.http.HttpHeaders.ORIGIN;
+import static io.vertx.core.http.HttpHeaders.VARY;
 import static org.pac4j.saml.state.SAML2StateGenerator.SAML_RELAY_STATE_ATTRIBUTE;
 
 import java.net.URI;
@@ -10,6 +18,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
@@ -59,12 +68,17 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.Cookie;
+import io.vertx.core.http.CookieSameSite;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.PRNG;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.Session;
+import io.vertx.ext.web.impl.Utils;
 import io.vertx.ext.web.sstore.impl.SharedDataSessionImpl;
 /**
  * Main entry point of module
@@ -75,6 +89,7 @@ public class SamlAPI implements Saml {
 
   private static final Logger log = LogManager.getLogger(SamlAPI.class);
   public static final String QUOTATION_MARK_CHARACTER = "\"";
+  public static final String CSRF_TOKEN = "csrfToken";
 
   /**
    * Check that client can be loaded, SAML-Login button can be displayed.
@@ -98,11 +113,19 @@ public class SamlAPI implements Saml {
   public void postSamlLogin(SamlLoginRequest requestEntity, RoutingContext routingContext, Map<String, String> okapiHeaders,
                             Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
+    String csrfToken = UUID.randomUUID().toString();
+    Cookie csrfCookie = Cookie.cookie(CSRF_TOKEN, csrfToken)
+      .setPath("/").setHttpOnly(true).setSecure(true);
+    routingContext.addCookie(csrfCookie);
+
     String stripesUrl = requestEntity.getStripesUrl();
+    StringBuilder relayInfo = new StringBuilder(stripesUrl);
+    relayInfo.append(stripesUrl.indexOf('?') >= 0 ? '&' : '?')
+      .append(CSRF_TOKEN).append("=").append(csrfToken);
 
     // register non-persistent session (this request only) to overWrite relayState
     Session session = new SharedDataSessionImpl(new PRNG(vertxContext.owner()));
-    session.put(SAML_RELAY_STATE_ATTRIBUTE, stripesUrl);
+    session.put(SAML_RELAY_STATE_ATTRIBUTE, relayInfo.toString());
     routingContext.setSession(session);
 
     findSaml2Client(routingContext, false, false) // do not allow login, if config is missing
@@ -126,6 +149,7 @@ public class SamlAPI implements Saml {
       String responseJsonString = ((OkAction) redirectionAction).getContent();
       SamlLogin dto = Json.decodeValue(responseJsonString, SamlLogin.class);
       routingContext.response().headers().clear(); // saml2Client sets Content-Type: text/html header
+      addCredentialsAndOriginHeaders(routingContext);
       return PostSamlLoginResponse.respond200WithApplicationJson(dto);
     } catch (HttpAction httpAction) {
       return HttpActionMapper.toResponse(httpAction);
@@ -150,6 +174,12 @@ public class SamlAPI implements Saml {
     }
     final URI originalUrl = relayStateUrl;
     final URI stripesBaseUrl = UrlUtil.parseBaseUrl(originalUrl);
+
+    Cookie csrfTokenCookie = routingContext.getCookie(CSRF_TOKEN);
+    if(csrfTokenCookie == null || !originalUrl.getQuery().contains(CSRF_TOKEN + "=" +csrfTokenCookie.getValue())) {
+      asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond403WithTextPlain("CSRF attempt detected")));
+      return;
+    }
 
     findSaml2Client(routingContext, false, false)
       .onComplete(samlClientHandler -> {
@@ -577,6 +607,50 @@ public class SamlAPI implements Saml {
     }
 
     return samlConfig;
+  }
+
+  @Override
+  public void optionsSamlLogin(RoutingContext routingContext, Map<String, String> okapiHeaders,
+      Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    handleOptions(routingContext);
+  }
+
+  @Override
+  public void optionsSamlCallback(RoutingContext routingContext, Map<String, String> okapiHeaders,
+      Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    handleOptions(routingContext);
+  }
+
+  private void handleOptions(RoutingContext routingContext) {
+    HttpServerRequest request = routingContext.request();
+    HttpServerResponse response = routingContext.response();
+    String origin = request.headers().get(ORIGIN);
+    if (origin == null) {
+      response.setStatusCode(400).setStatusMessage("Missing origin header").end();
+      return;
+    }
+    if (origin.isBlank() || origin.trim().contentEquals("*")) {
+      response.setStatusCode(400).setStatusMessage("Invalid origin header").end();
+      return;
+    }
+    response.putHeader(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
+    response.putHeader(ACCESS_CONTROL_ALLOW_ORIGIN, origin);
+    Utils.appendToMapIfAbsent(response.headers(), VARY, ",", ORIGIN);
+    response.putHeader(ACCESS_CONTROL_ALLOW_METHODS, request.getHeader(ACCESS_CONTROL_REQUEST_METHOD));
+    Utils.appendToMapIfAbsent(response.headers(), VARY, ",", ACCESS_CONTROL_REQUEST_METHOD);
+    response.putHeader(ACCESS_CONTROL_ALLOW_HEADERS, request.getHeader(ACCESS_CONTROL_REQUEST_HEADERS));
+    Utils.appendToMapIfAbsent(response.headers(), VARY, ",", ACCESS_CONTROL_REQUEST_HEADERS);
+    response.setStatusCode(204).end();
+  }
+
+  private void addCredentialsAndOriginHeaders(RoutingContext routingContext) {
+    String origin = routingContext.request().headers().get(ORIGIN);
+    if (origin == null || origin.isBlank() || origin.trim().contentEquals("*")) {
+      return;
+    }
+    HttpServerResponse response = routingContext.response();
+    response.putHeader(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
+    response.putHeader(ACCESS_CONTROL_ALLOW_ORIGIN, origin);
   }
 
 }
