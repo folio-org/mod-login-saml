@@ -119,13 +119,11 @@ public class SamlAPI implements Saml {
     routingContext.addCookie(csrfCookie);
 
     String stripesUrl = requestEntity.getStripesUrl();
-    StringBuilder relayInfo = new StringBuilder(stripesUrl);
-    relayInfo.append(stripesUrl.indexOf('?') >= 0 ? '&' : '?')
-      .append(CSRF_TOKEN).append("=").append(csrfToken);
+    String relayInfo = stripesUrl + (stripesUrl.indexOf('?') >= 0 ? '&' : '?') + CSRF_TOKEN + '=' + csrfToken;
 
     // register non-persistent session (this request only) to overWrite relayState
     Session session = new SharedDataSessionImpl(new PRNG(vertxContext.owner()));
-    session.put(SAML_RELAY_STATE_ATTRIBUTE, relayInfo.toString());
+    session.put(SAML_RELAY_STATE_ATTRIBUTE, relayInfo);
     routingContext.setSession(session);
 
     findSaml2Client(routingContext, false, false) // do not allow login, if config is missing
@@ -625,12 +623,8 @@ public class SamlAPI implements Saml {
     HttpServerRequest request = routingContext.request();
     HttpServerResponse response = routingContext.response();
     String origin = request.headers().get(ORIGIN);
-    if (origin == null) {
-      response.setStatusCode(400).setStatusMessage("Missing origin header").end();
-      return;
-    }
-    if (origin.isBlank() || origin.trim().contentEquals("*")) {
-      response.setStatusCode(400).setStatusMessage("Invalid origin header").end();
+    if (isInvalidOrigin(origin)) {
+      response.setStatusCode(400).setStatusMessage("Missing/Invalid origin header").end();
       return;
     }
     response.putHeader(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
@@ -645,12 +639,16 @@ public class SamlAPI implements Saml {
 
   private void addCredentialsAndOriginHeaders(RoutingContext routingContext) {
     String origin = routingContext.request().headers().get(ORIGIN);
-    if (origin == null || origin.isBlank() || origin.trim().contentEquals("*")) {
+    if (isInvalidOrigin(origin)) {
       return;
     }
     HttpServerResponse response = routingContext.response();
     response.putHeader(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
     response.putHeader(ACCESS_CONTROL_ALLOW_ORIGIN, origin);
+  }
+
+  private boolean isInvalidOrigin(String origin) {
+    return origin == null || origin.isBlank() || origin.trim().contentEquals("*");
   }
 
 }
