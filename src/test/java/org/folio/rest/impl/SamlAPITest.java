@@ -278,7 +278,7 @@ public class SamlAPITest {
       .options("/saml/login")
       .then()
       .statusCode(400)
-      .statusLine(containsString("Missing origin header"));
+      .statusLine(containsString("Missing/Invalid origin header"));
 
     log.info("=== Test CORS preflight - OPTIONS /saml/login - failure - invalid origin ===");
     given()
