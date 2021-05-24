@@ -12,6 +12,7 @@
           ],
           "pathPattern": "/saml/login",
           "permissionsRequired": [],
+          "delegateCORS": true,
           "modulePermissions": [
             "configuration.entries.collection.get"
           ]
@@ -22,6 +23,7 @@
           ],
           "pathPattern": "/saml/callback",
           "permissionsRequired": [],
+          "delegateCORS": true,
           "modulePermissions": [
             "auth.signtoken",
             "configuration.entries.collection.get",

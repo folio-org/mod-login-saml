@@ -47,6 +47,16 @@ types:
           body:
             text/plain:
               example: "Internal server error"
+    options:
+      description: "Preflight CORS for /saml/login"
+      responses:
+        204:
+          description: "Return with appropriate CORS headers"
+        400:
+          description: "Bad request"
+          body:
+            text/plain:
+              example: "Bad request"
   /callback:
     post:
       description: Redirect browser to sso-landing page with generated token.
@@ -79,6 +89,16 @@ types:
           body:
             text/plain:
               example: "Internal server error"
+    options:
+      description: "Preflight CORS for /saml/callback"
+      responses:
+        204:
+          description: "Return with appropriate CORS headers"
+        400:
+          description: "Bad request"
+          body:
+            text/plain:
+              example: "Bad request"
   /check:
     get:
       description: Decides if SSO login is configured properly, returns true or false
