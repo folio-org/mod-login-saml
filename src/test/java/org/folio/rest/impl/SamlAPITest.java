@@ -431,6 +431,18 @@ public class SamlAPITest {
       .then()
       .statusCode(403);
 
+    log.info("=== Test - POST /saml/callback - failure (wrong relay) ===");
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .cookie(SamlAPI.RELAY_STATE, cookie)
+      .formParam("SAMLResponse", "saml-response")
+      .formParam("RelayState", relayState.replace("localhost", "demo"))
+      .post("/saml/callback")
+      .then()
+      .statusCode(403);
+
     log.info("=== Test - POST /saml/callback - failure (no cookie) ===");
     given()
       .header(TENANT_HEADER)
