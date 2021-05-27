@@ -36,7 +36,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <raml-module-builder-version>33.0.0-pre3</raml-module-builder-version>
+    <raml-module-builder-version>33.0.0</raml-module-builder-version>
     <generate_routing_context>/saml/callback,/saml/regenerate,/saml/login,/saml/check,/saml/configuration
     </generate_routing_context>
 
@@ -53,7 +53,7 @@
       <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-stack-depchain</artifactId>
-        <version>4.0.3</version>
+        <version>4.1.0.CR1</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
