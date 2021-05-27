@@ -193,9 +193,9 @@ public class SamlAPITest {
       .statusCode(200)
       .extract();
 
-    String csrfToken = resp.cookie("csrfToken");
-    String relayState = resp.body().jsonPath().getString("relayState");
-    assertEquals(STRIPES_URL+"?csrfToken="+csrfToken, relayState);
+    String cookie = resp.cookie(SamlAPI.RELAY_STATE);
+    String relayState = resp.body().jsonPath().getString(SamlAPI.RELAY_STATE);
+    assertEquals(cookie, relayState);
 
     // stripesUrl w/ query args
     resp = given()
@@ -212,9 +212,9 @@ public class SamlAPITest {
       .statusCode(200)
       .extract();
 
-    csrfToken = resp.cookie("csrfToken");
+    cookie = resp.cookie(SamlAPI.RELAY_STATE);
     relayState = resp.body().jsonPath().getString("relayState");
-    assertEquals(STRIPES_URL+"?foo=bar&csrfToken="+csrfToken, relayState);
+    assertEquals(cookie, relayState);
 
     // AJAX 401
     given()
@@ -386,7 +386,7 @@ public class SamlAPITest {
   public void callbackEndpointTests() throws IOException {
     final String testPath = "/test/path";
 
-    log.info("=== Setup - POST /saml/login - need relayState and csrfToken cookie ===");
+    log.info("=== Setup - POST /saml/login - need relayState and cookie ===");
     ExtractableResponse<Response> resp = given()
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
@@ -401,17 +401,15 @@ public class SamlAPITest {
       .statusCode(200)
       .extract();
 
-    String csrfToken = resp.cookie("csrfToken");
-    String relayState = resp.body()
-      .jsonPath()
-      .getString("relayState");
+    String cookie = resp.cookie(SamlAPI.RELAY_STATE);
+    String relayState = resp.body().jsonPath().getString(SamlAPI.RELAY_STATE);
 
     log.info("=== Test - POST /saml/callback - success ===");
     given()
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
       .header(OKAPI_URL_HEADER)
-      .cookie("csrfToken", csrfToken)
+      .cookie(SamlAPI.RELAY_STATE, cookie)
       .formParam("SAMLResponse", "saml-response")
       .formParam("RelayState", relayState)
       .post("/saml/callback")
@@ -421,7 +419,31 @@ public class SamlAPITest {
       .header("x-okapi-token", "saml-token")
       .cookie("ssoToken", "saml-token");
 
-    log.info("=== Test - POST /saml/callback - failure (no CSRF token cookie) ===");
+    log.info("=== Test - POST /saml/callback - failure (wrong cookie) ===");
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .cookie(SamlAPI.RELAY_STATE, "bad" + cookie)
+      .formParam("SAMLResponse", "saml-response")
+      .formParam("RelayState", relayState)
+      .post("/saml/callback")
+      .then()
+      .statusCode(403);
+
+    log.info("=== Test - POST /saml/callback - failure (wrong relay) ===");
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .cookie(SamlAPI.RELAY_STATE, cookie)
+      .formParam("SAMLResponse", "saml-response")
+      .formParam("RelayState", relayState.replace("localhost", "demo"))
+      .post("/saml/callback")
+      .then()
+      .statusCode(403);
+
+    log.info("=== Test - POST /saml/callback - failure (no cookie) ===");
     given()
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)

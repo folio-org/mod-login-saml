@@ -69,7 +69,6 @@ import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.Cookie;
-import io.vertx.core.http.CookieSameSite;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
@@ -90,6 +89,7 @@ public class SamlAPI implements Saml {
   private static final Logger log = LogManager.getLogger(SamlAPI.class);
   public static final String QUOTATION_MARK_CHARACTER = "\"";
   public static final String CSRF_TOKEN = "csrfToken";
+  public static final String RELAY_STATE = "relayState";
 
   /**
    * Check that client can be loaded, SAML-Login button can be displayed.
@@ -114,16 +114,16 @@ public class SamlAPI implements Saml {
                             Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
     String csrfToken = UUID.randomUUID().toString();
-    Cookie csrfCookie = Cookie.cookie(CSRF_TOKEN, csrfToken)
-      .setPath("/").setHttpOnly(true).setSecure(true);
-    routingContext.addCookie(csrfCookie);
-
     String stripesUrl = requestEntity.getStripesUrl();
-    String relayInfo = stripesUrl + (stripesUrl.indexOf('?') >= 0 ? '&' : '?') + CSRF_TOKEN + '=' + csrfToken;
+    String relayState = stripesUrl + (stripesUrl.indexOf('?') >= 0 ? '&' : '?') + CSRF_TOKEN + '=' + csrfToken;
+    Cookie relayStateCookie = Cookie.cookie(RELAY_STATE, relayState)
+        .setPath("/").setHttpOnly(true).setSecure(true);
+    routingContext.addCookie(relayStateCookie);
+
 
     // register non-persistent session (this request only) to overWrite relayState
     Session session = new SharedDataSessionImpl(new PRNG(vertxContext.owner()));
-    session.put(SAML_RELAY_STATE_ATTRIBUTE, relayInfo);
+    session.put(SAML_RELAY_STATE_ATTRIBUTE, relayState);
     routingContext.setSession(session);
 
     findSaml2Client(routingContext, false, false) // do not allow login, if config is missing
@@ -173,8 +173,8 @@ public class SamlAPI implements Saml {
     final URI originalUrl = relayStateUrl;
     final URI stripesBaseUrl = UrlUtil.parseBaseUrl(originalUrl);
 
-    Cookie csrfTokenCookie = routingContext.getCookie(CSRF_TOKEN);
-    if(csrfTokenCookie == null || !originalUrl.getQuery().contains(CSRF_TOKEN + "=" +csrfTokenCookie.getValue())) {
+    Cookie relayStateCookie = routingContext.getCookie(RELAY_STATE);
+    if (relayStateCookie == null || !relayState.contentEquals(relayStateCookie.getValue())) {
       asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond403WithTextPlain("CSRF attempt detected")));
       return;
     }
@@ -250,7 +250,7 @@ public class SamlAPI implements Saml {
                               asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond500WithTextPlain(tokenResponse.getError().toString())));
                             } else {
                               String candidateAuthToken = null;
-                              if(tokenResponse.getCode() == 200) {
+                              if (tokenResponse.getCode() == 200) {
                                 candidateAuthToken = tokenResponse.getHeaders().get(OkapiHeaders.OKAPI_TOKEN_HEADER);
                               } else { //mod-authtoken v2.x returns 201, with token in JSON response body
                                 try {
