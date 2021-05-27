@@ -174,7 +174,7 @@ public class SamlAPI implements Saml {
     final URI stripesBaseUrl = UrlUtil.parseBaseUrl(originalUrl);
 
     Cookie relayStateCookie = routingContext.getCookie(RELAY_STATE);
-    if(relayStateCookie == null || !relayState.contentEquals(relayStateCookie.getValue())) {
+    if (relayStateCookie == null || !relayState.contentEquals(relayStateCookie.getValue())) {
       asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond403WithTextPlain("CSRF attempt detected")));
       return;
     }
@@ -250,7 +250,7 @@ public class SamlAPI implements Saml {
                               asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond500WithTextPlain(tokenResponse.getError().toString())));
                             } else {
                               String candidateAuthToken = null;
-                              if(tokenResponse.getCode() == 200) {
+                              if (tokenResponse.getCode() == 200) {
                                 candidateAuthToken = tokenResponse.getHeaders().get(OkapiHeaders.OKAPI_TOKEN_HEADER);
                               } else { //mod-authtoken v2.x returns 201, with token in JSON response body
                                 try {
