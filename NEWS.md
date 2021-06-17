@@ -1,3 +1,8 @@
+## 2.1.2 - 2021-06-17
+
+ * Update RMB to include [RMB-854](https://issues.folio.org/browse/RMB-854) FORM_ATTRIBUTE_SIZE_MAX is too small
+ * Above RMB change will fix edge cases of [MODLOGSAML-97](https://issues.folio.org/browse/MODLOGSAML-97) Single-Sign-On (SSO) always fails
+
 ## 2.1.1 - 2021-05-11
 
  * [MODLOGSAML-97](https://issues.folio.org/browse/MODLOGSAML-97) Single-Sign-On (SSO) always fails
