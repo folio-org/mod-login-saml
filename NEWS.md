@@ -1,7 +1,11 @@
+## 2.3.0 - 2021-09-29
+
+ * [MODLOGSAML-105](https://issues.folio.org/browse/MODLOGSAML-105) Upgrade to RMB 33.1.1, Vert.x 4.1.4
+
 ## 2.2.1 - 2021-06-23
 
  * [MODLOGSAML-97](https://issues.folio.org/browse/MODLOGSAML-97) Single-Sign-On (SSO) always fails
- * Update RMB to 33.0.2 to fix MODLOGSAML-97, see [RMB-854](https://issues.folio.org/browse/RMB-854) FORM_ATTRIBUTE_SIZE_MAX is too small
+ * Update RMB to 33.0.2 to fix MODLOGSAML-97, see [RMB-854](https://issues.folio.org/browse/RMB-854) `FORM_ATTRIBUTE_SIZE_MAX` is too small
  * Update Vertx to 4.1.0
 
 ## 2.2.0 - 2021-05-27
@@ -14,7 +18,7 @@
 
 ## 2.1.2 - 2021-06-17
 
- * Update RMB to include [RMB-854](https://issues.folio.org/browse/RMB-854) FORM_ATTRIBUTE_SIZE_MAX is too small
+ * Update RMB to include [RMB-854](https://issues.folio.org/browse/RMB-854) `FORM_ATTRIBUTE_SIZE_MAX is` too small
  * Above RMB change will fix edge cases of [MODLOGSAML-97](https://issues.folio.org/browse/MODLOGSAML-97) Single-Sign-On (SSO) always fails
  * Update RMB to 33.0.1
  * Update Vertx to 4.1.0
