@@ -14,7 +14,6 @@ import java.net.URLEncoder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import org.folio.config.SamlConfigHolder;
 import org.folio.rest.RestVerticle;
@@ -33,8 +32,8 @@ import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
 import org.pac4j.core.context.HttpConstants;
 import org.pac4j.core.context.WebContext;
+import org.pac4j.core.context.session.SessionStore;
 import org.pac4j.core.exception.http.RedirectionAction;
-import org.pac4j.core.exception.http.TemporaryRedirectAction;
 import org.pac4j.core.redirect.RedirectionActionBuilder;
 import org.w3c.dom.ls.LSResourceResolver;
 
@@ -231,8 +230,8 @@ public class SamlAPITest {
     // configure a wrong redirection action: TemporaryRedirectAction
     RedirectionActionBuilder redirectionActionBuilder = new RedirectionActionBuilder() {
       @Override
-      public Optional<RedirectionAction> getRedirectionAction(WebContext context) {
-        return Optional.of(new TemporaryRedirectAction("foo"));
+      public Optional<RedirectionAction> getRedirectionAction(WebContext context, SessionStore sessionStore) {
+        return Optional.of(new TemporaryRedirectAction());
       }
     };
     SamlConfigHolder.getInstance().findClient(TENANT).getClient()
@@ -249,6 +248,7 @@ public class SamlAPITest {
       .then()
       .statusCode(500);
   }
+
 
   @Test
   public void loginCorsTests() throws IOException {
@@ -553,6 +553,12 @@ public class SamlAPITest {
         .statusCode(500)
         .contentType(ContentType.TEXT)
         .body(containsString("No KeyStore stored in configuration and regeneration is not allowed"));
+  }
+
+  class TemporaryRedirectAction extends RedirectionAction {
+    TemporaryRedirectAction() {
+      super(302);
+    }
   }
 
 }

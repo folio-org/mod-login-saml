@@ -8,7 +8,6 @@ import static org.junit.Assert.assertTrue;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.rest.tools.utils.NetworkUtils;
-import org.folio.util.VertxUtils.DummySessionStore;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -29,9 +28,9 @@ import io.vertx.ext.web.sstore.impl.SharedDataSessionImpl;
 import java.util.Optional;
 
 @RunWith(VertxUnitRunner.class)
-public class VertxUtilsTest {
+public class DummySessionStoreTest {
 
-  public static final Logger logger = LogManager.getLogger(VertxUtilsTest.class);
+  public static final Logger logger = LogManager.getLogger(DummySessionStoreTest.class);
 
   public static final String KEY = "key";
   public static final String VALUE = "foo";
@@ -70,28 +69,28 @@ public class VertxUtilsTest {
       Session session = new SharedDataSessionImpl(new PRNG(vertx));
       session.put(KEY, VALUE);
 
-      SessionStore<VertxWebContext> sessionStore = new DummySessionStore(vertx, null);
+      SessionStore sessionStore = new DummySessionStore(vertx, rc.session());
 
-      VertxWebContext ctx = VertxUtils.createWebContext(rc);
-      assertTrue(sessionStore.get(ctx, KEY).isEmpty());
-      assertEquals("", sessionStore.getOrCreateSessionId(ctx));
+      VertxWebContext webContext = new VertxWebContext(rc, sessionStore);
+      assertTrue(sessionStore.get(webContext, KEY).isEmpty());
+      assertEquals("", sessionStore.getSessionId(webContext, true).get());
 
-      Optional<SessionStore<VertxWebContext>> optSessionStore = sessionStore.buildFromTrackableSession(ctx, session);
+      Optional<SessionStore> optSessionStore = sessionStore.buildFromTrackableSession(webContext, session);
       assertTrue(optSessionStore.isPresent());
 
       sessionStore = optSessionStore.get();
 
-      assertEquals(VALUE, sessionStore.get(ctx, KEY).get());
+      assertEquals(VALUE, sessionStore.get(webContext, KEY).get());
 
-      sessionStore.set(ctx, KEY, VALUE2);
-      assertEquals(VALUE2, sessionStore.get(ctx, KEY).get());
+      sessionStore.set(webContext, KEY, VALUE2);
+      assertEquals(VALUE2, sessionStore.get(webContext, KEY).get());
 
-      assertNotNull(sessionStore.getOrCreateSessionId(ctx));
+      assertNotNull(sessionStore.getSessionId(webContext, true));
 
-      assertTrue(sessionStore.renewSession(ctx));
+      assertTrue(sessionStore.renewSession(webContext));
 
-      assertTrue(sessionStore.destroySession(ctx));
-      assertTrue(sessionStore.getTrackableSession(ctx).isEmpty());
+      assertTrue(sessionStore.destroySession(webContext));
+      assertTrue(sessionStore.getTrackableSession(webContext).isEmpty());
 
       rc.response()
         .setStatusCode(200)
