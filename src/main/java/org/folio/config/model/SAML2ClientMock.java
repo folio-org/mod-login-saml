@@ -8,6 +8,7 @@ import java.util.Optional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensaml.saml.saml2.core.Conditions;
+import org.opensaml.saml.saml2.core.NameID;
 import org.opensaml.saml.saml2.core.impl.ConditionsBuilder;
 import org.opensaml.saml.saml2.core.impl.NameIDBuilder;
 import org.pac4j.core.context.WebContext;
@@ -34,7 +35,7 @@ public class SAML2ClientMock extends SAML2Client {
 
     assert(context.getRequestParameter("SAMLResponse").isPresent());
 
-    SAML2Credentials.SAMLNameID nameId = new SAML2Credentials.SAMLNameID().from(new NameIDBuilder().buildObject());
+    SAML2Credentials.SAMLNameID nameId = SAML2Credentials.SAMLNameID.from(new NameIDBuilder().buildObject());
     String issuerId = this.getClass().getName();
     List<SAML2Credentials.SAMLAttribute> samlAttributes = SAML2Credentials.SAMLAttribute.from(Collections.emptyList());
     Conditions conditions = new ConditionsBuilder().buildObject();
