@@ -440,10 +440,18 @@ public class SamlAPI implements Saml {
       });
   }
 
-
   @Override
   public void getSamlValidate(SamlValidateGetType type, String value, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-
+    if (type == null) {
+      asyncResultHandler.handle(Future.succeededFuture(GetSamlValidateResponse.respond400WithApplicationJson(
+        new SamlValidateResponse().withValid(false).withError("missing type parameter"))));
+      return;
+    }
+    if (value == null) {
+      asyncResultHandler.handle(Future.succeededFuture(GetSamlValidateResponse.respond400WithApplicationJson(
+        new SamlValidateResponse().withValid(false).withError("missing value parameter"))));
+      return;
+    }
     Handler<AsyncResult<UrlCheckResult>> handler = hnd -> {
       if (hnd.succeeded()) {
         UrlCheckResult result = hnd.result();
@@ -465,10 +473,9 @@ public class SamlAPI implements Saml {
         UrlUtil.checkIdpUrl(value, vertxContext.owner()).onComplete(handler);
         break;
       default:
-        asyncResultHandler.handle(Future.succeededFuture(GetSamlValidateResponse.respond500WithTextPlain("unknown type: " + type.toString())));
+        asyncResultHandler.handle(Future.succeededFuture(GetSamlValidateResponse.respond400WithApplicationJson(
+          new SamlValidateResponse().withValid(false).withError("unknown type: " + type))));
     }
-
-
   }
 
   private Future<Void> checkConfigValues(SamlConfigRequest updatedConfig, Vertx vertx) {
