@@ -31,6 +31,7 @@ import org.folio.config.SamlClientLoader;
 import org.folio.config.SamlConfigHolder;
 import org.folio.config.model.SamlClientComposite;
 import org.folio.config.model.SamlConfiguration;
+import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.rest.jaxrs.model.SamlCheck;
 import org.folio.rest.jaxrs.model.SamlConfig;
 import org.folio.rest.jaxrs.model.SamlConfigRequest;
@@ -43,7 +44,6 @@ import org.folio.rest.jaxrs.resource.Saml;
 import org.folio.rest.jaxrs.resource.Saml.PostSamlCallbackResponse.HeadersFor302;
 import org.folio.rest.tools.client.HttpClientFactory;
 import org.folio.rest.tools.client.interfaces.HttpClientInterface;
-import org.folio.rest.tools.utils.VertxUtils;
 import org.folio.session.NoopSession;
 import org.folio.util.Base64Util;
 import org.folio.util.ConfigEntryUtil;
@@ -81,6 +81,7 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.Session;
 import io.vertx.ext.web.impl.Utils;
 import io.vertx.ext.web.sstore.impl.SharedDataSessionImpl;
+
 /**
  * Main entry point of module
  *
@@ -216,7 +217,7 @@ public class SamlAPI implements Saml {
             OkapiHeaders parsedHeaders = OkapiHelper.okapiHeaders(okapiHeaders);
 
             Map<String, String> headers = new HashMap<>();
-            headers.put(OkapiHeaders.OKAPI_TOKEN_HEADER, parsedHeaders.getToken());
+            headers.put(XOkapiHeaders.TOKEN, parsedHeaders.getToken());
 
             HttpClientInterface usersClient = HttpClientFactory.getHttpClient(parsedHeaders.getUrl(), parsedHeaders.getTenant());
             usersClient.setDefaultHeaders(headers);
@@ -255,7 +256,7 @@ public class SamlAPI implements Saml {
                             } else {
                               String candidateAuthToken = null;
                               if (tokenResponse.getCode() == 200) {
-                                candidateAuthToken = tokenResponse.getHeaders().get(OkapiHeaders.OKAPI_TOKEN_HEADER);
+                                candidateAuthToken = tokenResponse.getHeaders().get(XOkapiHeaders.TOKEN);
                               } else { //mod-authtoken v2.x returns 201, with token in JSON response body
                                 try {
                                   candidateAuthToken = tokenResponse.getBody().getString("token");
