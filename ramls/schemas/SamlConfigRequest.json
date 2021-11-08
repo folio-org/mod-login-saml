@@ -23,6 +23,11 @@
       "type": "string",
       "required": true
     },
+    "idmXml": {
+      "description": "the SAML attribute to use for matching against a FOLIO user",
+      "type": "string",
+      "required": false
+    },
     "userProperty": {
       "description": "the property from the user record to use for matching against the SAML attribute",
       "type": "string",

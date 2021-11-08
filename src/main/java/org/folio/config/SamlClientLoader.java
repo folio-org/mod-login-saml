@@ -28,6 +28,7 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.RoutingContext;
+import org.springframework.core.io.Resource;
 
 /**
  * Load Pac4j {@link SAML2Client} from configuration
@@ -56,6 +57,8 @@ public class SamlClientLoader {
         final String keystorePassword = samlConfiguration.getKeystorePassword();
         final String privateKeyPassword = samlConfiguration.getPrivateKeyPassword();
         final String samlBinding = samlConfiguration.getSamlBinding();
+        final Resource idmXml = samlConfiguration.getIdmXml() != null ?
+          new ByteArrayResource(samlConfiguration.getIdmXml().getBytes()) : null;
         final String okapiUrl = samlConfiguration.getOkapiUrl();
 
         final Vertx vertx = routingContext.vertx();
@@ -78,7 +81,7 @@ public class SamlClientLoader {
           final String actualPrivateKeyPassword = Strings.isNullOrEmpty(privateKeyPassword) ? randomId : privateKeyPassword;
           final String keystoreFileName = "temp_" + randomFileName + ".jks";
 
-          SAML2Client saml2Client = configureSaml2Client(okapiUrl, tenantId, idpUrl, actualKeystorePassword, actualPrivateKeyPassword, keystoreFileName, samlBinding);
+          SAML2Client saml2Client = configureSaml2Client(okapiUrl, tenantId, idpUrl, actualKeystorePassword, actualPrivateKeyPassword, keystoreFileName, samlBinding, idmXml);
 
           vertx.executeBlocking(blockingHandler -> {
               saml2Client.init();
@@ -95,7 +98,7 @@ public class SamlClientLoader {
                     ByteArrayResource keystoreResource = new ByteArrayResource(keystoreBytes.getBytes());
                     try {
                       UrlResource idpUrlResource = new UrlResource(idpUrl);
-                      SAML2Client reinitedSaml2Client = configureSaml2Client(okapiUrl, tenantId, actualKeystorePassword, actualPrivateKeyPassword, idpUrlResource, keystoreResource, samlBinding);
+                      SAML2Client reinitedSaml2Client = configureSaml2Client(okapiUrl, tenantId, actualKeystorePassword, actualPrivateKeyPassword, idpUrlResource, keystoreResource, samlBinding, idmXml);
 
                       clientInstantiationFuture.complete(new SamlClientComposite(reinitedSaml2Client, samlConfiguration));
                     } catch (MalformedURLException e) {
@@ -119,7 +122,7 @@ public class SamlClientLoader {
                 ByteArrayResource keystoreResource = new ByteArrayResource(keystoreBytes.getBytes());
                 try {
                   UrlResource idpUrlResource = new UrlResource(idpUrl);
-                  SAML2Client saml2Client = configureSaml2Client(okapiUrl, tenantId, keystorePassword, privateKeyPassword, idpUrlResource, keystoreResource, samlBinding);
+                  SAML2Client saml2Client = configureSaml2Client(okapiUrl, tenantId, keystorePassword, privateKeyPassword, idpUrlResource, keystoreResource, samlBinding, idmXml);
 
                   clientInstantiationFuture.complete(new SamlClientComposite(saml2Client, samlConfiguration));
                 } catch (MalformedURLException e) {
@@ -189,22 +192,28 @@ public class SamlClientLoader {
   }
 
 
-  private static SAML2Client configureSaml2Client(String okapiUrl, String tenantId, String idpUrl, String keystorePassword, String actualPrivateKeyPassword, String keystoreFileName, String samlBinding) {
+  private static SAML2Client configureSaml2Client(String okapiUrl, String tenantId, String idpUrl, String keystorePassword, String actualPrivateKeyPassword, String keystoreFileName, String samlBinding, Resource idmXml) {
     final SAML2Configuration cfg = new SAML2Configuration(keystoreFileName,
       keystorePassword,
       actualPrivateKeyPassword,
       idpUrl);
+    if(idmXml != null) {
+      cfg.setIdentityProviderMetadataResource(idmXml);
+    }
     cfg.setMaximumAuthenticationLifetime(18000);
 
     return assembleSaml2Client(okapiUrl, tenantId, cfg, samlBinding);
   }
 
-  private static SAML2Client configureSaml2Client(String okapiUrl, String tenantId, String keystorePassword, String privateKeyPassword, UrlResource idpUrlResource, ByteArrayResource keystoreResource, String samlBinding) {
+  private static SAML2Client configureSaml2Client(String okapiUrl, String tenantId, String keystorePassword, String privateKeyPassword, UrlResource idpUrlResource, ByteArrayResource keystoreResource, String samlBinding, Resource idmXml) {
 
     final SAML2Configuration byteArrayCfg = new SAML2Configuration(keystoreResource,
       keystorePassword,
       privateKeyPassword,
       idpUrlResource);
+    if(idmXml != null) {
+      byteArrayCfg.setIdentityProviderMetadataResource(idmXml);
+    }
     byteArrayCfg.setMaximumAuthenticationLifetime(18000);
 
     return assembleSaml2Client(okapiUrl, tenantId, byteArrayCfg, samlBinding);
@@ -226,6 +235,7 @@ public class SamlClientLoader {
     saml2Client.setCallbackUrl(buildCallbackUrl(okapiUrl, tenantId));
     saml2Client.setRedirectionActionBuilder(new JsonReponseSaml2RedirectActionBuilder(saml2Client));
     saml2Client.setStateGenerator(new SAML2StateGenerator(saml2Client));
+
 
     return saml2Client;
   }
