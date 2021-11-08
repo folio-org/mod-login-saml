@@ -11,6 +11,7 @@ import io.vertx.core.json.JsonObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.config.model.SamlConfiguration;
+import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.rest.tools.client.HttpClientFactory;
 import org.folio.rest.tools.client.Response;
 import org.folio.rest.tools.client.interfaces.HttpClientInterface;
@@ -67,7 +68,7 @@ public class ConfigurationsClient {
       String encodedQuery = URLEncoder.encode(query, "UTF-8");
 
       Map<String, String> headers = new HashMap<>();
-      headers.put(OkapiHeaders.OKAPI_TOKEN_HEADER, okapiHeaders.getToken());
+      headers.put(XOkapiHeaders.TOKEN, okapiHeaders.getToken());
 
       HttpClientInterface httpClient = HttpClientFactory.getHttpClient(okapiHeaders.getUrl(), okapiHeaders.getTenant());
       httpClient.setDefaultHeaders(headers);
@@ -149,7 +150,7 @@ public class ConfigurationsClient {
         String endpoint = configId == null ? CONFIGURATIONS_ENTRIES_ENDPOINT_URL : CONFIGURATIONS_ENTRIES_ENDPOINT_URL + "/" + configId;
 
         Map<String, String> headers = new HashMap<>();
-        headers.put(OkapiHeaders.OKAPI_TOKEN_HEADER, okapiHeaders.getToken());
+        headers.put(XOkapiHeaders.TOKEN, okapiHeaders.getToken());
 
         try {
           HttpClientInterface storeEntryClient = HttpClientFactory.getHttpClient(okapiHeaders.getUrl(), okapiHeaders.getTenant(), true);
@@ -199,7 +200,7 @@ public class ConfigurationsClient {
       String encodedQuery = URLEncoder.encode(query, "UTF-8");
 
       Map<String, String> headers = new HashMap<>();
-      headers.put(OkapiHeaders.OKAPI_TOKEN_HEADER, okapiHeaders.getToken());
+      headers.put(XOkapiHeaders.TOKEN, okapiHeaders.getToken());
       HttpClientInterface checkEntryClient = HttpClientFactory.getHttpClient(okapiHeaders.getUrl(), okapiHeaders.getTenant(), true);
       checkEntryClient.setDefaultHeaders(headers);
       checkEntryClient.request(CONFIGURATIONS_ENTRIES_ENDPOINT_URL + "?query=" + encodedQuery)
