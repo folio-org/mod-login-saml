@@ -506,13 +506,14 @@ public class SamlAPITest {
   }
 
    @Test
-  public void putConfigurationWithIdmXml(TestContext context) throws IOException {
+  public void putConfigurationWithIdpMetadata(TestContext context) throws IOException {
+    mock.setMockJsonContent("mock_content_no_keystore.json");
     SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
       .withIdpUrl(URI.create("http://localhost:" + MOCK_PORT + "/xml"))
       .withSamlAttribute("UserID")
       .withSamlBinding(SamlConfigRequest.SamlBinding.POST)
       .withUserProperty("externalSystemId")
-      .withIdmXml(IOUtils.toString(Objects
+      .withIdpMetadata(IOUtils.toString(Objects
         .requireNonNull(getClass().getClassLoader()
           .getResourceAsStream("mock_idm.xml")), StandardCharsets.UTF_8))
       .withOkapiUrl(URI.create("http://localhost:9130"));

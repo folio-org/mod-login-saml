@@ -397,8 +397,8 @@ public class SamlAPI implements Saml {
               ConfigEntryUtil.valueChanged(config.getSamlAttribute(), updatedConfig.getSamlAttribute(), samlAttribute ->
                 updateEntries.put(SamlConfiguration.SAML_ATTRIBUTE_CODE, samlAttribute));
 
-              ConfigEntryUtil.valueChanged(config.getSamlAttribute(), updatedConfig.getIdmXml(), idmXml ->
-                updateEntries.put(SamlConfiguration.SAML_IDM_XML, idmXml));
+              ConfigEntryUtil.valueChanged(config.getSamlAttribute(), updatedConfig.getIdpMetadata(), idpMetadata ->
+                updateEntries.put(SamlConfiguration.SAML_Idp_Metadata, idpMetadata));
 
               ConfigEntryUtil.valueChanged(config.getUserProperty(), updatedConfig.getUserProperty(), userProperty ->
                 updateEntries.put(SamlConfiguration.USER_PROPERTY_CODE, userProperty));

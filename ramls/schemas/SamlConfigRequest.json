@@ -23,7 +23,7 @@
       "type": "string",
       "required": true
     },
-    "idmXml": {
+    "idpMetadata": {
       "description": "the SAML attribute to use for matching against a FOLIO user",
       "type": "string",
       "required": false
