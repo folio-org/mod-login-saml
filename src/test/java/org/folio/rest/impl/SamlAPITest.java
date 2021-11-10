@@ -5,6 +5,7 @@ import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInC
 import static org.folio.util.Base64AwareXsdMatcher.matchesBase64XsdInClasspath;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import java.io.IOException;
@@ -14,7 +15,6 @@ import java.net.URLEncoder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import org.folio.config.SamlConfigHolder;
 import org.folio.rest.RestVerticle;
@@ -33,8 +33,8 @@ import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
 import org.pac4j.core.context.HttpConstants;
 import org.pac4j.core.context.WebContext;
+import org.pac4j.core.context.session.SessionStore;
 import org.pac4j.core.exception.http.RedirectionAction;
-import org.pac4j.core.exception.http.TemporaryRedirectAction;
 import org.pac4j.core.redirect.RedirectionActionBuilder;
 import org.w3c.dom.ls.LSResourceResolver;
 
@@ -231,8 +231,8 @@ public class SamlAPITest {
     // configure a wrong redirection action: TemporaryRedirectAction
     RedirectionActionBuilder redirectionActionBuilder = new RedirectionActionBuilder() {
       @Override
-      public Optional<RedirectionAction> getRedirectionAction(WebContext context) {
-        return Optional.of(new TemporaryRedirectAction("foo"));
+      public Optional<RedirectionAction> getRedirectionAction(WebContext context, SessionStore sessionStore) {
+        return Optional.of(new TemporaryRedirectAction());
       }
     };
     SamlConfigHolder.getInstance().findClient(TENANT).getClient()
@@ -249,6 +249,7 @@ public class SamlAPITest {
       .then()
       .statusCode(500);
   }
+
 
   @Test
   public void loginCorsTests() throws IOException {
@@ -553,6 +554,75 @@ public class SamlAPITest {
         .statusCode(500)
         .contentType(ContentType.TEXT)
         .body(containsString("No KeyStore stored in configuration and regeneration is not allowed"));
+  }
+
+  @Test
+  public void testGetValidateMissingType() {
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .queryParam("value", "http://localhost:9130")
+      .get("/saml/validate")
+      .then()
+      .statusCode(400)
+      .contentType(ContentType.JSON)
+      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlValidateResponse.json"))
+      .body("valid", is(false))
+      .body("error", is("missing type parameter"));
+  }
+
+  @Test
+  public void testGetValidateMissingValue() {
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .queryParam("type", "okapiurl")
+      .get("/saml/validate")
+      .then()
+      .statusCode(400)
+      .contentType(ContentType.JSON)
+      .body("valid", is(false))
+      .body("error", is("missing value parameter"));
+  }
+
+  @Test
+  public void testGetValidateOkapiUrl() {
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .queryParam("type", "okapiurl")
+      .queryParam("value", "http://localhost:9130")
+      .get("/saml/validate")
+      .then()
+      .statusCode(400)
+      .contentType(ContentType.JSON)
+      .body("valid", is(false))
+      .body("error", is("unknown type: OKAPIURL"));
+  }
+
+  @Test
+  public void testGetValidateIdpUrl() {
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .queryParam("type", "idpurl")
+      .queryParam("value",  "http://localhost:" + MOCK_PORT + "/xml")
+      .get("/saml/validate")
+      .then()
+      .statusCode(200)
+      .contentType(ContentType.JSON)
+      .body("valid", is(true))
+      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlValidateResponse.json"));
+  }
+
+  class TemporaryRedirectAction extends RedirectionAction {
+    TemporaryRedirectAction() {
+      super(302);
+    }
   }
 
 }

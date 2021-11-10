@@ -9,6 +9,7 @@ import org.opensaml.core.xml.util.XMLObjectSupport;
 import org.opensaml.saml.common.xml.SAMLConstants;
 import org.opensaml.saml.saml2.core.AuthnRequest;
 import org.pac4j.core.context.WebContext;
+import org.pac4j.core.context.session.SessionStore;
 import org.pac4j.core.exception.http.RedirectionAction;
 import org.pac4j.core.exception.http.OkAction;
 import org.pac4j.core.exception.http.StatusAction;
@@ -34,22 +35,21 @@ public class JsonReponseSaml2RedirectActionBuilder implements RedirectionActionB
   private static final Logger log = LogManager.getLogger(JsonReponseSaml2RedirectActionBuilder.class);
 
   private final SAML2Client client;
-  private final SAML2AuthnRequestBuilder saml2ObjectBuilder;
 
   public JsonReponseSaml2RedirectActionBuilder(final SAML2Client client) {
     CommonHelper.assertNotNull("client", client);
     this.client = client;
-    this.saml2ObjectBuilder = new SAML2AuthnRequestBuilder(client.getConfiguration());
   }
 
   @Override
-  public Optional<RedirectionAction> getRedirectionAction(WebContext webContext) {
+  public Optional<RedirectionAction> getRedirectionAction(WebContext webContext, SessionStore sessionStore) {
 
     try {
-      final SAML2MessageContext context = this.client.getContextProvider().buildContext(webContext);
-      final String relayState = this.client.getStateGenerator().generateValue(webContext);
+      final SAML2AuthnRequestBuilder  saml2ObjectBuilder = new SAML2AuthnRequestBuilder();
+      final SAML2MessageContext context = this.client.getContextProvider().buildContext(client, webContext, sessionStore);
+      final String relayState = this.client.getStateGenerator().generateValue(webContext, sessionStore);
 
-      final AuthnRequest authnRequest = this.saml2ObjectBuilder.build(context);
+      final AuthnRequest authnRequest = saml2ObjectBuilder.build(context);
       String destination = authnRequest.getDestination();
 
       // Signature, etc.

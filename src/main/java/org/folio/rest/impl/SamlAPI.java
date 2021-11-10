@@ -31,6 +31,7 @@ import org.folio.config.SamlClientLoader;
 import org.folio.config.SamlConfigHolder;
 import org.folio.config.model.SamlClientComposite;
 import org.folio.config.model.SamlConfiguration;
+import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.rest.jaxrs.model.SamlCheck;
 import org.folio.rest.jaxrs.model.SamlConfig;
 import org.folio.rest.jaxrs.model.SamlConfigRequest;
@@ -46,12 +47,13 @@ import org.folio.rest.tools.client.interfaces.HttpClientInterface;
 import org.folio.session.NoopSession;
 import org.folio.util.Base64Util;
 import org.folio.util.ConfigEntryUtil;
+import org.folio.util.DummySessionStore;
 import org.folio.util.HttpActionMapper;
 import org.folio.util.OkapiHelper;
 import org.folio.util.UrlUtil;
-import org.folio.util.VertxUtils;
 import org.folio.util.model.OkapiHeaders;
 import org.folio.util.model.UrlCheckResult;
+import org.pac4j.core.context.session.SessionStore;
 import org.pac4j.core.exception.http.HttpAction;
 import org.pac4j.core.exception.http.OkAction;
 import org.pac4j.core.exception.http.RedirectionAction;
@@ -79,6 +81,7 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.Session;
 import io.vertx.ext.web.impl.Utils;
 import io.vertx.ext.web.sstore.impl.SharedDataSessionImpl;
+
 /**
  * Main entry point of module
  *
@@ -138,8 +141,10 @@ public class SamlAPI implements Saml {
 
   private Response postSamlLoginResponse(RoutingContext routingContext, SAML2Client saml2Client) {
     try {
+      final SessionStore sessionStore = new DummySessionStore(routingContext.vertx(), routingContext.session());
+      final VertxWebContext webContext = new VertxWebContext(routingContext, sessionStore);
       RedirectionAction redirectionAction = saml2Client
-          .getRedirectionAction(VertxUtils.createWebContext(routingContext))
+          .getRedirectionAction(webContext, sessionStore)
           .orElse(null);
       if (! (redirectionAction instanceof OkAction)) {
         throw new IllegalStateException("redirectionAction must be OkAction: " + redirectionAction);
@@ -160,7 +165,8 @@ public class SamlAPI implements Saml {
 
     registerFakeSession(routingContext);
 
-    final VertxWebContext webContext = VertxUtils.createWebContext(routingContext);
+    final SessionStore sessionStore = new DummySessionStore(routingContext.vertx(), routingContext.session());
+    final VertxWebContext webContext = new VertxWebContext(routingContext, sessionStore);
     // Form parameters "RelayState" is not part webContext.
     final String relayState = routingContext.request().getFormAttribute("RelayState");
     URI relayStateUrl;
@@ -192,8 +198,7 @@ public class SamlAPI implements Saml {
             String userPropertyName = configuration.getUserProperty() == null ? "externalSystemId" : configuration.getUserProperty();
             String samlAttributeName = configuration.getSamlAttribute() == null ? "UserID" : configuration.getSamlAttribute();
 
-
-            SAML2Credentials credentials = client.getCredentials(webContext).get();
+            SAML2Credentials credentials = (SAML2Credentials) client.getCredentials(webContext, sessionStore).get();
 
             // Get user id
             List<?> samlAttributeList = (List<?>) credentials.getUserProfile().getAttribute(samlAttributeName);
@@ -212,7 +217,7 @@ public class SamlAPI implements Saml {
             OkapiHeaders parsedHeaders = OkapiHelper.okapiHeaders(okapiHeaders);
 
             Map<String, String> headers = new HashMap<>();
-            headers.put(OkapiHeaders.OKAPI_TOKEN_HEADER, parsedHeaders.getToken());
+            headers.put(XOkapiHeaders.TOKEN, parsedHeaders.getToken());
 
             HttpClientInterface usersClient = HttpClientFactory.getHttpClient(parsedHeaders.getUrl(), parsedHeaders.getTenant());
             usersClient.setDefaultHeaders(headers);
@@ -251,7 +256,7 @@ public class SamlAPI implements Saml {
                             } else {
                               String candidateAuthToken = null;
                               if (tokenResponse.getCode() == 200) {
-                                candidateAuthToken = tokenResponse.getHeaders().get(OkapiHeaders.OKAPI_TOKEN_HEADER);
+                                candidateAuthToken = tokenResponse.getHeaders().get(XOkapiHeaders.TOKEN);
                               } else { //mod-authtoken v2.x returns 201, with token in JSON response body
                                 try {
                                   candidateAuthToken = tokenResponse.getBody().getString("token");
@@ -438,10 +443,18 @@ public class SamlAPI implements Saml {
       });
   }
 
-
   @Override
   public void getSamlValidate(SamlValidateGetType type, String value, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-
+    if (type == null) {
+      asyncResultHandler.handle(Future.succeededFuture(GetSamlValidateResponse.respond400WithApplicationJson(
+        new SamlValidateResponse().withValid(false).withError("missing type parameter"))));
+      return;
+    }
+    if (value == null) {
+      asyncResultHandler.handle(Future.succeededFuture(GetSamlValidateResponse.respond400WithApplicationJson(
+        new SamlValidateResponse().withValid(false).withError("missing value parameter"))));
+      return;
+    }
     Handler<AsyncResult<UrlCheckResult>> handler = hnd -> {
       if (hnd.succeeded()) {
         UrlCheckResult result = hnd.result();
@@ -463,10 +476,9 @@ public class SamlAPI implements Saml {
         UrlUtil.checkIdpUrl(value, vertxContext.owner()).onComplete(handler);
         break;
       default:
-        asyncResultHandler.handle(Future.succeededFuture(GetSamlValidateResponse.respond500WithTextPlain("unknown type: " + type.toString())));
+        asyncResultHandler.handle(Future.succeededFuture(GetSamlValidateResponse.respond400WithApplicationJson(
+          new SamlValidateResponse().withValid(false).withError("unknown type: " + type))));
     }
-
-
   }
 
   private Future<Void> checkConfigValues(SamlConfigRequest updatedConfig, Vertx vertx) {
