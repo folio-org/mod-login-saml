@@ -71,6 +71,15 @@
       }
     },
     {
+      "url": "/configurations/entries?query=%28module%3D%3DLOGIN-SAML+AND+configName%3D%3Dsaml+AND+code%3D%3D+saml.idm.xml%29",
+      "method": "get",
+      "status": 200,
+      "receivedData": {
+        "totalRecords": 0,
+        "configs": []
+      }
+    },
+    {
       "url": "/configurations/entries?query=%28module%3D%3DLOGIN-SAML+AND+configName%3D%3Dsaml+AND+code%3D%3D+idp.url%29",
       "method": "get",
       "status": 200,

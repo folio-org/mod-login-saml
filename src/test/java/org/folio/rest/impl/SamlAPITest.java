@@ -8,10 +8,16 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.Objects;
+import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -36,6 +42,7 @@ import org.pac4j.core.context.WebContext;
 import org.pac4j.core.context.session.SessionStore;
 import org.pac4j.core.exception.http.RedirectionAction;
 import org.pac4j.core.redirect.RedirectionActionBuilder;
+import org.springframework.util.ResourceUtils;
 import org.w3c.dom.ls.LSResourceResolver;
 
 import io.restassured.RestAssured;
@@ -481,6 +488,33 @@ public class SamlAPITest {
       .withSamlAttribute("UserID")
       .withSamlBinding(SamlConfigRequest.SamlBinding.POST)
       .withUserProperty("externalSystemId")
+      .withOkapiUrl(URI.create("http://localhost:9130"));
+
+    String jsonString = Json.encode(samlConfigRequest);
+
+    // PUT
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .header(JSON_CONTENT_TYPE_HEADER)
+      .body(jsonString)
+      .put("/saml/configuration")
+      .then()
+      .statusCode(200)
+      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"));
+  }
+
+   @Test
+  public void putConfigurationWithIdmXml(TestContext context) throws IOException {
+    SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
+      .withIdpUrl(URI.create("http://localhost:" + MOCK_PORT + "/xml"))
+      .withSamlAttribute("UserID")
+      .withSamlBinding(SamlConfigRequest.SamlBinding.POST)
+      .withUserProperty("externalSystemId")
+      .withIdmXml(IOUtils.toString(Objects
+        .requireNonNull(getClass().getClassLoader()
+          .getResourceAsStream("mock_idm.xml")), StandardCharsets.UTF_8))
       .withOkapiUrl(URI.create("http://localhost:9130"));
 
     String jsonString = Json.encode(samlConfigRequest);
