@@ -507,7 +507,7 @@ public class SamlAPITest {
 
    @Test
   public void putConfigurationWithIdpMetadata(TestContext context) throws IOException {
-    mock.setMockJsonContent("mock_content_no_keystore.json");
+    mock.setMockJsonContent("mock_content.json");
     SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
       .withIdpUrl(URI.create("http://localhost:" + MOCK_PORT + "/xml"))
       .withSamlAttribute("UserID")
