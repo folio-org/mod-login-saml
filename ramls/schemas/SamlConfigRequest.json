@@ -24,7 +24,7 @@
       "required": true
     },
     "idpMetadata": {
-      "description": "the SAML attribute to use for matching against a FOLIO user",
+      "description": "the Identity Provider Metadata",
       "type": "string",
       "required": false
     },
