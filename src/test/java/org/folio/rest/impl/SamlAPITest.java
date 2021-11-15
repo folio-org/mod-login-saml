@@ -9,27 +9,17 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
-import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
-import io.restassured.http.Header;
-import io.restassured.response.ExtractableResponse;
-import io.restassured.response.Response;
-import io.vertx.core.DeploymentOptions;
-import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonObject;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
-import java.util.Optional;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import java.util.Optional;
 import org.folio.config.SamlConfigHolder;
 import org.folio.rest.RestVerticle;
 import org.folio.rest.jaxrs.model.SamlConfigRequest;
@@ -52,22 +42,32 @@ import org.pac4j.core.exception.http.RedirectionAction;
 import org.pac4j.core.redirect.RedirectionActionBuilder;
 import org.w3c.dom.ls.LSResourceResolver;
 
+import io.restassured.RestAssured;
+import io.restassured.http.ContentType;
+import io.restassured.http.Header;
+import io.restassured.response.ExtractableResponse;
+import io.restassured.response.Response;
+import io.vertx.core.DeploymentOptions;
+import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.unit.TestContext;
+import io.vertx.ext.unit.junit.VertxUnitRunner;
+
 /**
  * @author rsass
  */
 @RunWith(VertxUnitRunner.class)
 public class SamlAPITest {
-
   private static final Logger log = LogManager.getLogger(SamlAPITest.class);
 
   private static final String TENANT = "saml-test";
   private static final Header TENANT_HEADER = new Header("X-Okapi-Tenant", TENANT);
   private static final Header TOKEN_HEADER = new Header("X-Okapi-Token", TENANT);
   private static final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", "http://localhost:9130");
-  private static final Header JSON_CONTENT_TYPE_HEADER = new Header("Content-Type",
-    "application/json");
-  private static final Header ACCESS_CONTROL_REQ_HEADERS_HEADER = new Header(
-    HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS.toString(),
+  private static final Header JSON_CONTENT_TYPE_HEADER = new Header("Content-Type", "application/json");
+  private static final Header ACCESS_CONTROL_REQ_HEADERS_HEADER = new Header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS.toString(),
     "content-type,x-okapi-tenant,x-okapi-token");
   private static final Header ACCESS_CONTROL_REQUEST_METHOD_HEADER = new Header(
     HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD.toString(), "POST");
@@ -235,8 +235,7 @@ public class SamlAPITest {
     // configure a wrong redirection action: TemporaryRedirectAction
     RedirectionActionBuilder redirectionActionBuilder = new RedirectionActionBuilder() {
       @Override
-      public Optional<RedirectionAction> getRedirectionAction(WebContext context,
-        SessionStore sessionStore) {
+      public Optional<RedirectionAction> getRedirectionAction(WebContext context, SessionStore sessionStore) {
         return Optional.of(new TemporaryRedirectAction());
       }
     };
@@ -417,8 +416,7 @@ public class SamlAPITest {
       .then()
       .contentType(ContentType.JSON)
       .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlRegenerateResponse.json"))
-      .body("fileContent",
-        matchesBase64XsdInClasspath("schemas/saml-schema-metadata-2.0.xsd", resolver))
+      .body("fileContent", matchesBase64XsdInClasspath("schemas/saml-schema-metadata-2.0.xsd", resolver))
       .statusCode(200)
       .extract().asString();
 
@@ -453,8 +451,7 @@ public class SamlAPITest {
       .then()
       .contentType(ContentType.JSON)
       .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlRegenerateResponse.json"))
-      .body("fileContent",
-        matchesBase64XsdInClasspath("schemas/saml-schema-metadata-2.0.xsd", resolver))
+      .body("fileContent", matchesBase64XsdInClasspath("schemas/saml-schema-metadata-2.0.xsd", resolver))
       .statusCode(200)
       .extract().asString();
 
