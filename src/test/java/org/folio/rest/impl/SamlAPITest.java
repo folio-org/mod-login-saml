@@ -9,19 +9,27 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
-import java.io.FileNotFoundException;
+import io.restassured.RestAssured;
+import io.restassured.http.ContentType;
+import io.restassured.http.Header;
+import io.restassured.response.ExtractableResponse;
+import io.restassured.response.Response;
+import io.vertx.core.DeploymentOptions;
+import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.unit.TestContext;
+import io.vertx.ext.unit.junit.VertxUnitRunner;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
-
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.Objects;
+import java.util.Optional;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import java.util.Optional;
 import org.folio.config.SamlConfigHolder;
 import org.folio.rest.RestVerticle;
 import org.folio.rest.jaxrs.model.SamlConfigRequest;
@@ -42,38 +50,27 @@ import org.pac4j.core.context.WebContext;
 import org.pac4j.core.context.session.SessionStore;
 import org.pac4j.core.exception.http.RedirectionAction;
 import org.pac4j.core.redirect.RedirectionActionBuilder;
-import org.springframework.util.ResourceUtils;
 import org.w3c.dom.ls.LSResourceResolver;
-
-import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
-import io.restassured.http.Header;
-import io.restassured.response.ExtractableResponse;
-import io.restassured.response.Response;
-import io.vertx.core.DeploymentOptions;
-import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonObject;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
 
 /**
  * @author rsass
  */
 @RunWith(VertxUnitRunner.class)
 public class SamlAPITest {
+
   private static final Logger log = LogManager.getLogger(SamlAPITest.class);
 
   private static final String TENANT = "saml-test";
   private static final Header TENANT_HEADER = new Header("X-Okapi-Tenant", TENANT);
   private static final Header TOKEN_HEADER = new Header("X-Okapi-Token", TENANT);
   private static final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", "http://localhost:9130");
-  private static final Header JSON_CONTENT_TYPE_HEADER = new Header("Content-Type", "application/json");
-  private static final Header ACCESS_CONTROL_REQ_HEADERS_HEADER = new Header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS.toString(),
-      "content-type,x-okapi-tenant,x-okapi-token");
+  private static final Header JSON_CONTENT_TYPE_HEADER = new Header("Content-Type",
+    "application/json");
+  private static final Header ACCESS_CONTROL_REQ_HEADERS_HEADER = new Header(
+    HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS.toString(),
+    "content-type,x-okapi-tenant,x-okapi-token");
   private static final Header ACCESS_CONTROL_REQUEST_METHOD_HEADER = new Header(
-      HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD.toString(), "POST");
+    HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD.toString(), "POST");
   private static final String STRIPES_URL = "http://localhost:3000";
 
   public static final int PORT = 8081;
@@ -238,12 +235,13 @@ public class SamlAPITest {
     // configure a wrong redirection action: TemporaryRedirectAction
     RedirectionActionBuilder redirectionActionBuilder = new RedirectionActionBuilder() {
       @Override
-      public Optional<RedirectionAction> getRedirectionAction(WebContext context, SessionStore sessionStore) {
+      public Optional<RedirectionAction> getRedirectionAction(WebContext context,
+        SessionStore sessionStore) {
         return Optional.of(new TemporaryRedirectAction());
       }
     };
     SamlConfigHolder.getInstance().findClient(TENANT).getClient()
-    .setRedirectionActionBuilder(redirectionActionBuilder);
+      .setRedirectionActionBuilder(redirectionActionBuilder);
 
     // 500 internal server error
     given()
@@ -316,6 +314,78 @@ public class SamlAPITest {
   }
 
   @Test
+  public void callbackIdpMetadataTest() throws IOException {
+    String origin = "http://localhost";
+
+    log.info("=== Test CORS preflight - OPTIONS /saml/callback - success ===");
+
+    mock.setMockJsonContent("mock_content.json");
+    putAndTestConfigurationWithMetadata("mock_idm.xml");
+
+    given()
+      .header(new Header(HttpHeaders.ORIGIN.toString(), origin))
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .header(ACCESS_CONTROL_REQ_HEADERS_HEADER)
+      .header(ACCESS_CONTROL_REQUEST_METHOD_HEADER)
+      .body(readResourceToString("saml_response.txt"))
+      .options("/saml/callback")
+      .then()
+      .statusCode(204)
+      .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN.toString(), equalTo(origin))
+      .header(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS.toString(), equalTo("true"));
+  }
+
+  @Test
+  public void callbackIdpMetadataWrongSAMLResponseTest() throws IOException {
+    String origin = "http://localhost";
+
+    log.info("=== Test CORS preflight - OPTIONS /saml/callback - success ===");
+
+    mock.setMockJsonContent("mock_content.json");
+    putAndTestConfigurationWithMetadata("mock_circle_idm.xml");
+
+    given()
+      .header(new Header(HttpHeaders.ORIGIN.toString(), origin))
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .header(ACCESS_CONTROL_REQ_HEADERS_HEADER)
+      .header(ACCESS_CONTROL_REQUEST_METHOD_HEADER)
+      .body(readResourceToString("saml_response.txt"))
+      .options("/saml/callback")
+      .then()
+      .statusCode(400)
+      .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN.toString(), equalTo(origin))
+      .header(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS.toString(), equalTo("true"));
+  }
+
+  private void putAndTestConfigurationWithMetadata(String idpMetadataFile) throws IOException {
+    SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
+      .withIdpUrl(URI.create("http://localhost:" + MOCK_PORT + "/xml"))
+      .withSamlAttribute("UserID")
+      .withSamlBinding(SamlConfigRequest.SamlBinding.POST)
+      .withUserProperty("externalSystemId")
+      .withIdpMetadata(readResourceToString(idpMetadataFile))
+      .withOkapiUrl(URI.create("http://localhost:9130"));
+
+    String jsonString = Json.encode(samlConfigRequest);
+
+    // PUT
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .header(JSON_CONTENT_TYPE_HEADER)
+      .body(jsonString)
+      .put("/saml/configuration")
+      .then()
+      .statusCode(200)
+      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"));
+  }
+
+  @Test
   public void callbackCorsTests() throws IOException {
     String origin = "http://localhost";
 
@@ -337,7 +407,6 @@ public class SamlAPITest {
   @Test
   public void regenerateEndpointTests() throws IOException {
 
-
     LSResourceResolver resolver = new TestingClasspathResolver("schemas/");
 
     String metadata = given()
@@ -348,18 +417,19 @@ public class SamlAPITest {
       .then()
       .contentType(ContentType.JSON)
       .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlRegenerateResponse.json"))
-      .body("fileContent", matchesBase64XsdInClasspath("schemas/saml-schema-metadata-2.0.xsd", resolver))
+      .body("fileContent",
+        matchesBase64XsdInClasspath("schemas/saml-schema-metadata-2.0.xsd", resolver))
       .statusCode(200)
       .extract().asString();
 
     // Update the config
     mock.setMockJsonContent("after_regenerate.json");
     SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
-        .withIdpUrl(URI.create("http://localhost:" + MOCK_PORT + "/xml"))
-        .withSamlAttribute("UserID")
-        .withSamlBinding(SamlConfigRequest.SamlBinding.REDIRECT)
-        .withUserProperty("externalSystemId")
-        .withOkapiUrl(URI.create("http://localhost:9130"));
+      .withIdpUrl(URI.create("http://localhost:" + MOCK_PORT + "/xml"))
+      .withSamlAttribute("UserID")
+      .withSamlBinding(SamlConfigRequest.SamlBinding.REDIRECT)
+      .withUserProperty("externalSystemId")
+      .withOkapiUrl(URI.create("http://localhost:9130"));
 
     String jsonString = Json.encode(samlConfigRequest);
 
@@ -383,7 +453,8 @@ public class SamlAPITest {
       .then()
       .contentType(ContentType.JSON)
       .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlRegenerateResponse.json"))
-      .body("fileContent", matchesBase64XsdInClasspath("schemas/saml-schema-metadata-2.0.xsd", resolver))
+      .body("fileContent",
+        matchesBase64XsdInClasspath("schemas/saml-schema-metadata-2.0.xsd", resolver))
       .statusCode(200)
       .extract().asString();
 
@@ -505,32 +576,16 @@ public class SamlAPITest {
       .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"));
   }
 
-   @Test
+  @Test
   public void putConfigurationWithIdpMetadata(TestContext context) throws IOException {
     mock.setMockJsonContent("mock_content.json");
-    SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
-      .withIdpUrl(URI.create("http://localhost:" + MOCK_PORT + "/xml"))
-      .withSamlAttribute("UserID")
-      .withSamlBinding(SamlConfigRequest.SamlBinding.POST)
-      .withUserProperty("externalSystemId")
-      .withIdpMetadata(IOUtils.toString(Objects
-        .requireNonNull(getClass().getClassLoader()
-          .getResourceAsStream("mock_idm.xml")), StandardCharsets.UTF_8))
-      .withOkapiUrl(URI.create("http://localhost:9130"));
+    putAndTestConfigurationWithMetadata("mock_idm.xml");
+  }
 
-    String jsonString = Json.encode(samlConfigRequest);
-
-    // PUT
-    given()
-      .header(TENANT_HEADER)
-      .header(TOKEN_HEADER)
-      .header(OKAPI_URL_HEADER)
-      .header(JSON_CONTENT_TYPE_HEADER)
-      .body(jsonString)
-      .put("/saml/configuration")
-      .then()
-      .statusCode(200)
-      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"));
+  private String readResourceToString(String idpMetadataFile) throws IOException {
+    return IOUtils.toString(Objects
+      .requireNonNull(getClass().getClassLoader()
+        .getResourceAsStream(idpMetadataFile)), StandardCharsets.UTF_8);
   }
 
   @Test
@@ -550,14 +605,14 @@ public class SamlAPITest {
 
     // GET
     given()
-        .header(TENANT_HEADER)
-        .header(TOKEN_HEADER)
-        .header(OKAPI_URL_HEADER)
-        .get("/saml/configuration")
-        .then()
-        .statusCode(500)
-        .contentType(ContentType.TEXT)
-        .body(containsString("Cannot get configuration"));
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .get("/saml/configuration")
+      .then()
+      .statusCode(500)
+      .contentType(ContentType.TEXT)
+      .body(containsString("Cannot get configuration"));
   }
 
 
@@ -566,14 +621,14 @@ public class SamlAPITest {
     mock.setMockJsonContent("mock_noidp.json");
 
     given()
-        .header(TENANT_HEADER)
-        .header(TOKEN_HEADER)
-        .header(OKAPI_URL_HEADER)
-        .get("/saml/regenerate")
-        .then()
-        .statusCode(500)
-        .contentType(ContentType.TEXT)
-        .body(containsString("There is no IdP configuration stored"));
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .get("/saml/regenerate")
+      .then()
+      .statusCode(500)
+      .contentType(ContentType.TEXT)
+      .body(containsString("There is no IdP configuration stored"));
   }
 
   @Test
@@ -581,14 +636,14 @@ public class SamlAPITest {
     mock.setMockJsonContent("mock_nokeystore.json");
 
     given()
-        .header(TENANT_HEADER)
-        .header(TOKEN_HEADER)
-        .header(OKAPI_URL_HEADER)
-        .get("/saml/regenerate")
-        .then()
-        .statusCode(500)
-        .contentType(ContentType.TEXT)
-        .body(containsString("No KeyStore stored in configuration and regeneration is not allowed"));
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .get("/saml/regenerate")
+      .then()
+      .statusCode(500)
+      .contentType(ContentType.TEXT)
+      .body(containsString("No KeyStore stored in configuration and regeneration is not allowed"));
   }
 
   @Test
@@ -645,7 +700,7 @@ public class SamlAPITest {
       .header(TOKEN_HEADER)
       .header(OKAPI_URL_HEADER)
       .queryParam("type", "idpurl")
-      .queryParam("value",  "http://localhost:" + MOCK_PORT + "/xml")
+      .queryParam("value", "http://localhost:" + MOCK_PORT + "/xml")
       .get("/saml/validate")
       .then()
       .statusCode(200)
@@ -655,6 +710,7 @@ public class SamlAPITest {
   }
 
   class TemporaryRedirectAction extends RedirectionAction {
+
     TemporaryRedirectAction() {
       super(302);
     }
