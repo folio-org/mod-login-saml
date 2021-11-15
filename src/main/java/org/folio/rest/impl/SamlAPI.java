@@ -50,6 +50,7 @@ import org.folio.util.ConfigEntryUtil;
 import org.folio.util.DummySessionStore;
 import org.folio.util.HttpActionMapper;
 import org.folio.util.OkapiHelper;
+import org.folio.util.StringUtil;
 import org.folio.util.UrlUtil;
 import org.folio.util.model.OkapiHeaders;
 import org.folio.util.model.UrlCheckResult;
@@ -90,7 +91,6 @@ import io.vertx.ext.web.sstore.impl.SharedDataSessionImpl;
 public class SamlAPI implements Saml {
 
   private static final Logger log = LogManager.getLogger(SamlAPI.class);
-  public static final String QUOTATION_MARK_CHARACTER = "\"";
   public static final String CSRF_TOKEN = "csrfToken";
   public static final String RELAY_STATE = "relayState";
 
@@ -208,11 +208,9 @@ public class SamlAPI implements Saml {
             }
             final String samlAttributeValue = samlAttributeList.get(0).toString();
 
-            final String usersCql = userPropertyName +
-              "=="
-              + QUOTATION_MARK_CHARACTER + samlAttributeValue + QUOTATION_MARK_CHARACTER;
-
+            final String usersCql = getCqlUserQuery(userPropertyName, samlAttributeValue);
             final String userQuery = UriBuilder.fromPath("/users").queryParam("query", usersCql).build().toString();
+            log.info("AD: userQuery {}", userQuery);
 
             OkapiHeaders parsedHeaders = OkapiHelper.okapiHeaders(okapiHeaders);
 
@@ -663,4 +661,12 @@ public class SamlAPI implements Saml {
     return origin == null || origin.isBlank() || origin.trim().contentEquals("*");
   }
 
+  static String getCqlUserQuery(String userPropertyName, String value) {
+    String field;
+    switch (userPropertyName.toLowerCase()) {
+      case "email" : field = "personal.email"; break;
+      default: field = userPropertyName; break;
+    }
+    return field + "==" + StringUtil.cqlEncode(value);
+  }
 }

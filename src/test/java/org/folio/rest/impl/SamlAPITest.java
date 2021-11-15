@@ -625,4 +625,13 @@ public class SamlAPITest {
     }
   }
 
+  @Test
+  public void getCqlUserQuery() {
+    assertEquals("personal.email==\"user@saml.com\"",
+      SamlAPI.getCqlUserQuery("email", "user@saml.com"));
+    assertEquals("other==\"1\"",
+      SamlAPI.getCqlUserQuery("other", "1"));
+    assertEquals("other==\"\\*\"",
+      SamlAPI.getCqlUserQuery("other", "*"));
+  }
 }
