@@ -210,7 +210,6 @@ public class SamlAPI implements Saml {
 
             final String usersCql = getCqlUserQuery(userPropertyName, samlAttributeValue);
             final String userQuery = UriBuilder.fromPath("/users").queryParam("query", usersCql).build().toString();
-            log.info("AD: userQuery {}", userQuery);
 
             OkapiHeaders parsedHeaders = OkapiHelper.okapiHeaders(okapiHeaders);
 
