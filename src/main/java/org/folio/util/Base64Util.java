@@ -24,13 +24,10 @@ public class Base64Util {
    * @return Buffer bytes of Base64 string
    */
   public static Future<Buffer> encode(Context context, String content) {
-
-    Promise<Buffer> promise = Promise.promise();
-    context.<Buffer>executeBlocking(blockingCode -> {
+    return context.executeBlocking(blockingCode -> {
       byte[] encodedBytes = Base64.getEncoder().encode(content.getBytes(StandardCharsets.UTF_8));
       blockingCode.complete(Buffer.buffer(encodedBytes));
-    }).onComplete(x -> promise.handle(x));
-    return promise.future();
+    });
   }
 
 }

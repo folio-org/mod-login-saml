@@ -2,7 +2,6 @@ package org.folio.config;
 
 
 import com.google.common.base.Strings;
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpMethod;
@@ -11,6 +10,7 @@ import io.vertx.core.json.JsonObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.config.model.SamlConfiguration;
+import org.folio.okapi.common.GenericCompositeFuture;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.rest.tools.client.HttpClientFactory;
 import org.folio.rest.tools.client.Response;
@@ -19,6 +19,7 @@ import org.folio.util.model.OkapiHeaders;
 import org.springframework.util.Assert;
 
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -65,7 +66,7 @@ public class ConfigurationsClient {
     try {
       Promise<SamlConfiguration> promise = Promise.promise();
       verifyOkapiHeaders(okapiHeaders);
-      String encodedQuery = URLEncoder.encode(query, "UTF-8");
+      String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
 
       Map<String, String> headers = new HashMap<>();
       headers.put(XOkapiHeaders.TOKEN, okapiHeaders.getToken());
@@ -97,39 +98,17 @@ public class ConfigurationsClient {
     Objects.requireNonNull(headers);
     Objects.requireNonNull(entries);
 
-    Promise<SamlConfiguration> result = Promise.promise();
-
-    // CompositeFuture.all(...) called below only accepts a list of Future (raw type)
-    @SuppressWarnings("java:S3740")
-    List<Future> futures = entries.entrySet().stream()
+    List<Future<Void>> futures = entries.entrySet().stream()
       .map(entry -> ConfigurationsClient.storeEntry(headers, entry.getKey(), entry.getValue()))
       .collect(Collectors.toList());
 
-    CompositeFuture.all(futures).onComplete(compositeEvent -> {
-      if (compositeEvent.succeeded()) {
-        ConfigurationsClient.getConfiguration(headers).onComplete(newConfigHandler -> {
-
-          if (newConfigHandler.succeeded()) {
-            result.complete(newConfigHandler.result());
-          } else {
-            result.fail(newConfigHandler.cause());
-          }
-
-        });
-      } else {
-        log.warn("Cannot save configuration entries: {}", compositeEvent.cause().getMessage());
-        result.fail(compositeEvent.cause());
-      }
-    });
-
-    return result.future();
+    return GenericCompositeFuture.all(futures).compose(compositeEvent ->
+      ConfigurationsClient.getConfiguration(headers)
+    );
   }
-
 
   public static Future<Void> storeEntry(OkapiHeaders okapiHeaders, String code, String value) {
     Assert.hasText(code, "config entry CODE is mandatory");
-
-    Promise<Void> result = Promise.promise();
 
     JsonObject requestBody = new JsonObject();
     requestBody
@@ -139,53 +118,46 @@ public class ConfigurationsClient {
       .put("value", value);
 
     // decide to POST or PUT
-    checkEntry(okapiHeaders, code).onComplete(checkHandler -> {
-      if (checkHandler.failed()) {
-        result.fail(checkHandler.cause());
-      } else {
-        String configId = checkHandler.result();
+    return checkEntry(okapiHeaders, code).compose(configId -> {
+      Promise<Void> result = Promise.promise();
+      // not existing -> POST, existing->PUT
+      HttpMethod httpMethod = configId == null ? HttpMethod.POST : HttpMethod.PUT;
+      String endpoint = configId == null ? CONFIGURATIONS_ENTRIES_ENDPOINT_URL : CONFIGURATIONS_ENTRIES_ENDPOINT_URL + "/" + configId;
 
-        // not existing -> POST, existing->PUT
-        HttpMethod httpMethod = configId == null ? HttpMethod.POST : HttpMethod.PUT;
-        String endpoint = configId == null ? CONFIGURATIONS_ENTRIES_ENDPOINT_URL : CONFIGURATIONS_ENTRIES_ENDPOINT_URL + "/" + configId;
+      Map<String, String> headers = new HashMap<>();
+      headers.put(XOkapiHeaders.TOKEN, okapiHeaders.getToken());
 
-        Map<String, String> headers = new HashMap<>();
-        headers.put(XOkapiHeaders.TOKEN, okapiHeaders.getToken());
+      try {
+        HttpClientInterface storeEntryClient = HttpClientFactory.getHttpClient(okapiHeaders.getUrl(), okapiHeaders.getTenant(), true);
+        storeEntryClient.setDefaultHeaders(headers);
+        storeEntryClient.request(httpMethod, requestBody, endpoint, null)
+          .whenComplete((storeEntryResponse, throwable) -> {
 
-        try {
-          HttpClientInterface storeEntryClient = HttpClientFactory.getHttpClient(okapiHeaders.getUrl(), okapiHeaders.getTenant(), true);
-          storeEntryClient.setDefaultHeaders(headers);
-          storeEntryClient.request(httpMethod, requestBody, endpoint, null)
-            .whenComplete((storeEntryResponse, throwable) -> {
-
-              if (storeEntryResponse == null) {
-                if (throwable == null) {
-                  result.fail("Cannot " + httpMethod.toString() + " configuration entry");
-                } else {
-                  result.fail(throwable);
-                }
-              }
-              // POST->201 created, PUT->204 no content
-              else if ((httpMethod.equals(HttpMethod.POST) && storeEntryResponse.getCode() == 201)
-                || (httpMethod.equals(HttpMethod.PUT) && storeEntryResponse.getCode() == 204)) {
-
-                result.complete();
+            if (storeEntryResponse == null) {
+              if (throwable == null) {
+                result.fail("Cannot " + httpMethod.toString() + " configuration entry");
               } else {
-                result.fail("The response status is not 'created',instead "
-                  + storeEntryResponse.getCode()
-                  + " with message  "
-                  + storeEntryResponse.getError());
+                result.fail(throwable);
               }
+            }
+            // POST->201 created, PUT->204 no content
+            else if ((httpMethod.equals(HttpMethod.POST) && storeEntryResponse.getCode() == 201)
+              || (httpMethod.equals(HttpMethod.PUT) && storeEntryResponse.getCode() == 204)) {
 
-            });
-        } catch (Exception ex) {
-          result.fail(ex);
-        }
+              result.complete();
+            } else {
+              result.fail("The response status is not 'created',instead "
+                + storeEntryResponse.getCode()
+                + " with message  "
+                + storeEntryResponse.getError());
+            }
+
+          });
+      } catch (Exception ex) {
+        result.fail(ex);
       }
+      return result.future();
     });
-
-
-    return result.future();
   }
 
   /**
@@ -197,7 +169,7 @@ public class ConfigurationsClient {
     String query = "(module==" + MODULE_NAME + " AND configName==" + CONFIG_NAME + " AND code== " + code + ")";
     try {
       verifyOkapiHeaders(okapiHeaders);
-      String encodedQuery = URLEncoder.encode(query, "UTF-8");
+      String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
 
       Map<String, String> headers = new HashMap<>();
       headers.put(XOkapiHeaders.TOKEN, okapiHeaders.getToken());

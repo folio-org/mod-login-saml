@@ -18,7 +18,6 @@ import org.pac4j.saml.config.SAML2Configuration;
 import org.pac4j.saml.state.SAML2StateGenerator;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.UrlResource;
-import org.springframework.util.StringUtils;
 
 import com.google.common.base.Strings;
 
@@ -214,7 +213,7 @@ public class SamlClientLoader {
 
     boolean mock = Boolean.parseBoolean(System.getProperty(HttpClientMock2.MOCK_MODE));
 
-    if (StringUtils.hasText(samlBinding) && samlBinding.equals("REDIRECT")) {
+    if ("REDIRECT".equals(samlBinding)) {
       cfg.setAuthnRequestBindingType(SAMLConstants.SAML2_REDIRECT_BINDING_URI);
     } else {
       // POST is the default
