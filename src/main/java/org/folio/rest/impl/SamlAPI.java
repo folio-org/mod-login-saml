@@ -346,10 +346,7 @@ public class SamlAPI implements Saml {
       .onSuccess(checkValuesHandler -> {
         OkapiHeaders parsedHeaders = OkapiHelper.okapiHeaders(okapiHeaders);
         ConfigurationsClient.getConfiguration(parsedHeaders)
-          .onFailure(cause ->
-            asyncResultHandler.handle(Future.succeededFuture(
-              PutSamlConfigurationResponse.respond500WithTextPlain(cause != null ? cause.getMessage() : "Cannot load current configuration"))))
-          .onSuccess((SamlConfiguration config) -> {
+          .compose(config -> {
             Map<String, String> updateEntries = new HashMap<>();
 
             ConfigEntryUtil.valueChanged(config.getIdpUrl(), updatedConfig.getIdpUrl().toString(), idpUrl -> {
@@ -370,30 +367,22 @@ public class SamlAPI implements Saml {
               updateEntries.put(SamlConfiguration.OKAPI_URL, okapiUrl);
               updateEntries.put(SamlConfiguration.METADATA_INVALIDATED_CODE, "true");
             });
-
-            storeConfigEntries(rc, asyncResultHandler, parsedHeaders, updateEntries);
-          });
+            return storeConfigEntries(rc, parsedHeaders, updateEntries);
+          })
+          .onFailure(cause ->
+            asyncResultHandler.handle(Future.succeededFuture(
+              PutSamlConfigurationResponse.respond500WithTextPlain(cause.getMessage()))))
+          .onSuccess(result -> asyncResultHandler.handle(Future.succeededFuture(
+            PutSamlConfigurationResponse.respond200WithApplicationJson(result))));
       });
   }
 
-  private void storeConfigEntries(RoutingContext rc, Handler<AsyncResult<Response>> asyncResultHandler, OkapiHeaders parsedHeaders, Map<String, String> updateEntries) {
-    ConfigurationsClient.storeEntries(parsedHeaders, updateEntries)
-      .onFailure(cause ->
-        asyncResultHandler.handle(Future.succeededFuture(
-          PutSamlConfigurationResponse.respond500WithTextPlain(cause != null ? cause.getMessage() : "Cannot save configuration")))
-      )
-      .onSuccess(configurationSavedEvent ->
+  private Future<SamlConfig> storeConfigEntries(RoutingContext rc, OkapiHeaders parsedHeaders, Map<String, String> updateEntries) {
+    return ConfigurationsClient.storeEntries(parsedHeaders, updateEntries)
+      .compose(configurationSavedEvent ->
         findSaml2Client(rc, true, true)
-          .onFailure(cause->
-            asyncResultHandler.handle(Future.succeededFuture(
-              PutSamlConfigurationResponse.respond500WithTextPlain(cause != null ? cause.getMessage() : "Cannot reload current configuration")))
-          )
-          .onSuccess(configurationLoadEvent -> {
-            SamlConfiguration newConf = configurationLoadEvent.getConfiguration();
-            SamlConfig dto = configToDto(newConf);
-            asyncResultHandler.handle(Future.succeededFuture(PutSamlConfigurationResponse.respond200WithApplicationJson(dto)));
-          })
-      );
+          .map(configurationLoadEvent -> configToDto(configurationLoadEvent.getConfiguration())
+          ));
   }
 
   @Override
