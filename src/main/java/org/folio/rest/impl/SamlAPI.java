@@ -16,7 +16,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 import javax.ws.rs.core.NewCookie;
@@ -30,7 +29,6 @@ import org.folio.config.SamlClientLoader;
 import org.folio.config.SamlConfigHolder;
 import org.folio.config.model.SamlClientComposite;
 import org.folio.config.model.SamlConfiguration;
-import org.folio.okapi.common.GenericCompositeFuture;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.rest.jaxrs.model.SamlCheck;
 import org.folio.rest.jaxrs.model.SamlConfig;
@@ -52,7 +50,6 @@ import org.folio.util.HttpActionMapper;
 import org.folio.util.OkapiHelper;
 import org.folio.util.UrlUtil;
 import org.folio.util.model.OkapiHeaders;
-import org.folio.util.model.UrlCheckResult;
 import org.pac4j.core.context.session.SessionStore;
 import org.pac4j.core.exception.http.HttpAction;
 import org.pac4j.core.exception.http.OkAction;
@@ -411,49 +408,27 @@ public class SamlAPI implements Saml {
         new SamlValidateResponse().withValid(false).withError("missing value parameter"))));
       return;
     }
-    Handler<AsyncResult<UrlCheckResult>> handler = hnd -> {
-      if (hnd.succeeded()) {
-        UrlCheckResult result = hnd.result();
-        SamlValidateResponse response = new SamlValidateResponse();
-        if (result.isSuccess()) {
-          response.setValid(true);
-        } else {
-          response.setValid(false);
-          response.setError(result.getMessage());
-        }
-        asyncResultHandler.handle(Future.succeededFuture(GetSamlValidateResponse.respond200WithApplicationJson(response)));
-      } else {
-        asyncResultHandler.handle(Future.succeededFuture(GetSamlValidateResponse.respond500WithTextPlain("unknown error")));
-      }
-    };
-
-    switch (type) {
-      case IDPURL:
-        UrlUtil.checkIdpUrl(value, vertxContext.owner()).onComplete(handler);
-        break;
-      default:
-        asyncResultHandler.handle(Future.succeededFuture(GetSamlValidateResponse.respond400WithApplicationJson(
-          new SamlValidateResponse().withValid(false).withError("unknown type: " + type))));
+    if (type.equals(SamlValidateGetType.IDPURL)) {
+      UrlUtil.checkIdpUrl(value, vertxContext.owner())
+        .onComplete(result -> {
+          SamlValidateResponse response = new SamlValidateResponse();
+          if (result.succeeded()) {
+            response.setValid(true);
+          } else {
+            response.setValid(false);
+            response.setError(result.cause().getMessage());
+          }
+          asyncResultHandler.handle(
+            Future.succeededFuture(GetSamlValidateResponse.respond200WithApplicationJson(response)));
+        });
+    } else {
+      asyncResultHandler.handle(Future.succeededFuture(GetSamlValidateResponse.respond400WithApplicationJson(
+        new SamlValidateResponse().withValid(false).withError("unknown type: " + type))));
     }
   }
 
   private Future<Void> checkConfigValues(SamlConfigRequest updatedConfig, Vertx vertx) {
-
-    List<Future<UrlCheckResult>> futures = List.of(UrlUtil.checkIdpUrl(updatedConfig.getIdpUrl().toString(), vertx));
-    return GenericCompositeFuture.all(futures)
-      .compose(hnd -> {
-          Optional<Future<UrlCheckResult>> failedCheck = futures.stream()
-            .filter(future -> !(future.result()).getStatus().equals(UrlCheckResult.Status.SUCCESS))
-            .findFirst();
-
-          if (failedCheck.isPresent()) {
-            Future<UrlCheckResult> future = failedCheck.get();
-            UrlCheckResult urlCheckResult = future.result();
-            return Future.failedFuture(urlCheckResult.getMessage());
-          } else {
-            return Future.succeededFuture();
-          }
-      });
+    return UrlUtil.checkIdpUrl(updatedConfig.getIdpUrl().toString(), vertx);
   }
 
   private Future<String> regenerateSaml2Config(RoutingContext routingContext) {
