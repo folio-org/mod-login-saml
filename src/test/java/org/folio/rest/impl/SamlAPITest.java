@@ -20,9 +20,9 @@ import java.util.Optional;
 import org.folio.config.SamlConfigHolder;
 import org.folio.rest.RestVerticle;
 import org.folio.rest.jaxrs.model.SamlConfigRequest;
-import org.folio.rest.tools.client.test.HttpClientMock2;
 import org.folio.rest.tools.utils.NetworkUtils;
 import org.folio.util.IdpMock;
+import org.folio.util.MockJson;
 import org.folio.util.TestingClasspathResolver;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -62,7 +62,6 @@ public class SamlAPITest {
   private static final String TENANT = "saml-test";
   private static final Header TENANT_HEADER = new Header("X-Okapi-Tenant", TENANT);
   private static final Header TOKEN_HEADER = new Header("X-Okapi-Token", TENANT);
-  private static final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", "http://localhost:9130");
   private static final Header JSON_CONTENT_TYPE_HEADER = new Header("Content-Type", "application/json");
   private static final Header ACCESS_CONTROL_REQ_HEADERS_HEADER = new Header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS.toString(),
       "content-type,x-okapi-tenant,x-okapi-token");
@@ -71,8 +70,10 @@ public class SamlAPITest {
   private static final String STRIPES_URL = "http://localhost:3000";
 
   public static final int PORT = 8081;
-  public static final int MOCK_PORT = NetworkUtils.nextFreePort();
-  public HttpClientMock2 mock;
+  public static final int IDP_MOCK_PORT = NetworkUtils.nextFreePort();
+  private static final int JSON_MOCK_PORT = NetworkUtils.nextFreePort();
+  private static final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", "http://localhost:" + JSON_MOCK_PORT);
+  public MockJson mock;
 
   private static Vertx mockVertx = Vertx.vertx();
 
@@ -89,7 +90,7 @@ public class SamlAPITest {
   @BeforeClass
   public static void setupOnce(TestContext context) {
     DeploymentOptions mockOptions = new DeploymentOptions()
-      .setConfig(new JsonObject().put("http.port", MOCK_PORT))
+      .setConfig(new JsonObject().put("http.port", IDP_MOCK_PORT))
       .setWorker(true);
     RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
     mockVertx.deployVerticle(IdpMock.class.getName(), mockOptions, context.asyncAssertSuccess());
@@ -106,16 +107,20 @@ public class SamlAPITest {
 
     DeploymentOptions options = new DeploymentOptions()
       .setConfig(new JsonObject().put("http.port", PORT)
-        .put(HttpClientMock2.MOCK_MODE, "true")
-      );
+        .put("mock", true)); // to use SAML2ClientMock
 
     RestAssured.port = PORT;
     RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
 
-    mock = new HttpClientMock2("http://localhost:9130", TENANT);
-    mock.setMockJsonContent("mock_content.json");
+    mock = new MockJson();
+    mock.setMockContent("mock_content.json");
 
-    vertx.deployVerticle(new RestVerticle(), options, context.asyncAssertSuccess());
+    DeploymentOptions mockOptions = new DeploymentOptions()
+      .setConfig(new JsonObject().put("http.port", JSON_MOCK_PORT));
+
+    vertx.deployVerticle(new RestVerticle(), options)
+      .compose(x -> vertx.deployVerticle(mock, mockOptions))
+      .onComplete(context.asyncAssertSuccess());
   }
 
   @After
@@ -141,15 +146,13 @@ public class SamlAPITest {
 
     SamlConfigHolder.getInstance().removeClient("TEST");
 
-    // missing OKAPI_URL_HEADER -> "active": false
+    // missing OKAPI_URL_HEADER
     given()
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
       .get("/saml/check")
       .then()
-      .statusCode(200)
-      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlCheck.json"))
-      .body("active", equalTo(false));
+      .statusCode(400);
 
     // good -> "active": true
     given()
@@ -347,9 +350,9 @@ public class SamlAPITest {
       .extract().asString();
 
     // Update the config
-    mock.setMockJsonContent("after_regenerate.json");
+    mock.setMockContent("after_regenerate.json");
     SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
-        .withIdpUrl(URI.create("http://localhost:" + MOCK_PORT + "/xml"))
+        .withIdpUrl(URI.create("http://localhost:" + IDP_MOCK_PORT + "/xml"))
         .withSamlAttribute("UserID")
         .withSamlBinding(SamlConfigRequest.SamlBinding.REDIRECT)
         .withUserProperty("externalSystemId")
@@ -478,7 +481,7 @@ public class SamlAPITest {
   @Test
   public void putConfigurationEndpoint(TestContext context) {
     SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
-      .withIdpUrl(URI.create("http://localhost:" + MOCK_PORT + "/xml"))
+      .withIdpUrl(URI.create("http://localhost:" + IDP_MOCK_PORT + "/xml"))
       .withSamlAttribute("UserID")
       .withSamlBinding(SamlConfigRequest.SamlBinding.POST)
       .withUserProperty("externalSystemId")
@@ -512,7 +515,7 @@ public class SamlAPITest {
 
   @Test
   public void testWithConfiguration400(TestContext context) throws IOException {
-    mock.setMockJsonContent("mock_400.json");
+    mock.setMockContent("mock_400.json");
 
     // GET
     given()
@@ -529,7 +532,7 @@ public class SamlAPITest {
 
   @Test
   public void regenerateEndpointNoIdP() throws IOException {
-    mock.setMockJsonContent("mock_noidp.json");
+    mock.setMockContent("mock_noidp.json");
 
     given()
         .header(TENANT_HEADER)
@@ -544,7 +547,7 @@ public class SamlAPITest {
 
   @Test
   public void regenerateEndpointNoKeystore() throws IOException {
-    mock.setMockJsonContent("mock_nokeystore.json");
+    mock.setMockContent("mock_nokeystore.json");
 
     given()
         .header(TENANT_HEADER)
@@ -611,7 +614,7 @@ public class SamlAPITest {
       .header(TOKEN_HEADER)
       .header(OKAPI_URL_HEADER)
       .queryParam("type", "idpurl")
-      .queryParam("value",  "http://localhost:" + MOCK_PORT + "/xml")
+      .queryParam("value",  "http://localhost:" + IDP_MOCK_PORT + "/xml")
       .get("/saml/validate")
       .then()
       .statusCode(200)

@@ -22,6 +22,7 @@ import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 
+import io.vertx.ext.web.client.WebClient;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.config.ConfigurationsClient;
@@ -39,9 +40,6 @@ import org.folio.rest.jaxrs.model.SamlRegenerateResponse;
 import org.folio.rest.jaxrs.model.SamlValidateGetType;
 import org.folio.rest.jaxrs.model.SamlValidateResponse;
 import org.folio.rest.jaxrs.resource.Saml;
-import org.folio.rest.jaxrs.resource.Saml.PostSamlCallbackResponse.HeadersFor302;
-import org.folio.rest.tools.client.HttpClientFactory;
-import org.folio.rest.tools.client.interfaces.HttpClientInterface;
 import org.folio.session.NoopSession;
 import org.folio.util.Base64Util;
 import org.folio.util.ConfigEntryUtil;
@@ -49,6 +47,7 @@ import org.folio.util.DummySessionStore;
 import org.folio.util.HttpActionMapper;
 import org.folio.util.OkapiHelper;
 import org.folio.util.UrlUtil;
+import org.folio.util.WebClientFactory;
 import org.folio.util.model.OkapiHeaders;
 import org.pac4j.core.context.session.SessionStore;
 import org.pac4j.core.exception.http.HttpAction;
@@ -58,7 +57,6 @@ import org.pac4j.saml.client.SAML2Client;
 import org.pac4j.saml.config.SAML2Configuration;
 import org.pac4j.saml.credentials.SAML2Credentials;
 import org.pac4j.vertx.VertxWebContext;
-import org.springframework.util.StringUtils;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Context;
@@ -66,7 +64,6 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.Cookie;
-import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
@@ -89,6 +86,19 @@ public class SamlAPI implements Saml {
   public static final String CSRF_TOKEN = "csrfToken";
   public static final String RELAY_STATE = "relayState";
 
+  public static class UserErrorException extends RuntimeException {
+    public UserErrorException(String message) {
+      super(message);
+    }
+  }
+
+  public static class ForbiddenException extends RuntimeException {
+    public ForbiddenException(String message) {
+      super(message);
+    }
+  }
+
+
   /**
    * Check that client can be loaded, SAML-Login button can be displayed.
    */
@@ -96,7 +106,7 @@ public class SamlAPI implements Saml {
   public void getSamlCheck(RoutingContext routingContext, Map<String, String> okapiHeaders,
                            Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
-    findSaml2Client(routingContext, false, false)
+    findSaml2Client(routingContext, false, false, vertxContext)
       .onComplete(samlClientHandler ->
           asyncResultHandler.handle(Future.succeededFuture(
             GetSamlCheckResponse.respond200WithApplicationJson(new SamlCheck().withActive(samlClientHandler.succeeded()))
@@ -121,7 +131,7 @@ public class SamlAPI implements Saml {
     session.put(SAML_RELAY_STATE_ATTRIBUTE, relayState);
     routingContext.setSession(session);
 
-    findSaml2Client(routingContext, false, false) // do not allow login, if config is missing
+    findSaml2Client(routingContext, false, false, vertxContext) // do not allow login, if config is missing
       .map(SamlClientComposite::getClient)
       .map(saml2client -> postSamlLoginResponse(routingContext, saml2client))
       .recover(e -> {
@@ -177,111 +187,103 @@ public class SamlAPI implements Saml {
       return;
     }
 
-    findSaml2Client(routingContext, false, false)
-      .onFailure(cause ->
-        asyncResultHandler.handle(
-          Future.succeededFuture(PostSamlCallbackResponse.respond500WithTextPlain(cause.getMessage())))
-      )
-      .onSuccess(samlClientComposite -> {
-        try {
-          final SAML2Client client = samlClientComposite.getClient();
-          final SamlConfiguration configuration = samlClientComposite.getConfiguration();
-          String userPropertyName = configuration.getUserProperty() == null ? "externalSystemId" : configuration.getUserProperty();
-          String samlAttributeName = configuration.getSamlAttribute() == null ? "UserID" : configuration.getSamlAttribute();
+    findSaml2Client(routingContext, false, false, vertxContext)
+      .compose(samlClientComposite -> {
+        final SAML2Client client = samlClientComposite.getClient();
+        final SamlConfiguration configuration = samlClientComposite.getConfiguration();
+        String userPropertyName = configuration.getUserProperty() == null ? "externalSystemId" : configuration.getUserProperty();
+        String samlAttributeName = configuration.getSamlAttribute() == null ? "UserID" : configuration.getSamlAttribute();
 
-          SAML2Credentials credentials = (SAML2Credentials) client.getCredentials(webContext, sessionStore).get();
+        SAML2Credentials credentials = (SAML2Credentials) client.getCredentials(webContext, sessionStore).get();
 
-          // Get user id
-          List<?> samlAttributeList = (List<?>) credentials.getUserProfile().getAttribute(samlAttributeName);
-          if (samlAttributeList == null || samlAttributeList.isEmpty()) {
-            asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond400WithTextPlain("SAML attribute doesn't exist: " + samlAttributeName)));
-            return;
-          }
-          final String samlAttributeValue = samlAttributeList.get(0).toString();
-
-          final String usersCql = userPropertyName +
-            "=="
-            + QUOTATION_MARK_CHARACTER + samlAttributeValue + QUOTATION_MARK_CHARACTER;
-
-          final String userQuery = UriBuilder.fromPath("/users").queryParam("query", usersCql).build().toString();
-
-          OkapiHeaders parsedHeaders = OkapiHelper.okapiHeaders(okapiHeaders);
-
-          Map<String, String> headers = new HashMap<>();
-          headers.put(XOkapiHeaders.TOKEN, parsedHeaders.getToken());
-
-          HttpClientInterface usersClient = HttpClientFactory.getHttpClient(parsedHeaders.getUrl(), parsedHeaders.getTenant());
-          usersClient.setDefaultHeaders(headers);
-          usersClient.request(userQuery)
-            .whenComplete((userQueryResponse, ex) -> {
-              if (!org.folio.rest.tools.client.Response.isSuccess(userQueryResponse.getCode())) {
-                asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond500WithTextPlain(userQueryResponse.getError().toString())));
-                return;
-              }
-              JsonObject resultObject = userQueryResponse.getBody();
-
-              int recordCount = resultObject.getInteger("totalRecords");
-              if (recordCount > 1) {
-                asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond400WithTextPlain("More than one user record found!")));
-                return;
-              }
-              if (recordCount == 0) {
-                String message = "No user found by " + userPropertyName + " == " + samlAttributeValue;
-                log.warn(message);
-                asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond400WithTextPlain(message)));
-                return;
-              }
-              final JsonObject userObject = resultObject.getJsonArray("users").getJsonObject(0);
-              String userId = userObject.getString("id");
-              if (!userObject.getBoolean("active")) {
-                asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond403WithTextPlain("Inactive user account!")));
-                return;
-              }
-              JsonObject payload = new JsonObject().put("payload", new JsonObject().put("sub", userObject.getString("username")).put("user_id", userId));
-              HttpClientInterface tokenClient = HttpClientFactory.getHttpClient(parsedHeaders.getUrl(), parsedHeaders.getTenant());
-              tokenClient.setDefaultHeaders(headers);
-              try {
-                tokenClient.request(HttpMethod.POST, payload, "/token", null)
-                  .whenComplete((tokenResponse, tokenError) -> {
-                    if (!org.folio.rest.tools.client.Response.isSuccess(tokenResponse.getCode())) {
-                      asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond500WithTextPlain(tokenResponse.getError().toString())));
-                      return;
-                    }
-                    String candidateAuthToken;
-                    if (tokenResponse.getCode() == 200) {
-                      candidateAuthToken = tokenResponse.getHeaders().get(XOkapiHeaders.TOKEN);
-                    } else { //mod-authtoken v2.x returns 201, with token in JSON response body
-                      try {
-                        candidateAuthToken = tokenResponse.getBody().getString("token");
-                      } catch (Exception e) {
-                        asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond500WithTextPlain(e.getMessage())));
-                        return;
-                      }
-                    }
-                    final String authToken = candidateAuthToken;
-
-                    final String location = UriBuilder.fromUri(stripesBaseUrl)
-                      .path("sso-landing")
-                      .queryParam("ssoToken", authToken)
-                      .queryParam("fwd", originalUrl.getPath())
-                      .build()
-                      .toString();
-
-                    final String cookie = new NewCookie("ssoToken", authToken, "", originalUrl.getHost(), "", 3600, false).toString();
-
-                    HeadersFor302 headers302 = PostSamlCallbackResponse.headersFor302().withSetCookie(cookie).withXOkapiToken(authToken).withLocation(location);
-                    asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond302(headers302)));
-                  });
-              } catch (Exception httpClientEx) {
-                asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond500WithTextPlain(httpClientEx.getMessage())));
-              }
-            });
-        } catch (HttpAction httpAction) {
-          asyncResultHandler.handle(Future.succeededFuture(HttpActionMapper.toResponse(httpAction)));
-        } catch (Exception ex) {
-          String message = StringUtils.hasText(ex.getMessage()) ? ex.getMessage() : "Unknown error: " + ex.getClass().getName();
-          asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond500WithTextPlain(message)));
+        // Get user id
+        List<?> samlAttributeList = (List<?>) credentials.getUserProfile().getAttribute(samlAttributeName);
+        if (samlAttributeList == null || samlAttributeList.isEmpty()) {
+          throw new UserErrorException("SAML attribute doesn't exist: " + samlAttributeName);
         }
+        final String samlAttributeValue = samlAttributeList.get(0).toString();
+
+        final String usersCql = userPropertyName +
+          "=="
+          + QUOTATION_MARK_CHARACTER + samlAttributeValue + QUOTATION_MARK_CHARACTER;
+
+        final String userQuery = UriBuilder.fromPath("/users").queryParam("query", usersCql).build().toString();
+
+        OkapiHeaders parsedHeaders = OkapiHelper.okapiHeaders(okapiHeaders);
+
+        Map<String, String> headers = new HashMap<>();
+        headers.put(XOkapiHeaders.TOKEN, parsedHeaders.getToken());
+
+        WebClient webClient = WebClientFactory.getWebClient(vertxContext.owner());
+        return webClient.getAbs(parsedHeaders.getUrl() + userQuery)
+          .putHeader(XOkapiHeaders.TOKEN, parsedHeaders.getToken())
+          .putHeader(XOkapiHeaders.URL, parsedHeaders.getUrl())
+          .putHeader(XOkapiHeaders.TENANT, parsedHeaders.getTenant())
+          .send()
+          .compose(res -> {
+            JsonObject resultObject = res.bodyAsJsonObject();
+
+            int recordCount = resultObject.getInteger("totalRecords");
+            if (recordCount > 1) {
+              throw new RuntimeException("More than one user record found!");
+            }
+            if (recordCount == 0) {
+              String message = "No user found by " + userPropertyName + " == " + samlAttributeValue;
+              log.warn(message);
+              throw new UserErrorException(message);
+            }
+            final JsonObject userObject = resultObject.getJsonArray("users").getJsonObject(0);
+            String userId = userObject.getString("id");
+            if (!userObject.getBoolean("active")) {
+              throw new ForbiddenException("Inactive user account!");
+            }
+            JsonObject payload = new JsonObject().put("payload", new JsonObject().put("sub", userObject.getString("username")).put("user_id", userId));
+            return webClient.postAbs(parsedHeaders.getUrl() + "/token")
+              .putHeader(XOkapiHeaders.TOKEN, parsedHeaders.getToken())
+              .putHeader(XOkapiHeaders.URL, parsedHeaders.getUrl())
+              .putHeader(XOkapiHeaders.TENANT, parsedHeaders.getTenant())
+              .sendJsonObject(payload)
+              .map(tokenResponse -> {
+                String candidateAuthToken;
+                if (tokenResponse.statusCode() == 200) {
+                  candidateAuthToken = tokenResponse.getHeader(XOkapiHeaders.TOKEN);
+                } else if (tokenResponse.statusCode() == 201) { //mod-authtoken v2.x returns 201, with token in JSON response body
+                  try {
+                    candidateAuthToken = tokenResponse.bodyAsJsonObject().getString("token");
+                  } catch (Exception e) {
+                    throw new RuntimeException(e.getMessage());
+                  }
+                } else {
+                  throw new RuntimeException("POST /token returned " + tokenResponse.statusCode());
+                }
+                final String authToken = candidateAuthToken;
+
+                final String location = UriBuilder.fromUri(stripesBaseUrl)
+                  .path("sso-landing")
+                  .queryParam("ssoToken", authToken)
+                  .queryParam("fwd", originalUrl.getPath())
+                  .build()
+                  .toString();
+
+                final String cookie = new NewCookie("ssoToken", authToken, "", originalUrl.getHost(), "", 3600, false).toString();
+                return PostSamlCallbackResponse
+                  .headersFor302().withSetCookie(cookie).withXOkapiToken(authToken).withLocation(location);
+              });
+          });
+      })
+      .onSuccess(headers ->
+        asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond302(headers)))
+      )
+      .onFailure(cause -> {
+        PostSamlCallbackResponse response;
+        if (cause instanceof ForbiddenException) {
+          response = PostSamlCallbackResponse.respond403WithTextPlain(cause.getMessage());
+        } else if (cause instanceof UserErrorException) {
+          response = PostSamlCallbackResponse.respond400WithTextPlain(cause.getMessage());
+        } else {
+          response = PostSamlCallbackResponse.respond500WithTextPlain(cause.getMessage());
+        }
+        asyncResultHandler.handle(Future.succeededFuture(response));
       });
   }
 
@@ -289,7 +291,7 @@ public class SamlAPI implements Saml {
   public void getSamlRegenerate(RoutingContext routingContext, Map<String, String> okapiHeaders,
     Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
-    regenerateSaml2Config(routingContext)
+    regenerateSaml2Config(routingContext, vertxContext)
       .onFailure(cause -> {
         log.warn("Cannot regenerate SAML2 metadata.", cause);
         String message =
@@ -298,7 +300,7 @@ public class SamlAPI implements Saml {
           .handle(Future.succeededFuture(GetSamlRegenerateResponse.respond500WithTextPlain(message)));
       })
       .onSuccess(metadata ->
-        ConfigurationsClient.storeEntry(OkapiHelper.okapiHeaders(okapiHeaders), SamlConfiguration.METADATA_INVALIDATED_CODE, "false")
+        ConfigurationsClient.storeEntry(vertxContext.owner(), OkapiHelper.okapiHeaders(okapiHeaders), SamlConfiguration.METADATA_INVALIDATED_CODE, "false")
           .onFailure(cause ->
             asyncResultHandler.handle(Future.succeededFuture(GetSamlRegenerateResponse.respond500WithTextPlain("Cannot persist metadata invalidated flag!")))
           )
@@ -321,7 +323,7 @@ public class SamlAPI implements Saml {
   @Override
   public void getSamlConfiguration(RoutingContext rc, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
-    ConfigurationsClient.getConfiguration(OkapiHelper.okapiHeaders(okapiHeaders))
+    ConfigurationsClient.getConfiguration(vertxContext.owner(), OkapiHelper.okapiHeaders(okapiHeaders))
       .onFailure(cause -> {
         log.warn("Cannot load configuration", cause);
         asyncResultHandler.handle(
@@ -345,7 +347,7 @@ public class SamlAPI implements Saml {
       })
       .onSuccess(checkValuesHandler -> {
         OkapiHeaders parsedHeaders = OkapiHelper.okapiHeaders(okapiHeaders);
-        ConfigurationsClient.getConfiguration(parsedHeaders)
+        ConfigurationsClient.getConfiguration(vertxContext.owner(), parsedHeaders)
           .compose(config -> {
             Map<String, String> updateEntries = new HashMap<>();
 
@@ -367,7 +369,7 @@ public class SamlAPI implements Saml {
               updateEntries.put(SamlConfiguration.OKAPI_URL, okapiUrl);
               updateEntries.put(SamlConfiguration.METADATA_INVALIDATED_CODE, "true");
             });
-            return storeConfigEntries(rc, parsedHeaders, updateEntries);
+            return storeConfigEntries(rc, parsedHeaders, updateEntries, vertxContext);
           })
           .onFailure(cause ->
             asyncResultHandler.handle(Future.succeededFuture(
@@ -377,10 +379,11 @@ public class SamlAPI implements Saml {
       });
   }
 
-  private Future<SamlConfig> storeConfigEntries(RoutingContext rc, OkapiHeaders parsedHeaders, Map<String, String> updateEntries) {
-    return ConfigurationsClient.storeEntries(parsedHeaders, updateEntries)
+  private Future<SamlConfig> storeConfigEntries(RoutingContext rc, OkapiHeaders parsedHeaders, Map<String, String> updateEntries,
+    Context vertxContext) {
+    return ConfigurationsClient.storeEntries(vertxContext.owner(), parsedHeaders, updateEntries)
       .compose(configurationSavedEvent ->
-        findSaml2Client(rc, true, true)
+        findSaml2Client(rc, true, true, vertxContext)
           .map(configurationLoadEvent -> configToDto(configurationLoadEvent.getConfiguration())
           ));
   }
@@ -420,11 +423,11 @@ public class SamlAPI implements Saml {
     return UrlUtil.checkIdpUrl(updatedConfig.getIdpUrl().toString(), vertx);
   }
 
-  private Future<String> regenerateSaml2Config(RoutingContext routingContext) {
+  private Future<String> regenerateSaml2Config(RoutingContext routingContext, Context vertxContext) {
 
-    final Vertx vertx = routingContext.vertx();
-    return findSaml2Client(routingContext, false, false)
+    return findSaml2Client(routingContext, false, false, vertxContext)
       .compose(result -> {
+        Vertx vertx = vertxContext.owner();
         SAML2Client saml2Client = result.getClient();
         return vertx.executeBlocking(blockingCode -> {
           SAML2Configuration cfg = saml2Client.getConfiguration();
@@ -449,7 +452,8 @@ public class SamlAPI implements Saml {
    * @param reloadClient          should we drop the loaded client and reload it with (maybe modified) configuration?
    * @return Future of loaded {@link SAML2Client} or failed future if it cannot be loaded.
    */
-  private Future<SamlClientComposite> findSaml2Client(RoutingContext routingContext, boolean generateMissingConfig, boolean reloadClient) {
+  private Future<SamlClientComposite> findSaml2Client(RoutingContext routingContext, boolean generateMissingConfig,
+    boolean reloadClient, Context vertxContext) {
 
     String tenantId = OkapiHelper.okapiHeaders(routingContext).getTenant();
     SamlConfigHolder configHolder = SamlConfigHolder.getInstance();
@@ -461,7 +465,7 @@ public class SamlAPI implements Saml {
     if (reloadClient) {
       configHolder.removeClient(tenantId);
     }
-    return SamlClientLoader.loadFromConfiguration(routingContext, generateMissingConfig)
+    return SamlClientLoader.loadFromConfiguration(routingContext, generateMissingConfig, vertxContext)
       .map(result -> {
         configHolder.putClient(tenantId, result);
         return result;
