@@ -466,10 +466,7 @@ public class SamlAPI implements Saml {
       configHolder.removeClient(tenantId);
     }
     return SamlClientLoader.loadFromConfiguration(routingContext, generateMissingConfig, vertxContext)
-      .map(result -> {
-        configHolder.putClient(tenantId, result);
-        return result;
-      });
+      .onSuccess(result -> configHolder.putClient(tenantId, result));
   }
 
   /**
