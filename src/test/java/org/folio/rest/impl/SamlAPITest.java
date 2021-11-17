@@ -83,6 +83,7 @@ public class SamlAPITest {
 
   @Rule
   public TestName testName = new TestName();
+  public final String LOCALHOST_ORIGIN = "http://localhost";
 
   @Before
   public void printTestMethod() {
@@ -316,10 +317,9 @@ public class SamlAPITest {
   public void callbackIdpMetadataTest() throws IOException {
     String origin = "http://localhost";
 
-    log.info("=== Test CORS preflight - OPTIONS /saml/callback - success ===");
+    log.info("=== Test Callback with right metadata - POST /saml/callback - success ===");
 
-    mock.setMockJsonContent("mock_content.json");
-    putAndTestConfigurationWithMetadata("mock_idm.xml");
+    mock.setMockJsonContent("mock_content_with_metadata.json");
 
     given()
       .header(new Header(HttpHeaders.ORIGIN.toString(), origin))
@@ -336,15 +336,13 @@ public class SamlAPITest {
 
   @Test
   public void callbackIdpMetadataWrongSAMLResponseTest() throws IOException {
-    String origin = "http://localhost";
 
-    log.info("=== Test CORS preflight - OPTIONS /saml/callback - success ===");
+    log.info("=== Test Callback with right metadata - POST /saml/callback - error ===");
 
-    mock.setMockJsonContent("mock_content.json");
-    putAndTestConfigurationWithMetadata("mock_circle_idm.xml");
+    mock.setMockJsonContent("mock_content_wrong_metadata.json");
 
     given()
-      .header(new Header(HttpHeaders.ORIGIN.toString(), origin))
+      .header(new Header(HttpHeaders.ORIGIN.toString(), LOCALHOST_ORIGIN))
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
       .header(OKAPI_URL_HEADER)
@@ -354,30 +352,6 @@ public class SamlAPITest {
       .post("/saml/callback")
       .then()
       .statusCode(403);
-  }
-
-  private void putAndTestConfigurationWithMetadata(String idpMetadataFile) throws IOException {
-    SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
-      .withIdpUrl(URI.create("http://localhost:" + MOCK_PORT + "/xml"))
-      .withSamlAttribute("UserID")
-      .withSamlBinding(SamlConfigRequest.SamlBinding.POST)
-      .withUserProperty("externalSystemId")
-      .withIdpMetadata(readResourceToString(idpMetadataFile))
-      .withOkapiUrl(URI.create("http://localhost:9130"));
-
-    String jsonString = Json.encode(samlConfigRequest);
-
-    // PUT
-    given()
-      .header(TENANT_HEADER)
-      .header(TOKEN_HEADER)
-      .header(OKAPI_URL_HEADER)
-      .header(JSON_CONTENT_TYPE_HEADER)
-      .body(jsonString)
-      .put("/saml/configuration")
-      .then()
-      .statusCode(200)
-      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"));
   }
 
   @Test
@@ -572,7 +546,27 @@ public class SamlAPITest {
   @Test
   public void putConfigurationWithIdpMetadata(TestContext context) throws IOException {
     mock.setMockJsonContent("mock_content.json");
-    putAndTestConfigurationWithMetadata("mock_idm.xml");
+    SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
+      .withIdpUrl(URI.create("http://localhost:" + MOCK_PORT + "/xml"))
+      .withSamlAttribute("UserID")
+      .withSamlBinding(SamlConfigRequest.SamlBinding.POST)
+      .withUserProperty("externalSystemId")
+      .withIdpMetadata(readResourceToString("mock_idm.xml"))
+      .withOkapiUrl(URI.create("http://localhost:9130"));
+
+    String jsonString = Json.encode(samlConfigRequest);
+
+    // PUT
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .header(JSON_CONTENT_TYPE_HEADER)
+      .body(jsonString)
+      .put("/saml/configuration")
+      .then()
+      .statusCode(200)
+      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"));
   }
 
   private String readResourceToString(String idpMetadataFile) throws IOException {
