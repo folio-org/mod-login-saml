@@ -333,8 +333,6 @@ public class SamlAPITest {
 
   @Test
   public void regenerateEndpointTests() throws IOException {
-
-
     LSResourceResolver resolver = new TestingClasspathResolver("schemas/");
 
     String metadata = given()
@@ -385,6 +383,18 @@ public class SamlAPITest {
       .extract().asString();
 
     assertNotEquals(metadata, regeneratedMetadata);
+
+    mock.setMockContent("mock_nouser.json");
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .header(JSON_CONTENT_TYPE_HEADER)
+      .body(jsonString)
+      .put("/saml/configuration")
+      .then()
+      .statusCode(500)
+      .body(is("Response status code 404 is not equal to 200"));
   }
 
   @Test
@@ -679,6 +689,23 @@ public class SamlAPITest {
       .statusCode(200)
       .contentType(ContentType.JSON)
       .body("valid", is(true))
+      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlValidateResponse.json"));
+  }
+
+  @Test
+  public void testGetValidateBadIdp() {
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .queryParam("type", "idpurl")
+      .queryParam("value",  "http://localhost:" + JSON_MOCK_PORT + "/xml")
+      .get("/saml/validate")
+      .then()
+      .statusCode(200)
+      .contentType(ContentType.JSON)
+      .body("valid", is(false))
+      .body("error", is("Response content-type is not XML"))
       .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlValidateResponse.json"));
   }
 

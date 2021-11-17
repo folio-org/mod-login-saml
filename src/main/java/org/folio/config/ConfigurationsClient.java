@@ -117,8 +117,8 @@ public class ConfigurationsClient {
       .putHeader(XOkapiHeaders.TOKEN, okapiHeaders.getToken())
       .putHeader(XOkapiHeaders.URL, okapiHeaders.getUrl())
       .putHeader(XOkapiHeaders.TENANT, okapiHeaders.getTenant())
-      .expect(ResponsePredicate.JSON)
       .expect(ResponsePredicate.SC_OK)
+      .expect(ResponsePredicate.JSON)
       .send()
       .map(res -> res.bodyAsJsonObject().getJsonArray("configs"));
   }
