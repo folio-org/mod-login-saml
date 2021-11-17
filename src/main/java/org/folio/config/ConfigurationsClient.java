@@ -12,11 +12,11 @@ import org.apache.logging.log4j.Logger;
 import org.folio.config.model.SamlConfiguration;
 import org.folio.okapi.common.GenericCompositeFuture;
 import org.folio.okapi.common.XOkapiHeaders;
+import org.folio.util.PercentCodec;
 import org.folio.util.WebClientFactory;
 import org.folio.util.model.OkapiHeaders;
 import org.springframework.util.Assert;
 
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -99,19 +99,15 @@ public class ConfigurationsClient {
           .putHeader(XOkapiHeaders.TOKEN, okapiHeaders.getToken())
           .putHeader(XOkapiHeaders.URL, okapiHeaders.getUrl())
           .putHeader(XOkapiHeaders.TENANT, okapiHeaders.getTenant())
+          .expect(ResponsePredicate.status(201, 205))
           .sendJsonObject(requestBody)
-          .map(res -> {
-            if (res.statusCode() != 200 && res.statusCode() != 201 && res.statusCode() != 204) {
-              throw new RuntimeException("Could not store entry code=" + code + " value=" + value + " status= " + res.statusCode());
-            }
-            return null;
-          });
+          .mapEmpty();
       });
   }
 
   public static Future<JsonArray> checkConfig(Vertx vertx, OkapiHeaders okapiHeaders, String query) {
     verifyOkapiHeaders(okapiHeaders);
-    String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
+    CharSequence encodedQuery = PercentCodec.encode(query);
     return WebClientFactory.getWebClient(vertx)
       .getAbs(okapiHeaders.getUrl() + CONFIGURATIONS_ENTRIES_ENDPOINT_URL + "?query=" + encodedQuery)
       .putHeader(XOkapiHeaders.TOKEN, okapiHeaders.getToken())

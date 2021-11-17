@@ -19,8 +19,10 @@ public class MockJson extends AbstractVerticle {
   private static final Logger log = LogManager.getLogger(MockJson.class);
 
   JsonArray mocks;
+  String resource;
 
   public void setMockContent(String resource) throws IOException {
+    this.resource = resource;
     JsonObject config = new JsonObject(IOUtils.toString(MockJson.class.getClassLoader().getResourceAsStream(resource), StandardCharsets.UTF_8));
     mocks = config.getJsonArray("mocks");
   }
@@ -52,6 +54,7 @@ public class MockJson extends AbstractVerticle {
         return;
       }
     }
+    log.info("Not found in mock={} uri={}", resource, uri);
     response.setStatusCode(404);
     response.putHeader("Content-Type", "text/plain");
     response.end("Not found in mock");

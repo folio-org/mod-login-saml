@@ -360,9 +360,11 @@ public class SamlAPI implements Saml {
             });
             return storeConfigEntries(rc, parsedHeaders, updateEntries, vertxContext);
           })
-          .onFailure(cause ->
+          .onFailure(cause -> {
+            log.error(cause.getMessage(), cause);
             asyncResultHandler.handle(Future.succeededFuture(
-              PutSamlConfigurationResponse.respond500WithTextPlain(cause.getMessage()))))
+              PutSamlConfigurationResponse.respond500WithTextPlain(cause.getMessage())));
+          })
           .onSuccess(result -> asyncResultHandler.handle(Future.succeededFuture(
             PutSamlConfigurationResponse.respond200WithApplicationJson(result))));
       });
