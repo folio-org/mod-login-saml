@@ -434,7 +434,8 @@ public class SamlAPITest {
       .formParam("RelayState", relayState)
       .post("/saml/callback")
       .then()
-      .statusCode(403);
+      .statusCode(403)
+      .body(is("CSRF attempt detected"));
 
     log.info("=== Test - POST /saml/callback - failure (wrong relay) ===");
     given()
@@ -443,10 +444,11 @@ public class SamlAPITest {
       .header(OKAPI_URL_HEADER)
       .cookie(SamlAPI.RELAY_STATE, cookie)
       .formParam("SAMLResponse", "saml-response")
-      .formParam("RelayState", relayState.replace("localhost", "demo"))
+      .formParam("RelayState", relayState.replace("localhost", "^"))
       .post("/saml/callback")
       .then()
-      .statusCode(403);
+      .statusCode(400)
+      .body(containsString("Invalid relay state url"));
 
     log.info("=== Test - POST /saml/callback - failure (no cookie) ===");
     given()
@@ -457,7 +459,51 @@ public class SamlAPITest {
       .formParam("RelayState", relayState)
       .post("/saml/callback")
       .then()
-      .statusCode(403);
+      .statusCode(403)
+      .body(is("CSRF attempt detected"));
+
+    // not found ..
+    mock.setMockContent("mock_400.json");
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .cookie(SamlAPI.RELAY_STATE, cookie)
+      .formParam("SAMLResponse", "saml-response")
+      .formParam("RelayState", relayState)
+      .post("/saml/callback")
+      .then()
+      .statusCode(500)
+      .body(is("Response status code 404 is not equal to 200"));
+
+    mock.setMockContent("mock_nouser.json");
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .cookie(SamlAPI.RELAY_STATE, cookie)
+      .formParam("SAMLResponse", "saml-response")
+      .formParam("RelayState", relayState)
+      .post("/saml/callback")
+      .then()
+      .statusCode(400)
+      .body(is("No user found by externalSystemId == saml-user-id"));
+
+    mock.setMockContent("mock_tokenresponse.json");
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .cookie(SamlAPI.RELAY_STATE, cookie)
+      .formParam("SAMLResponse", "saml-response")
+      .formParam("RelayState", relayState)
+      .post("/saml/callback")
+      .then()
+      .statusCode(302)
+      .header("Location", containsString(URLEncoder.encode(testPath, StandardCharsets.UTF_8)))
+      .header("x-okapi-token", "saml-token")
+      .cookie("ssoToken", "saml-token");
+
   }
 
   @Test

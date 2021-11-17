@@ -5,6 +5,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.client.predicate.ResponsePredicate;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -116,13 +117,10 @@ public class ConfigurationsClient {
       .putHeader(XOkapiHeaders.TOKEN, okapiHeaders.getToken())
       .putHeader(XOkapiHeaders.URL, okapiHeaders.getUrl())
       .putHeader(XOkapiHeaders.TENANT, okapiHeaders.getTenant())
+      .expect(ResponsePredicate.JSON)
+      .expect(ResponsePredicate.SC_OK)
       .send()
-      .map(res -> {
-        if (res.statusCode() != 200) {
-          throw new RuntimeException("Unexpected status " + res.statusCode() + " for config query=" + query);
-        }
-        return res.bodyAsJsonObject().getJsonArray("configs");
-      });
+      .map(res -> res.bodyAsJsonObject().getJsonArray("configs"));
   }
   /**
    * Complete future with found config entry id, or null, if not found

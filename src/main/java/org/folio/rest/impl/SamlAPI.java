@@ -22,7 +22,9 @@ import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 
+import io.vertx.core.json.JsonArray;
 import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.client.predicate.ResponsePredicate;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.config.ConfigurationsClient;
@@ -219,20 +221,16 @@ public class SamlAPI implements Saml {
           .putHeader(XOkapiHeaders.TOKEN, parsedHeaders.getToken())
           .putHeader(XOkapiHeaders.URL, parsedHeaders.getUrl())
           .putHeader(XOkapiHeaders.TENANT, parsedHeaders.getTenant())
+          .expect(ResponsePredicate.SC_OK)
+          .expect(ResponsePredicate.JSON)
           .send()
           .compose(res -> {
-            JsonObject resultObject = res.bodyAsJsonObject();
-
-            int recordCount = resultObject.getInteger("totalRecords");
-            if (recordCount > 1) {
-              throw new RuntimeException("More than one user record found!");
-            }
-            if (recordCount == 0) {
+            JsonArray users = res.bodyAsJsonObject().getJsonArray("users");
+            if (users.isEmpty()) {
               String message = "No user found by " + userPropertyName + " == " + samlAttributeValue;
-              log.warn(message);
               throw new UserErrorException(message);
             }
-            final JsonObject userObject = resultObject.getJsonArray("users").getJsonObject(0);
+            final JsonObject userObject = users.getJsonObject(0);
             String userId = userObject.getString("id");
             if (!userObject.getBoolean("active")) {
               throw new ForbiddenException("Inactive user account!");
@@ -283,6 +281,7 @@ public class SamlAPI implements Saml {
         } else {
           response = PostSamlCallbackResponse.respond500WithTextPlain(cause.getMessage());
         }
+        log.error(cause.getMessage(), cause);
         asyncResultHandler.handle(Future.succeededFuture(response));
       });
   }
