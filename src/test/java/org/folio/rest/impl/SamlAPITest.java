@@ -326,14 +326,12 @@ public class SamlAPITest {
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
       .header(OKAPI_URL_HEADER)
-      .header(ACCESS_CONTROL_REQ_HEADERS_HEADER)
-      .header(ACCESS_CONTROL_REQUEST_METHOD_HEADER)
+      .contentType(ContentType.URLENC)
+      .cookie(SamlAPI.RELAY_STATE, readResourceToString("relay_state.txt"))
       .body(readResourceToString("saml_response.txt"))
-      .options("/saml/callback")
+      .post("/saml/callback")
       .then()
-      .statusCode(204)
-      .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN.toString(), equalTo(origin))
-      .header(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS.toString(), equalTo("true"));
+      .statusCode(302);
   }
 
   @Test
@@ -350,14 +348,12 @@ public class SamlAPITest {
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
       .header(OKAPI_URL_HEADER)
-      .header(ACCESS_CONTROL_REQ_HEADERS_HEADER)
-      .header(ACCESS_CONTROL_REQUEST_METHOD_HEADER)
+      .contentType(ContentType.URLENC)
+      .cookie(SamlAPI.RELAY_STATE, readResourceToString("relay_state.txt"))
       .body(readResourceToString("saml_response.txt"))
-      .options("/saml/callback")
+      .post("/saml/callback")
       .then()
-      .statusCode(400)
-      .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN.toString(), equalTo(origin))
-      .header(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS.toString(), equalTo("true"));
+      .statusCode(403);
   }
 
   private void putAndTestConfigurationWithMetadata(String idpMetadataFile) throws IOException {
