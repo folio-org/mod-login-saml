@@ -489,6 +489,19 @@ public class SamlAPITest {
       .statusCode(400)
       .body(is("No user found by externalSystemId == saml-user-id"));
 
+    mock.setMockContent("mock_inactiveuser.json");
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .cookie(SamlAPI.RELAY_STATE, cookie)
+      .formParam("SAMLResponse", "saml-response")
+      .formParam("RelayState", relayState)
+      .post("/saml/callback")
+      .then()
+      .statusCode(403)
+      .body(is("Inactive user account!"));
+
     mock.setMockContent("mock_tokenresponse.json");
     given()
       .header(TENANT_HEADER)

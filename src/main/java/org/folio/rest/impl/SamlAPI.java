@@ -232,7 +232,7 @@ public class SamlAPI implements Saml {
             }
             final JsonObject userObject = users.getJsonObject(0);
             String userId = userObject.getString("id");
-            if (!userObject.getBoolean("active")) {
+            if (!userObject.getBoolean("active", false)) {
               throw new ForbiddenException("Inactive user account!");
             }
             JsonObject payload = new JsonObject().put("payload", new JsonObject().put("sub", userObject.getString("username")).put("user_id", userId));
