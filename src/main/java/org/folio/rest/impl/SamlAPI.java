@@ -291,32 +291,22 @@ public class SamlAPI implements Saml {
     Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
     regenerateSaml2Config(routingContext, vertxContext)
-      .onFailure(cause -> {
-        log.warn("Cannot regenerate SAML2 metadata.", cause);
-        String message =
-          "Cannot regenerate SAML2 matadata. Internal error was: " + cause.getMessage();
-        asyncResultHandler
-          .handle(Future.succeededFuture(GetSamlRegenerateResponse.respond500WithTextPlain(message)));
-      })
-      .onSuccess(metadata ->
+      .compose(metadata ->
         ConfigurationsClient.storeEntry(vertxContext.owner(), OkapiHelper.okapiHeaders(okapiHeaders), SamlConfiguration.METADATA_INVALIDATED_CODE, "false")
-          .onFailure(cause ->
-            asyncResultHandler.handle(Future.succeededFuture(GetSamlRegenerateResponse.respond500WithTextPlain("Cannot persist metadata invalidated flag!")))
-          )
-          .onSuccess(configurationEntryStoredEvent ->
+          .compose(configurationEntryStoredEvent ->
             Base64Util.encode(vertxContext, metadata)
-              .onFailure(cause -> {
-                String message = cause == null ? "" : cause.getMessage();
-                GetSamlRegenerateResponse response = GetSamlRegenerateResponse.respond500WithTextPlain("Cannot encode file content " + message);
-                asyncResultHandler.handle(Future.succeededFuture(response));
-              })
-              .onSuccess(base64Result -> {
-                SamlRegenerateResponse responseEntity = new SamlRegenerateResponse()
-                  .withFileContent(base64Result.toString(StandardCharsets.UTF_8));
-                asyncResultHandler.handle(Future.succeededFuture(GetSamlRegenerateResponse.respond200WithApplicationJson(responseEntity)));
-              })
+              .map(base64Result -> new SamlRegenerateResponse().withFileContent(base64Result.toString(StandardCharsets.UTF_8))
+              )
           )
-      );
+      )
+      .onSuccess(res ->
+        asyncResultHandler.handle(Future.succeededFuture(GetSamlRegenerateResponse.respond200WithApplicationJson(res)))
+      )
+      .onFailure(cause -> {
+        log.error(cause.getMessage(), cause);
+        asyncResultHandler
+          .handle(Future.succeededFuture(GetSamlRegenerateResponse.respond500WithTextPlain(cause.getMessage())));
+      });
   }
 
   @Override
