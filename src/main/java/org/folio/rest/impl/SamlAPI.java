@@ -21,9 +21,25 @@ import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Context;
+import io.vertx.core.Future;
+import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
+import io.vertx.core.http.Cookie;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.auth.PRNG;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.Session;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.predicate.ResponsePredicate;
+import io.vertx.ext.web.impl.Utils;
+import io.vertx.ext.web.sstore.impl.SharedDataSessionImpl;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.config.ConfigurationsClient;
@@ -47,6 +63,7 @@ import org.folio.util.ConfigEntryUtil;
 import org.folio.util.DummySessionStore;
 import org.folio.util.HttpActionMapper;
 import org.folio.util.OkapiHelper;
+import org.folio.util.StringUtil;
 import org.folio.util.UrlUtil;
 import org.folio.util.WebClientFactory;
 import org.folio.util.model.OkapiHeaders;
@@ -59,21 +76,6 @@ import org.pac4j.saml.config.SAML2Configuration;
 import org.pac4j.saml.credentials.SAML2Credentials;
 import org.pac4j.vertx.VertxWebContext;
 
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Context;
-import io.vertx.core.Future;
-import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
-import io.vertx.core.http.Cookie;
-import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonObject;
-import io.vertx.ext.auth.PRNG;
-import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.Session;
-import io.vertx.ext.web.impl.Utils;
-import io.vertx.ext.web.sstore.impl.SharedDataSessionImpl;
 
 /**
  * Main entry point of module
@@ -83,7 +85,6 @@ import io.vertx.ext.web.sstore.impl.SharedDataSessionImpl;
 public class SamlAPI implements Saml {
 
   private static final Logger log = LogManager.getLogger(SamlAPI.class);
-  public static final String QUOTATION_MARK_CHARACTER = "\"";
   public static final String CSRF_TOKEN = "csrfToken";
   public static final String RELAY_STATE = "relayState";
 
@@ -203,11 +204,7 @@ public class SamlAPI implements Saml {
           throw new UserErrorException("SAML attribute doesn't exist: " + samlAttributeName);
         }
         final String samlAttributeValue = samlAttributeList.get(0).toString();
-
-        final String usersCql = userPropertyName +
-          "=="
-          + QUOTATION_MARK_CHARACTER + samlAttributeValue + QUOTATION_MARK_CHARACTER;
-
+        final String usersCql = getCqlUserQuery(userPropertyName, samlAttributeValue);
         final String userQuery = UriBuilder.fromPath("/users").queryParam("query", usersCql).build().toString();
 
         OkapiHeaders parsedHeaders = OkapiHelper.okapiHeaders(okapiHeaders);
@@ -546,4 +543,12 @@ public class SamlAPI implements Saml {
     return origin == null || origin.isBlank() || origin.trim().contentEquals("*");
   }
 
+  static String getCqlUserQuery(String userPropertyName, String value) {
+    // very sad that RMB does not have an option to reject fields with no index
+    List<String> supported = List.of("barcode", "externalSystemId", "id", "username", "personal.email");
+    if (!supported.contains(userPropertyName)) {
+      throw new RuntimeException("Unsupported user property: " + userPropertyName);
+    }
+    return userPropertyName + "==" + StringUtil.cqlEncode(value);
+  }
 }

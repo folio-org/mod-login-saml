@@ -8,6 +8,8 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertThrows;
+
 import java.io.IOException;
 import java.net.URI;
 
@@ -715,4 +717,20 @@ public class SamlAPITest {
     }
   }
 
+  @Test
+  public void getCqlUserQuery() {
+    assertEquals("personal.email==\"user@saml.com\"",
+      SamlAPI.getCqlUserQuery("personal.email", "user@saml.com"));
+
+    assertEquals("externalSystemId==\"\\*\"",
+      SamlAPI.getCqlUserQuery("externalSystemId", "*"));
+
+    assertEquals("Unsupported user property: email", assertThrows(RuntimeException.class, () ->
+      SamlAPI.getCqlUserQuery("email", "user@saml.com"))
+      .getMessage());
+
+    assertEquals("Unsupported user property: externalsystemid", assertThrows(RuntimeException.class, () ->
+      SamlAPI.getCqlUserQuery("externalsystemid", "user@saml.com"))
+      .getMessage());
+  }
 }
