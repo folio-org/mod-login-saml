@@ -17,10 +17,10 @@ public class Base64Util {
    * Encodes a {@link String} with Base64.
    *
    * @param content String to encode
-   * @return Buffer bytes of Base64 string
+   * @return Base64 string.
    */
-  public static Buffer encode(String content) {
-    return Buffer.buffer(Base64.getEncoder().encode(content.getBytes(StandardCharsets.UTF_8)));
+  public static String encode(String content) {
+    return Base64.getEncoder().encodeToString(content.getBytes(StandardCharsets.UTF_8));
   }
 
 }

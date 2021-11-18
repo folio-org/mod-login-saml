@@ -2,7 +2,6 @@ package org.folio.util;
 
 import org.junit.Assert;
 import org.junit.Test;
-import java.nio.charset.StandardCharsets;
 
 /**
  * @author rsass
@@ -14,7 +13,7 @@ public class Base64UtilTest {
 
   @Test
   public void encode() {
-    Assert.assertEquals(HELLO_AS_BASE64, Base64Util.encode(HELLO).toString(StandardCharsets.UTF_8));
+    Assert.assertEquals(HELLO_AS_BASE64, Base64Util.encode(HELLO));
   }
 
 }

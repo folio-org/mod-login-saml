@@ -12,7 +12,6 @@ import static org.pac4j.saml.state.SAML2StateGenerator.SAML_RELAY_STATE_ATTRIBUT
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -292,7 +291,7 @@ public class SamlAPI implements Saml {
         ConfigurationsClient.storeEntry(vertxContext.owner(), OkapiHelper.okapiHeaders(okapiHeaders),
             SamlConfiguration.METADATA_INVALIDATED_CODE, "false")
           .map(configurationEntryStoredEvent ->
-            new SamlRegenerateResponse().withFileContent(Base64Util.encode(metadata).toString(StandardCharsets.UTF_8))
+            new SamlRegenerateResponse().withFileContent(Base64Util.encode(metadata))
           )
       )
       .onSuccess(res ->
