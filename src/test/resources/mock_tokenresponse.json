@@ -1,0 +1,28 @@
+{
+  "mocks": [
+    {
+      "url": "/users?query=externalSystemId%3D%3D%22saml-user-id%22",
+      "method": "get",
+      "status": 200,
+      "receivedData": {
+        "totalRecords": 1,
+        "users": [
+          {
+            "id": "saml-user",
+            "username": "samluser",
+            "active": true
+          }
+        ]
+      }
+    },
+    {
+      "url": "/token",
+      "method": "post",
+      "status": 201,
+      "receivedData": {
+        "token": "saml-token"
+      }
+    }
+
+  ]
+}
