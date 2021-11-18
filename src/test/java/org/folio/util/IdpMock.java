@@ -10,8 +10,11 @@ import io.vertx.core.Promise;
 import io.vertx.core.http.HttpServer;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class IdpMock extends AbstractVerticle {
+  private static final Logger log = LogManager.getLogger(IdpMock.class);
 
   public void start(Promise<Void> promise) {
     final int port = context.config().getInteger("http.port");
@@ -22,14 +25,8 @@ public class IdpMock extends AbstractVerticle {
     router.route("/xml").handler(this::handleXml);
     router.route("/json").handler(this::handleJson);
     router.route("/").handler(this::handleNoContentType);
-    System.out.println("Running IdpMock on port " + port);
-    server.requestHandler(router).listen(port, result -> {
-      if (result.failed()) {
-        promise.fail(result.cause());
-      } else {
-        promise.complete();
-      }
-    });
+    log.info("Running IdpMock on port {}", port);
+    server.requestHandler(router).listen(port).<Void>mapEmpty().onComplete(promise);
   }
 
   private void handleNoContentType(RoutingContext context) {

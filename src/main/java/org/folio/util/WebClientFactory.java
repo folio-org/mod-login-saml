@@ -11,8 +11,8 @@ public class WebClientFactory {
 
   public static final int DEFAULT_TIMEOUT = 5000;
   public static final boolean DEFAULT_KEEPALIVE = false;
-  
-  private static Map<Vertx, WebClient> clients = new HashMap<>();
+
+  private static final Map<Vertx, WebClient> clients = new HashMap<>();
 
   public static WebClient getWebClient(Vertx vertx) {
     return clients.get(vertx);
@@ -25,7 +25,7 @@ public class WebClientFactory {
    * Initializes a WebClient for the provided Vertx.
    * Calling this method more than once with the same Vertx has no effect.
    *
-   * @param vertx
+   * @param vertx Vert.x
    */
   public static synchronized void init(Vertx vertx) {
     if (vertx != null && !clients.containsKey(vertx)) {
