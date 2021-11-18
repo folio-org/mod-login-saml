@@ -10,7 +10,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import java.io.IOException;
 import java.net.URI;
-import java.net.URLEncoder;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -23,6 +22,7 @@ import org.folio.rest.jaxrs.model.SamlConfigRequest;
 import org.folio.rest.tools.utils.NetworkUtils;
 import org.folio.util.IdpMock;
 import org.folio.util.MockJson;
+import org.folio.util.PercentCodec;
 import org.folio.util.TestingClasspathResolver;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -430,7 +430,7 @@ public class SamlAPITest {
       .post("/saml/callback")
       .then()
       .statusCode(302)
-      .header("Location", containsString(URLEncoder.encode(testPath, StandardCharsets.UTF_8)))
+      .header("Location", containsString(PercentCodec.encodeAsString(testPath)))
       .header("x-okapi-token", "saml-token")
       .cookie("ssoToken", "saml-token");
 
@@ -523,7 +523,7 @@ public class SamlAPITest {
       .post("/saml/callback")
       .then()
       .statusCode(302)
-      .header("Location", containsString(URLEncoder.encode(testPath, StandardCharsets.UTF_8)))
+      .header("Location", containsString(PercentCodec.encodeAsString(testPath)))
       .header("x-okapi-token", "saml-token")
       .cookie("ssoToken", "saml-token");
 

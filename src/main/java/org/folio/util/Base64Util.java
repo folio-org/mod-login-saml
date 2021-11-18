@@ -1,8 +1,5 @@
 package org.folio.util;
 
-import io.vertx.core.Context;
-import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.buffer.Buffer;
 
 import java.nio.charset.StandardCharsets;
@@ -17,17 +14,13 @@ public class Base64Util {
   }
 
   /**
-   * Encodes a {@link String} with Base64, asnyc.
+   * Encodes a {@link String} with Base64.
    *
-   * @param context Vertx context
    * @param content String to encode
    * @return Buffer bytes of Base64 string
    */
-  public static Future<Buffer> encode(Context context, String content) {
-    return context.executeBlocking(blockingCode -> {
-      byte[] encodedBytes = Base64.getEncoder().encode(content.getBytes(StandardCharsets.UTF_8));
-      blockingCode.complete(Buffer.buffer(encodedBytes));
-    });
+  public static Buffer encode(String content) {
+    return Buffer.buffer(Base64.getEncoder().encode(content.getBytes(StandardCharsets.UTF_8)));
   }
 
 }

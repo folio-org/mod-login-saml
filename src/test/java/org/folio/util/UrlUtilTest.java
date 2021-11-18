@@ -66,7 +66,7 @@ public class UrlUtilTest {
   }
 
   @Test
-  public void checkIdpUrlNoCnotentType(TestContext context) {
+  public void checkIdpUrlNoContentType(TestContext context) {
     UrlUtil.checkIdpUrl("http://localhost:" + MOCK_PORT + "/", vertx)
       .onComplete(context.asyncAssertFailure(cause ->
         context.assertEquals("Response content-type is not XML", cause.getMessage())

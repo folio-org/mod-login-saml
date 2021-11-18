@@ -17,7 +17,6 @@ import org.folio.util.WebClientFactory;
 import org.folio.util.model.OkapiHeaders;
 import org.springframework.util.Assert;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;

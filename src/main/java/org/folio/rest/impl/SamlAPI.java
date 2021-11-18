@@ -106,7 +106,7 @@ public class SamlAPI implements Saml {
    */
   @Override
   public void getSamlCheck(RoutingContext routingContext, Map<String, String> okapiHeaders,
-                           Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
     findSaml2Client(routingContext, false, false, vertxContext)
       .onComplete(samlClientHandler ->
@@ -118,7 +118,7 @@ public class SamlAPI implements Saml {
 
   @Override
   public void postSamlLogin(SamlLoginRequest requestEntity, RoutingContext routingContext, Map<String, String> okapiHeaders,
-                            Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
     String csrfToken = UUID.randomUUID().toString();
     String stripesUrl = requestEntity.getStripesUrl();
@@ -165,7 +165,7 @@ public class SamlAPI implements Saml {
 
   @Override
   public void postSamlCallback(RoutingContext routingContext, Map<String, String> okapiHeaders,
-                               Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
     registerFakeSession(routingContext);
 
@@ -212,9 +212,6 @@ public class SamlAPI implements Saml {
         final String userQuery = UriBuilder.fromPath("/users").queryParam("query", usersCql).build().toString();
 
         OkapiHeaders parsedHeaders = OkapiHelper.okapiHeaders(okapiHeaders);
-
-        Map<String, String> headers = new HashMap<>();
-        headers.put(XOkapiHeaders.TOKEN, parsedHeaders.getToken());
 
         WebClient webClient = WebClientFactory.getWebClient(vertxContext.owner());
         return webClient.getAbs(parsedHeaders.getUrl() + userQuery)
@@ -292,11 +289,10 @@ public class SamlAPI implements Saml {
 
     regenerateSaml2Config(routingContext, vertxContext)
       .compose(metadata ->
-        ConfigurationsClient.storeEntry(vertxContext.owner(), OkapiHelper.okapiHeaders(okapiHeaders), SamlConfiguration.METADATA_INVALIDATED_CODE, "false")
-          .compose(configurationEntryStoredEvent ->
-            Base64Util.encode(vertxContext, metadata)
-              .map(base64Result -> new SamlRegenerateResponse().withFileContent(base64Result.toString(StandardCharsets.UTF_8))
-              )
+        ConfigurationsClient.storeEntry(vertxContext.owner(), OkapiHelper.okapiHeaders(okapiHeaders),
+            SamlConfiguration.METADATA_INVALIDATED_CODE, "false")
+          .map(configurationEntryStoredEvent ->
+            new SamlRegenerateResponse().withFileContent(Base64Util.encode(metadata).toString(StandardCharsets.UTF_8))
           )
       )
       .onSuccess(res ->
@@ -310,7 +306,8 @@ public class SamlAPI implements Saml {
   }
 
   @Override
-  public void getSamlConfiguration(RoutingContext rc, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+  public void getSamlConfiguration(RoutingContext rc, Map<String, String> okapiHeaders,
+    Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
     ConfigurationsClient.getConfiguration(vertxContext.owner(), OkapiHelper.okapiHeaders(okapiHeaders))
       .onFailure(cause -> {
@@ -327,7 +324,8 @@ public class SamlAPI implements Saml {
 
 
   @Override
-  public void putSamlConfiguration(SamlConfigRequest updatedConfig, RoutingContext rc, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+  public void putSamlConfiguration(SamlConfigRequest updatedConfig, RoutingContext rc,
+    Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
     checkConfigValues(updatedConfig, vertxContext.owner())
       .onFailure(cause -> {
@@ -370,17 +368,20 @@ public class SamlAPI implements Saml {
       });
   }
 
-  private Future<SamlConfig> storeConfigEntries(RoutingContext rc, OkapiHeaders parsedHeaders, Map<String, String> updateEntries,
-    Context vertxContext) {
+  private Future<SamlConfig> storeConfigEntries(RoutingContext rc, OkapiHeaders parsedHeaders,
+    Map<String, String> updateEntries, Context vertxContext) {
+
     return ConfigurationsClient.storeEntries(vertxContext.owner(), parsedHeaders, updateEntries)
       .compose(configurationSavedEvent ->
-        findSaml2Client(rc, true, true, vertxContext)
-          .map(configurationLoadEvent -> configToDto(configurationLoadEvent.getConfiguration())
-          ));
+        findSaml2Client(rc, true, true, vertxContext))
+      .map(configurationLoadEvent -> configToDto(configurationLoadEvent.getConfiguration())
+      );
   }
 
   @Override
-  public void getSamlValidate(SamlValidateGetType type, String value, Map<String, String> okapiHeaders, Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+  public void getSamlValidate(SamlValidateGetType type, String value, Map<String, String> okapiHeaders,
+    Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+
     if (type == null) {
       asyncResultHandler.handle(Future.succeededFuture(GetSamlValidateResponse.respond400WithApplicationJson(
         new SamlValidateResponse().withValid(false).withError("missing type parameter"))));

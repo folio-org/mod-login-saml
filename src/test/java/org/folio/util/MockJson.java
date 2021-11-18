@@ -34,7 +34,7 @@ public class MockJson extends AbstractVerticle {
     String uri = request.uri();
     for (int i = 0; i < mocks.size(); i++) {
       JsonObject entry = mocks.getJsonObject(i);
-      if (method.compareToIgnoreCase(entry.getString("method", "get")) == 0
+      if (method.equalsIgnoreCase(entry.getString("method", "get"))
         && uri.equals(entry.getString("url"))) {
         response.setStatusCode(entry.getInteger("status", 200));
         JsonArray headers = entry.getJsonArray("headers");
@@ -67,6 +67,6 @@ public class MockJson extends AbstractVerticle {
 
     Router router = Router.router(vertx);
     router.routeWithRegex("/.*").handler(this::handle);
-    vertx.createHttpServer().requestHandler(router).listen(port).onComplete(x -> promise.handle(x.mapEmpty()));
+    vertx.createHttpServer().requestHandler(router).listen(port).<Void>mapEmpty().onComplete(promise);
   }
 }

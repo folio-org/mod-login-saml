@@ -29,7 +29,7 @@ public class UrlUtil {
         if (contentType == null || ! contentType.contains("xml")) {
           throw new RuntimeException("Response content-type is not XML");
         }
-        return null;
+        return (Void) null;
       })
       .recover(cause -> {
         if (cause instanceof ConnectException) {
@@ -37,7 +37,6 @@ public class UrlUtil {
         } else {
           return Future.failedFuture(cause);
         }
-      })
-      .mapEmpty();
+      });
   }
 }

@@ -26,7 +26,7 @@ public class IdpMock extends AbstractVerticle {
     router.route("/json").handler(this::handleJson);
     router.route("/").handler(this::handleNoContentType);
     log.info("Running IdpMock on port {}", port);
-    server.requestHandler(router).listen(port).onComplete(x -> promise.handle(x.mapEmpty()));
+    server.requestHandler(router).listen(port).<Void>mapEmpty().onComplete(promise);
   }
 
   private void handleNoContentType(RoutingContext context) {

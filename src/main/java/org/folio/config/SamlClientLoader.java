@@ -87,15 +87,16 @@ public class SamlClientLoader {
               if (samlClientInitHandler.failed()) {
                 clientInstantiationFuture.fail(samlClientInitHandler.cause());
               } else {
-                storeKeystore(okapiHeaders, vertx, keystoreFileName, actualKeystorePassword, actualPrivateKeyPassword).onComplete(keyfileStorageHandler -> {
+                storeKeystore(okapiHeaders, vertx, keystoreFileName, actualKeystorePassword,
+                  actualPrivateKeyPassword).onComplete(keyfileStorageHandler -> {
                   if (keyfileStorageHandler.succeeded()) {
                     // storeKeystore is deleting JKS file, recreate client from byteArray
                     Buffer keystoreBytes = keyfileStorageHandler.result();
                     ByteArrayResource keystoreResource = new ByteArrayResource(keystoreBytes.getBytes());
                     try {
                       UrlResource idpUrlResource = new UrlResource(idpUrl);
-                      SAML2Client reinitedSaml2Client = configureSaml2Client(okapiUrl, tenantId, actualKeystorePassword, actualPrivateKeyPassword, idpUrlResource,
-                        keystoreResource, samlBinding, vertxContext);
+                      SAML2Client reinitedSaml2Client = configureSaml2Client(okapiUrl, tenantId, actualKeystorePassword,
+                        actualPrivateKeyPassword, idpUrlResource, keystoreResource, samlBinding, vertxContext);
 
                       clientInstantiationFuture.complete(new SamlClientComposite(reinitedSaml2Client, samlConfiguration));
                     } catch (MalformedURLException e) {
@@ -119,8 +120,8 @@ public class SamlClientLoader {
                 ByteArrayResource keystoreResource = new ByteArrayResource(keystoreBytes.getBytes());
                 try {
                   UrlResource idpUrlResource = new UrlResource(idpUrl);
-                  SAML2Client saml2Client = configureSaml2Client(okapiUrl, tenantId, keystorePassword, privateKeyPassword, idpUrlResource,
-                    keystoreResource, samlBinding, vertxContext);
+                  SAML2Client saml2Client = configureSaml2Client(okapiUrl, tenantId, keystorePassword, privateKeyPassword,
+                    idpUrlResource, keystoreResource, samlBinding, vertxContext);
 
                   clientInstantiationFuture.complete(new SamlClientComposite(saml2Client, samlConfiguration));
                 } catch (MalformedURLException e) {
@@ -138,8 +139,8 @@ public class SamlClientLoader {
    * Store KeyStore (as Base64 string), KeyStorePassword and PrivateKeyPassword in mod-configuration,
    * complete returned future with original file bytes.
    */
-  private static Future<Buffer> storeKeystore(OkapiHeaders okapiHeaders, Vertx vertx, String keystoreFileName, String keystorePassword, String privateKeyPassword) {
-
+  private static Future<Buffer> storeKeystore(OkapiHeaders okapiHeaders, Vertx vertx, String keystoreFileName,
+    String keystorePassword, String privateKeyPassword) {
 
     Promise<Buffer> future = Promise.promise();
 
@@ -159,10 +160,14 @@ public class SamlClientLoader {
 
           // store in mod-configuration with passwords, wait for all operations to finish
           CompositeFuture.all(
-            ConfigurationsClient.storeEntry(vertx, okapiHeaders, SamlConfiguration.KEYSTORE_FILE_CODE, encodedBytes.toString(StandardCharsets.UTF_8)),
-            ConfigurationsClient.storeEntry(vertx, okapiHeaders, SamlConfiguration.KEYSTORE_PASSWORD_CODE, keystorePassword),
-            ConfigurationsClient.storeEntry(vertx, okapiHeaders, SamlConfiguration.KEYSTORE_PRIVATEKEY_PASSWORD_CODE, privateKeyPassword),
-            ConfigurationsClient.storeEntry(vertx, okapiHeaders, SamlConfiguration.METADATA_INVALIDATED_CODE, "true") // if keystore modified, current metasata is invalid.
+            ConfigurationsClient.storeEntry(vertx, okapiHeaders,
+              SamlConfiguration.KEYSTORE_FILE_CODE, encodedBytes.toString(StandardCharsets.UTF_8)),
+            ConfigurationsClient.storeEntry(vertx, okapiHeaders,
+              SamlConfiguration.KEYSTORE_PASSWORD_CODE, keystorePassword),
+            ConfigurationsClient.storeEntry(vertx, okapiHeaders,
+              SamlConfiguration.KEYSTORE_PRIVATEKEY_PASSWORD_CODE, privateKeyPassword),
+            ConfigurationsClient.storeEntry(vertx, okapiHeaders,
+              SamlConfiguration.METADATA_INVALIDATED_CODE, "true") // if keystore modified, current metasata is invalid.
           ).onComplete(allConfigurationsStoredHandler -> {
 
             if (allConfigurationsStoredHandler.failed()) {
@@ -190,8 +195,10 @@ public class SamlClientLoader {
   }
 
 
-  private static SAML2Client configureSaml2Client(String okapiUrl, String tenantId, String idpUrl, String keystorePassword, String actualPrivateKeyPassword,
-    String keystoreFileName, String samlBinding, Context vertxContext) {
+  private static SAML2Client configureSaml2Client(String okapiUrl, String tenantId, String idpUrl,
+    String keystorePassword, String actualPrivateKeyPassword, String keystoreFileName, String samlBinding,
+    Context vertxContext) {
+
     final SAML2Configuration cfg = new SAML2Configuration(keystoreFileName,
       keystorePassword,
       actualPrivateKeyPassword,
@@ -201,8 +208,9 @@ public class SamlClientLoader {
     return assembleSaml2Client(okapiUrl, tenantId, cfg, samlBinding, vertxContext);
   }
 
-  private static SAML2Client configureSaml2Client(String okapiUrl, String tenantId, String keystorePassword, String privateKeyPassword, UrlResource idpUrlResource,
-    ByteArrayResource keystoreResource, String samlBinding, Context vertxContext) {
+  private static SAML2Client configureSaml2Client(String okapiUrl, String tenantId, String keystorePassword,
+    String privateKeyPassword, UrlResource idpUrlResource, ByteArrayResource keystoreResource, String samlBinding,
+    Context vertxContext) {
 
     final SAML2Configuration byteArrayCfg = new SAML2Configuration(keystoreResource,
       keystorePassword,
@@ -213,8 +221,8 @@ public class SamlClientLoader {
     return assembleSaml2Client(okapiUrl, tenantId, byteArrayCfg, samlBinding, vertxContext);
   }
 
-  private static SAML2Client assembleSaml2Client(String okapiUrl, String tenantId, SAML2Configuration cfg, String samlBinding,
-    Context vertxContext) {
+  private static SAML2Client assembleSaml2Client(String okapiUrl, String tenantId, SAML2Configuration cfg,
+    String samlBinding, Context vertxContext) {
 
     if ("REDIRECT".equals(samlBinding)) {
       cfg.setAuthnRequestBindingType(SAMLConstants.SAML2_REDIRECT_BINDING_URI);
