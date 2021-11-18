@@ -638,5 +638,9 @@ public class SamlAPITest {
     assertEquals("Unsupported user property: email", assertThrows(RuntimeException.class, () ->
       SamlAPI.getCqlUserQuery("email", "user@saml.com"))
       .getMessage());
+
+    assertEquals("Unsupported user property: externalsystemid", assertThrows(RuntimeException.class, () ->
+      SamlAPI.getCqlUserQuery("externalsystemid", "user@saml.com"))
+      .getMessage());
   }
 }

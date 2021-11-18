@@ -662,8 +662,8 @@ public class SamlAPI implements Saml {
 
   static String getCqlUserQuery(String userPropertyName, String value) {
     // very sad that RMB does not have an option to reject fields with no index
-    List<String> supported = List.of("barcode", "externalsystemid", "id", "username", "personal.email");
-    if (!supported.contains(userPropertyName.toLowerCase())) {
+    List<String> supported = List.of("barcode", "externalSystemId", "id", "username", "personal.email");
+    if (!supported.contains(userPropertyName)) {
       throw new RuntimeException("Unsupported user property: " + userPropertyName);
     }
     return userPropertyName + "==" + StringUtil.cqlEncode(value);
