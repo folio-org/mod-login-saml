@@ -1,7 +1,5 @@
 package org.folio.util;
 
-import io.vertx.core.buffer.Buffer;
-
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
