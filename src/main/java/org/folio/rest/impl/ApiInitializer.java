@@ -23,7 +23,7 @@ public class ApiInitializer implements InitAPI {
 
     String tacEnv = System.getenv("TRUST_ALL_CERTIFICATES");
 
-    if (tacEnv != null && tacEnv.equals("true")) {
+    if ("true".equals(tacEnv)) {
       trustAllCertificates();
     }
 

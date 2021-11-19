@@ -52,34 +52,32 @@ public class UrlUtilTest {
   @Test
   public void checkIdpUrl(TestContext context) {
     UrlUtil.checkIdpUrl("http://localhost:" + MOCK_PORT + "/xml", vertx)
-      .onComplete(context.asyncAssertSuccess(result -> {
-        context.assertEquals("", result.getMessage());
-      }));
+      .onComplete(context.asyncAssertSuccess());
   }
 
   @Test
   public void checkIdpUrlNon200(TestContext context) {
     int port = NetworkUtils.nextFreePort();
     UrlUtil.checkIdpUrl("http://localhost:" + port, vertx)
-      .onComplete(context.asyncAssertSuccess(result -> {
-          // check locale independent prefix only.
-          assertThat(result.getMessage(), startsWith("ConnectException: "));
-      }));
+      .onComplete(context.asyncAssertFailure(cause ->
+        // check locale independent prefix only.
+        assertThat(cause.getMessage(), startsWith("ConnectException: "))
+      ));
   }
 
   @Test
-  public void checkIdpUrlUnexpectedError(TestContext context) {
+  public void checkIdpUrlNoContentType(TestContext context) {
     UrlUtil.checkIdpUrl("http://localhost:" + MOCK_PORT + "/", vertx)
-      .onComplete(context.asyncAssertSuccess(result -> {
-        context.assertEquals("Unexpected error: null", result.getMessage());
-      }));
+      .onComplete(context.asyncAssertFailure(cause ->
+        context.assertEquals("Response content-type is not XML", cause.getMessage())
+      ));
   }
 
   @Test
   public void checkIdpUrlJson(TestContext context) {
     UrlUtil.checkIdpUrl("http://localhost:" + MOCK_PORT + "/json", vertx)
-      .onComplete(context.asyncAssertSuccess(result -> {
-        context.assertEquals("Response content-type is not XML", result.getMessage());
-      }));
+      .onComplete(context.asyncAssertFailure(cause ->
+        context.assertEquals("Response content-type is not XML", cause.getMessage())
+      ));
   }
 }
