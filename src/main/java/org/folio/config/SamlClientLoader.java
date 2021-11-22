@@ -81,14 +81,14 @@ public class SamlClientLoader {
             blockingHandler.complete();
           }).compose(res ->
             storeKeystore(okapiHeaders, vertx, keystoreFileName, actualKeystorePassword, actualPrivateKeyPassword)
-              .compose(keystoreBytes -> {
+              .map(keystoreBytes -> {
                 ByteArrayResource keystoreResource = new ByteArrayResource(keystoreBytes.getBytes());
                 try {
                   UrlResource idpUrlResource = new UrlResource(idpUrl);
                   SAML2Client reinitedSaml2Client = configureSaml2Client(okapiUrl, tenantId, actualKeystorePassword,
                     actualPrivateKeyPassword, idpUrlResource, keystoreResource, samlBinding, vertxContext);
 
-                  return Future.succeededFuture(new SamlClientComposite(reinitedSaml2Client, samlConfiguration));
+                  return new SamlClientComposite(reinitedSaml2Client, samlConfiguration);
                 } catch (MalformedURLException e) {
                   throw new RuntimeException(e);
                 }
