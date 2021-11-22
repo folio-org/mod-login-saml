@@ -214,7 +214,7 @@ public class SamlClientLoader {
     return assembleSaml2Client(okapiUrl, tenantId, cfg, samlBinding, vertxContext);
   }
 
-  private static SAML2Client configureSaml2Client(String okapiUrl, String tenantId, String keystorePassword, String privateKeyPassword, UrlResource idpUrlResource, ByteArrayResource keystoreResource, String samlBinding, Resource idpMetadata, Context vertxContext) {
+  protected static SAML2Client configureSaml2Client(String okapiUrl, String tenantId, String keystorePassword, String privateKeyPassword, UrlResource idpUrlResource, ByteArrayResource keystoreResource, String samlBinding, Resource idpMetadata, Context vertxContext) {
 
     final SAML2Configuration byteArrayCfg = new SAML2Configuration(keystoreResource,
       keystorePassword,
