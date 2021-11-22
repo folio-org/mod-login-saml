@@ -609,7 +609,7 @@ public class SamlAPITest {
       .withSamlAttribute("UserID")
       .withSamlBinding(SamlConfigRequest.SamlBinding.POST)
       .withUserProperty("externalSystemId")
-      .withIdpMetadata(readResourceToString("mock_idm.xml"))
+      .withIdpMetadata(readResourceToString("meta_test.xml"))
       .withOkapiUrl(URI.create("http://localhost:9130"));
 
     String jsonString = Json.encode(samlConfigRequest);
