@@ -3,6 +3,7 @@ package org.folio.rest.impl;
 import static io.restassured.RestAssured.given;
 import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
 import static org.folio.util.Base64AwareXsdMatcher.matchesBase64XsdInClasspath;
+import static org.folio.util.UrlUtilTest.MOCK_PORT;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -326,7 +327,7 @@ public class SamlAPITest {
 
     log.info("=== Test Callback with right metadata - POST /saml/callback - success ===");
 
-    mock.setMockJsonContent("mock_content_with_metadata.json");
+    mock.setMockContent("mock_content_with_metadata.json");
 
     given()
       .header(new Header(HttpHeaders.ORIGIN.toString(), origin))
@@ -339,26 +340,6 @@ public class SamlAPITest {
       .post("/saml/callback")
       .then()
       .statusCode(302);
-  }
-
-  @Test
-  public void callbackIdpMetadataWrongSAMLResponseTest() throws IOException {
-
-    log.info("=== Test Callback with right metadata - POST /saml/callback - error ===");
-
-    mock.setMockJsonContent("mock_content_wrong_metadata.json");
-
-    given()
-      .header(new Header(HttpHeaders.ORIGIN.toString(), LOCALHOST_ORIGIN))
-      .header(TENANT_HEADER)
-      .header(TOKEN_HEADER)
-      .header(OKAPI_URL_HEADER)
-      .contentType(ContentType.URLENC)
-      .cookie(SamlAPI.RELAY_STATE, readResourceToString("relay_state.txt"))
-      .body(readResourceToString("saml_response.txt"))
-      .post("/saml/callback")
-      .then()
-      .statusCode(403);
   }
 
   @Test
@@ -622,9 +603,9 @@ public class SamlAPITest {
 
   @Test
   public void putConfigurationWithIdpMetadata(TestContext context) throws IOException {
-    mock.setMockJsonContent("mock_content.json");
+    mock.setMockContent("mock_content.json");
     SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
-      .withIdpUrl(URI.create("http://localhost:" + MOCK_PORT + "/xml"))
+      .withIdpUrl(URI.create("http://localhost:" + IDP_MOCK_PORT + "/xml"))
       .withSamlAttribute("UserID")
       .withSamlBinding(SamlConfigRequest.SamlBinding.POST)
       .withUserProperty("externalSystemId")
