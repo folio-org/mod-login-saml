@@ -7,6 +7,8 @@ import java.util.Base64;
 import io.vertx.core.Context;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.folio.config.model.SAML2ClientMock;
 import org.folio.config.model.SamlClientComposite;
 import org.folio.config.model.SamlConfiguration;
@@ -22,7 +24,6 @@ import org.springframework.core.io.UrlResource;
 
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.RoutingContext;
@@ -35,6 +36,7 @@ import io.vertx.ext.web.RoutingContext;
 public class SamlClientLoader {
 
   public static final String CALLBACK_ENDPOINT = "/saml/callback";
+  private static final Logger log = LogManager.getLogger(SamlClientLoader.class);
 
   private SamlClientLoader() {
 
@@ -48,9 +50,6 @@ public class SamlClientLoader {
     Vertx vertx = vertxContext.owner();
     return ConfigurationsClient.getConfiguration(vertx, okapiHeaders)
       .compose(samlConfiguration -> {
-
-        final Promise<SamlClientComposite> clientInstantiationFuture = Promise.promise();
-
         final String idpUrl = samlConfiguration.getIdpUrl();
         final String keystore = samlConfiguration.getKeystore();
         final String keystorePassword = samlConfiguration.getKeystorePassword();
@@ -61,9 +60,7 @@ public class SamlClientLoader {
         if (StringUtils.isBlank(idpUrl)) {
           return Future.failedFuture("There is no IdP configuration stored!");
         }
-
         if (StringUtils.isBlank(keystore)) {
-
           if (!generateMissingKeyStore) {
             return Future.failedFuture("No KeyStore stored in configuration and regeneration is not allowed.");
           }
@@ -79,58 +76,37 @@ public class SamlClientLoader {
           SAML2Client saml2Client = configureSaml2Client(okapiUrl, tenantId, idpUrl, actualKeystorePassword,
             actualPrivateKeyPassword, keystoreFileName, samlBinding, vertxContext);
 
-          vertx.executeBlocking(blockingHandler -> {
-              saml2Client.init();
-              blockingHandler.complete();
-            },
-            samlClientInitHandler -> {
-              if (samlClientInitHandler.failed()) {
-                clientInstantiationFuture.fail(samlClientInitHandler.cause());
-              } else {
-                storeKeystore(okapiHeaders, vertx, keystoreFileName, actualKeystorePassword,
-                  actualPrivateKeyPassword).onComplete(keyfileStorageHandler -> {
-                  if (keyfileStorageHandler.succeeded()) {
-                    // storeKeystore is deleting JKS file, recreate client from byteArray
-                    Buffer keystoreBytes = keyfileStorageHandler.result();
-                    ByteArrayResource keystoreResource = new ByteArrayResource(keystoreBytes.getBytes());
-                    try {
-                      UrlResource idpUrlResource = new UrlResource(idpUrl);
-                      SAML2Client reinitedSaml2Client = configureSaml2Client(okapiUrl, tenantId, actualKeystorePassword,
-                        actualPrivateKeyPassword, idpUrlResource, keystoreResource, samlBinding, vertxContext);
-
-                      clientInstantiationFuture.complete(new SamlClientComposite(reinitedSaml2Client, samlConfiguration));
-                    } catch (MalformedURLException e) {
-                      clientInstantiationFuture.fail(e);
-                    }
-                  } else {
-                    clientInstantiationFuture.fail(keyfileStorageHandler.cause());
-                  }
-                });
-              }
-            });
-        } else {
-          // Load KeyStore from configuration
-          vertx.executeBlocking((Promise<Buffer> blockingCode) ->
-              blockingCode.complete(Buffer.buffer(Base64.getDecoder().decode(keystore))),
-            resultHandler -> {
-              if (resultHandler.failed()) {
-                clientInstantiationFuture.fail(resultHandler.cause());
-              } else {
-                Buffer keystoreBytes = resultHandler.result();
+          return vertx.executeBlocking(blockingHandler -> {
+            saml2Client.init();
+            blockingHandler.complete();
+          }).compose(res ->
+            storeKeystore(okapiHeaders, vertx, keystoreFileName, actualKeystorePassword, actualPrivateKeyPassword)
+              .compose(keystoreBytes -> {
                 ByteArrayResource keystoreResource = new ByteArrayResource(keystoreBytes.getBytes());
                 try {
                   UrlResource idpUrlResource = new UrlResource(idpUrl);
-                  SAML2Client saml2Client = configureSaml2Client(okapiUrl, tenantId, keystorePassword, privateKeyPassword,
-                    idpUrlResource, keystoreResource, samlBinding, vertxContext);
+                  SAML2Client reinitedSaml2Client = configureSaml2Client(okapiUrl, tenantId, actualKeystorePassword,
+                    actualPrivateKeyPassword, idpUrlResource, keystoreResource, samlBinding, vertxContext);
 
-                  clientInstantiationFuture.complete(new SamlClientComposite(saml2Client, samlConfiguration));
+                  return Future.succeededFuture(new SamlClientComposite(reinitedSaml2Client, samlConfiguration));
                 } catch (MalformedURLException e) {
-                  clientInstantiationFuture.fail(e);
+                  throw new RuntimeException(e);
                 }
-              }
-            });
+              })
+          );
         }
-        return clientInstantiationFuture.future();
+        // Load KeyStore from configuration
+        Buffer keystoreBytes = Buffer.buffer(Base64.getDecoder().decode(keystore));
+        ByteArrayResource keystoreResource = new ByteArrayResource(keystoreBytes.getBytes());
+        try {
+          UrlResource idpUrlResource = new UrlResource(idpUrl);
+          SAML2Client saml2Client = configureSaml2Client(okapiUrl, tenantId, keystorePassword, privateKeyPassword,
+            idpUrlResource, keystoreResource, samlBinding, vertxContext);
+
+          return Future.succeededFuture(new SamlClientComposite(saml2Client, samlConfiguration));
+        } catch (MalformedURLException e) {
+          throw new RuntimeException(e);
+        }
       });
   }
 
@@ -142,56 +118,26 @@ public class SamlClientLoader {
   private static Future<Buffer> storeKeystore(OkapiHeaders okapiHeaders, Vertx vertx, String keystoreFileName,
     String keystorePassword, String privateKeyPassword) {
 
-    Promise<Buffer> future = Promise.promise();
-
     // read generated jks file
-    vertx.fileSystem().readFile(keystoreFileName, fileResult -> {
-      if (fileResult.failed()) {
-        future.fail(fileResult.cause());
-      } else {
-        final byte[] rawBytes = fileResult.result().getBytes();
+    return vertx.fileSystem().readFile(keystoreFileName).compose(fileResult -> {
+      final byte[] rawBytes = fileResult.getBytes();
+      // base64 encode
+      Buffer encodedBytes = Buffer.buffer(Base64.getEncoder().encode(rawBytes));
 
-        // base64 encode
-        vertx.executeBlocking((Promise<Buffer> blockingFuture) -> {
-          Buffer encodedBytes = Buffer.buffer(Base64.getEncoder().encode(rawBytes));
-          blockingFuture.complete(encodedBytes);
-        }, resultHandler -> {
-          Buffer encodedBytes = resultHandler.result();
-
-          // store in mod-configuration with passwords, wait for all operations to finish
-          CompositeFuture.all(
-            ConfigurationsClient.storeEntry(vertx, okapiHeaders,
-              SamlConfiguration.KEYSTORE_FILE_CODE, encodedBytes.toString(StandardCharsets.UTF_8)),
-            ConfigurationsClient.storeEntry(vertx, okapiHeaders,
-              SamlConfiguration.KEYSTORE_PASSWORD_CODE, keystorePassword),
-            ConfigurationsClient.storeEntry(vertx, okapiHeaders,
-              SamlConfiguration.KEYSTORE_PRIVATEKEY_PASSWORD_CODE, privateKeyPassword),
-            ConfigurationsClient.storeEntry(vertx, okapiHeaders,
-              SamlConfiguration.METADATA_INVALIDATED_CODE, "true") // if keystore modified, current metasata is invalid.
-          ).onComplete(allConfigurationsStoredHandler -> {
-
-            if (allConfigurationsStoredHandler.failed()) {
-              vertx.fileSystem().delete(keystoreFileName, deleteResult ->
-                // it is already a failed operation, deleteResult is not important
-                future.fail(allConfigurationsStoredHandler.cause())
-              );
-            } else {
-              // delete the file
-              vertx.fileSystem().delete(keystoreFileName, deleteResult -> {
-                if (deleteResult.failed()) {
-                  future.fail(deleteResult.cause());
-                } else {
-                  future.complete(Buffer.buffer(rawBytes));
-                }
-              });
-            }
-          });
-        });
-      }
+      // store in mod-configuration with passwords, wait for all operations to finish
+      return CompositeFuture.all(
+          ConfigurationsClient.storeEntry(vertx, okapiHeaders,
+            SamlConfiguration.KEYSTORE_FILE_CODE, encodedBytes.toString(StandardCharsets.UTF_8)),
+          ConfigurationsClient.storeEntry(vertx, okapiHeaders,
+            SamlConfiguration.KEYSTORE_PASSWORD_CODE, keystorePassword),
+          ConfigurationsClient.storeEntry(vertx, okapiHeaders,
+            SamlConfiguration.KEYSTORE_PRIVATEKEY_PASSWORD_CODE, privateKeyPassword),
+          ConfigurationsClient.storeEntry(vertx, okapiHeaders,
+            SamlConfiguration.METADATA_INVALIDATED_CODE, "true") // if keystore modified, current metadata is invalid.
+        )
+        .compose(res -> vertx.fileSystem().delete(keystoreFileName))
+        .map(x -> Buffer.buffer(rawBytes));
     });
-
-    return future.future();
-
   }
 
 
