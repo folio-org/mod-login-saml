@@ -17,7 +17,7 @@ public class SamlConfiguration {
   public static final String IDP_URL_CODE = "idp.url";
   public static final String SAML_BINDING_CODE = "saml.binding";
   public static final String SAML_ATTRIBUTE_CODE = "saml.attribute";
-  public static final String SAML_IDP_METADATA = "saml.idp.metadata";
+  public static final String IDP_METADATA_CODE = "idp.metadata";
   public static final String USER_PROPERTY_CODE = "user.property";
   public static final String METADATA_INVALIDATED_CODE = "metadata.invalidated";
   public static final String OKAPI_URL= "okapi.url";
@@ -36,7 +36,7 @@ public class SamlConfiguration {
   private String samlAttribute;
   @JsonProperty(USER_PROPERTY_CODE)
   private String userProperty;
-  @JsonProperty(SAML_IDP_METADATA)
+  @JsonProperty(IDP_METADATA_CODE)
   private String idpMetadata;
   @JsonProperty(METADATA_INVALIDATED_CODE)
   private String metadataInvalidated = "true";

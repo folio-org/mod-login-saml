@@ -71,7 +71,7 @@
       }
     },
     {
-      "url": "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%20AND%20code%3D%3D%20saml.idp.metadata%29",
+      "url": "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%20AND%20code%3D%3D%20idp.metadata%29",
       "method": "get",
       "status": 200,
       "receivedData": {

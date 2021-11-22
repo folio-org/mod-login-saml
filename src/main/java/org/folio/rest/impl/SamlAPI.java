@@ -349,7 +349,7 @@ public class SamlAPI implements Saml {
               updateEntries.put(SamlConfiguration.USER_PROPERTY_CODE, userProperty));
 
             ConfigEntryUtil.valueChanged(config.getSamlAttribute(), updatedConfig.getIdpMetadata(), idpMetadata ->
-              updateEntries.put(SamlConfiguration.SAML_IDP_METADATA, idpMetadata));
+              updateEntries.put(SamlConfiguration.IDP_METADATA_CODE, idpMetadata));
 
             ConfigEntryUtil.valueChanged(config.getOkapiUrl(), updatedConfig.getOkapiUrl().toString(), okapiUrl -> {
               updateEntries.put(SamlConfiguration.OKAPI_URL, okapiUrl);
