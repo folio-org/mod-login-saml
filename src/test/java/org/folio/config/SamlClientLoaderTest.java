@@ -12,7 +12,9 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import java.net.MalformedURLException;
 import java.util.List;
+import org.junit.Assert;
 import org.junit.Test;
+import org.pac4j.saml.client.SAML2Client;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -135,6 +137,9 @@ public class SamlClientLoaderTest {
          return null;
        }
      };
-    SamlClientLoader.configureSaml2Client(okaiUrl, tenantId, keystorePassword, privateKeyPassword, idpUrlResource,keystoreResource,samlBinding,idpMetadata,vertxContext);
+    SAML2Client saml2Client = SamlClientLoader
+      .configureSaml2Client(okaiUrl, tenantId, keystorePassword, privateKeyPassword, idpUrlResource,
+        keystoreResource, samlBinding, idpMetadata, vertxContext);
+    Assert.assertNotNull(saml2Client);
   }
 }
