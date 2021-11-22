@@ -37,7 +37,7 @@ Which FOLIO user attribute we want to match with SAML attribute. For example Ext
 
 ## Configuration
 
-1. Open SSO configuration page (Settings > Organization > SSO Settings)
+1. Open SSO configuration page (Settings > Tenant > SSO Settings)
 2. Fill the form fields:
  * IdP url: the full url of the **idp-metadata.xml** file. If the URL starts with https then only valid (not self-signed) certificates will work.
  * SAML binding type: both redirect and POST methods supported, choose what suits for the IdP.
