@@ -54,7 +54,7 @@ public class MockJson extends AbstractVerticle {
         return;
       }
     }
-    log.info("Not found in mock={} uri={}", resource, uri);
+    log.info("Not found in mock={} method={} uri={}", resource, method, uri);
     response.setStatusCode(404);
     response.putHeader("Content-Type", "text/plain");
     response.end("Not found in mock");
