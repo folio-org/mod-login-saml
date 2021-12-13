@@ -37,8 +37,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-    <!-- remove xerces exclusion when upgrading to RMB >= 33.0.3: https://issues.folio.org/browse/RMB-859 -->
-    <raml-module-builder-version>33.1.1</raml-module-builder-version>
+    <raml-module-builder-version>33.2.1</raml-module-builder-version>
     <generate_routing_context>/saml/callback,/saml/regenerate,/saml/login,/saml/check,/saml/configuration
     </generate_routing_context>
 
@@ -55,7 +54,7 @@
       <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-stack-depchain</artifactId>
-        <version>4.1.4</version>
+        <version>4.2.1</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -68,12 +67,6 @@
       <groupId>org.folio</groupId>
       <artifactId>domain-models-runtime</artifactId>
       <version>${raml-module-builder-version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>xerces</groupId>
-          <artifactId>xmlParserAPIs</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
 
     <dependency>
