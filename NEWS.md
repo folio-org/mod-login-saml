@@ -1,3 +1,8 @@
+## 2.3.1 - 2021-12-17
+
+ * [MODLOGSAML-124](https://issues.folio.org/browse/MODLOGSAML-124) RMB 33.2.1, Vertx 4.2.1, Log4j 2.15.0 fixing remote execution (CVE-2021-44228)
+ * [MODLOGSAML-128](https://issues.folio.org/browse/MODLOGSAML-128) Update to RMB 33.2.2 Log4j 2.16.0
+
 ## 2.3.0 - 2021-09-29
 
  * [MODLOGSAML-105](https://issues.folio.org/browse/MODLOGSAML-105) Upgrade to RMB 33.1.1, Vert.x 4.1.4
