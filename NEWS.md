@@ -1,3 +1,7 @@
+## 2.3.2 - 2021-12-22
+
+ * [MODLOGSAML-129](https://issues.folio.org/browse/MODLOGSAML-129) Netty 4.1.72 (CVE-2021-43797), Log4j 2.17.0, Vert.x 4.2.3, RMB 33.2.3
+
 ## 2.3.1 - 2021-12-17
 
  * [MODLOGSAML-124](https://issues.folio.org/browse/MODLOGSAML-124) RMB 33.2.1, Vertx 4.2.1, Log4j 2.15.0 fixing remote execution (CVE-2021-44228)
