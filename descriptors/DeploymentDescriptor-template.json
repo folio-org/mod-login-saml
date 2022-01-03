@@ -3,4 +3,5 @@
   "nodeId": "localhost",
   "descriptor": {
     "exec": "java -Dhttp.port=%p -jar ../mod-login-saml/target/mod-login-saml-fat.jar"
+  }
 }
