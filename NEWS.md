@@ -1,3 +1,14 @@
+## 2.4.0 - 2022-01-10
+
+ * [MODLOGSAML-71](https://issues.folio.org/browse/MODLOGSAML-71) Login via SSO possible even after decryption of SAML assertions fails
+ * [MODLOGSAML-91](https://issues.folio.org/browse/MODLOGSAML-91) Update vertx-pac4j to pac4j v5
+ * [MODLOGSAML-104](https://issues.folio.org/browse/MODLOGSAML-104) SSO settings (configured with user property "Email") always fail to find user by email
+ * [MODLOGSAML-110](https://issues.folio.org/browse/MODLOGSAML-110) /saml/validate NEP 400
+ * [MODLOGSAML-122](https://issues.folio.org/browse/MODLOGSAML-122) Improve code coverage, avoid deprecated API
+ * [MODLOGSAML-128](https://issues.folio.org/browse/MODLOGSAML-128) Update to RMB 33.2.2
+ * [MODLOGSAML-129](https://issues.folio.org/browse/MODLOGSAML-129) Netty 4.1.72, Log4j 2.17.0, Vert.x 4.2.3, RMB 33.2.3
+ * [MODLOGSAML-130](https://issues.folio.org/browse/MODLOGSAML-130) Pac4j 5.2.1, RMB 33.2.4, vertx-pac4j 6.0.0 fixing unsecure token (CVE-2021-44878)
+
 ## 2.3.0 - 2021-09-29
 
  * [MODLOGSAML-105](https://issues.folio.org/browse/MODLOGSAML-105) Upgrade to RMB 33.1.1, Vert.x 4.1.4
