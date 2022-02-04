@@ -34,7 +34,6 @@ import org.junit.runner.RunWith;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
-import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 
 /**
@@ -56,6 +55,7 @@ public class IdpTest {
   private static final int MODULE_PORT = 8081;
   private static final int OKAPI_PORT = 9130;
   private static int IDP_PORT;
+  private static String IDP_BASE_URL;
   private static final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", "http://localhost:" + OKAPI_PORT);
   private static MockJson OKAPI;
 
@@ -66,22 +66,20 @@ public class IdpTest {
       .withExposedPorts(8080)
       .withEnv("SIMPLESAMLPHP_SP_ENTITY_ID", "http://localhost:9130/_/invoke/tenant/diku/saml/callback")
       .withEnv("SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE",
-               "http://localhost:9130/_/invoke/tenant/diku/saml/callback")
-      .waitingFor(new HttpWaitStrategy().forStatusCode(200));
+               "http://localhost:9130/_/invoke/tenant/diku/saml/callback");
 
   @BeforeClass
   public static void setupOnce(TestContext context) throws Exception {
     RestAssured.port = MODULE_PORT;
     RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
     VERTX = Vertx.vertx();
-    IDP_PORT = IDP.getFirstMappedPort();
 
     if (DEBUG) {
       IDP.followOutput(new Slf4jLogConsumer(logger).withSeparateOutputStreams());
     }
-
-    String baseurlpath = "http://" + IDP.getHost() + ":" + IDP_PORT + "/simplesaml/";
-    baseurlpath = baseurlpath.replace("/", "\\/");
+    IDP_PORT = IDP.getFirstMappedPort();
+    IDP_BASE_URL = "http://" + IDP.getHost() + ":" + IDP_PORT + "/simplesaml/";
+    String baseurlpath = IDP_BASE_URL.replace("/", "\\/");
     exec("sed", "-i", "s/'baseurlpath' =>.*/'baseurlpath' => '" + baseurlpath + "',/",
         "/var/www/simplesamlphp/config/config.php");
     exec("sed", "-i", "s/'auth' =>.*/'auth' => 'example-static',/",
@@ -248,7 +246,7 @@ public class IdpTest {
   }
 
   private void setOkapi(String resource) {
-    OKAPI.setMockContent(resource, s -> s.replace("8080", "" + IDP_PORT));
+    OKAPI.setMockContent(resource, s -> s.replace("http://localhost:8080/simplesaml/", IDP_BASE_URL));
   }
 
   private String jsonEncode(String key, String value) {
