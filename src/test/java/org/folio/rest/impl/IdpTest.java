@@ -34,6 +34,7 @@ import org.junit.runner.RunWith;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 
 /**
@@ -65,7 +66,8 @@ public class IdpTest {
       .withExposedPorts(8080)
       .withEnv("SIMPLESAMLPHP_SP_ENTITY_ID", "http://localhost:9130/_/invoke/tenant/diku/saml/callback")
       .withEnv("SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE",
-               "http://localhost:9130/_/invoke/tenant/diku/saml/callback");
+               "http://localhost:9130/_/invoke/tenant/diku/saml/callback")
+      .waitingFor(new HttpWaitStrategy().forStatusCode(200));
 
   @BeforeClass
   public static void setupOnce(TestContext context) throws Exception {
