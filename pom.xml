@@ -43,7 +43,7 @@
 
     <pac4j.version>5.2.1</pac4j.version>
     <rest-assured.version>4.4.0</rest-assured.version>
-    <vertx-pac4j.version>6.0.0</vertx-pac4j.version>
+    <vertx-pac4j.version>6.0.1</vertx-pac4j.version>
 
     <ramlfiles_path>${basedir}/ramls</ramlfiles_path>
 
@@ -98,10 +98,11 @@
       </exclusions>
     </dependency>
 
+    <!-- Remove as soon as pac4j-core requires spring-core >= 5.3.15 -->
     <dependency>
-      <groupId>com.nimbusds</groupId>
-      <artifactId>nimbus-jose-jwt</artifactId>
-      <version>8.20</version>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-core</artifactId>
+      <version>5.3.15</version>
     </dependency>
 
     <dependency>
