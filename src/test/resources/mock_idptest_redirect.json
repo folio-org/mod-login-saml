@@ -11,7 +11,7 @@
             "module": "LOGIN-SAML",
             "configName": "saml",
             "code": "idp.url",
-            "value": "http://localhost:8080/simplesaml/saml2/idp/metadata.php"
+            "value": "http://localhost:8888/simplesaml/saml2/idp/metadata.php"
           },
           {
             "id": "022d8342-fa51-44d1-8b2b-27da36e11f07",
@@ -52,7 +52,7 @@
             "module": "LOGIN-SAML",
             "configName": "saml",
             "code": "okapi.url",
-            "value": "http://localhost:9130"
+            "value": "http://localhost:9230"
           }
 
         ],

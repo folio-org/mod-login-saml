@@ -52,11 +52,13 @@ public class IdpTest {
   private static final Header JSON_CONTENT_TYPE_HEADER = new Header("Content-Type", "application/json");
   private static final String STRIPES_URL = "http://localhost:3000";
 
-  private static final int MODULE_PORT = 8081;
-  private static final int OKAPI_PORT = 9130;
+  private static final int MODULE_PORT = 9231;
+  private static final String MODULE_URL = "http://localhost:" + MODULE_PORT;
+  private static final int OKAPI_PORT = 9230;
+  private static final String OKAPI_URL = "http://localhost:" + OKAPI_PORT;
   private static int IDP_PORT;
   private static String IDP_BASE_URL;
-  private static final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", "http://localhost:" + OKAPI_PORT);
+  private static final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", OKAPI_URL);
   private static MockJson OKAPI;
 
   private static Vertx VERTX;
@@ -64,9 +66,9 @@ public class IdpTest {
   @ClassRule
   public static final GenericContainer<?> IDP = new GenericContainer<>(simplesamlphp)
       .withExposedPorts(8080)
-      .withEnv("SIMPLESAMLPHP_SP_ENTITY_ID", "http://localhost:9130/_/invoke/tenant/diku/saml/callback")
+      .withEnv("SIMPLESAMLPHP_SP_ENTITY_ID", OKAPI_URL + "/_/invoke/tenant/diku/saml/callback")
       .withEnv("SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE",
-               "http://localhost:9130/_/invoke/tenant/diku/saml/callback");
+               OKAPI_URL + "/_/invoke/tenant/diku/saml/callback");
 
   @BeforeClass
   public static void setupOnce(TestContext context) throws Exception {
@@ -141,19 +143,19 @@ public class IdpTest {
         log().all().
         statusCode(200).
         body(containsString("<form method=\"post\" "),
-              containsString("action=\"http://localhost:9130/_/invoke/tenant/diku/saml/callback\">")).
+              containsString("action=\"" + OKAPI_URL + "/_/invoke/tenant/diku/saml/callback\">")).
         extract().asString();
 
     var matcher = Pattern.compile("name=\"SAMLResponse\" value=\"([^\"]+)").matcher(body);
     assertThat(matcher.find(), is(true));
 
     given().
-      header("X-Okapi-Url", "http://localhost:9130").
+      header("X-Okapi-Url", OKAPI_URL).
       header("X-Okapi-Tenant", "diku").
       cookie(cookie).
       formParams("RelayState", relayState).
       formParams("SAMLResponse", matcher.group(1)).
-      post("http://localhost:" + MODULE_PORT + "/saml/callback").
+      post(MODULE_URL + "/saml/callback").
     then().
       log().all().
       statusCode(302).
@@ -204,20 +206,20 @@ public class IdpTest {
           log().all().
           statusCode(200).
           body(containsString(" method=\"post\" "),
-               containsString("action=\"http://localhost:9130/_/invoke/tenant/diku/saml/callback\">")).
+               containsString("action=\"" + OKAPI_URL + "/_/invoke/tenant/diku/saml/callback\">")).
           extract().asString();
 
     var matcher = Pattern.compile("name=\"SAMLResponse\" value=\"([^\"]+)").matcher(body);
     assertThat(matcher.find(), is(true));
 
     given().
-      header("X-Okapi-Url", "http://localhost:9130").
+      header("X-Okapi-Url", OKAPI_URL).
       header("X-Okapi-Tenant", "diku").
       cookie(cookie).
       params("RelayState", relayState[1]).
       params("SAMLResponse", matcher.group(1)).
     when().
-      post("http://localhost:" + MODULE_PORT + "/saml/callback").
+      post(MODULE_URL + "/saml/callback").
     then().
       log().all().
       statusCode(302).
@@ -246,7 +248,7 @@ public class IdpTest {
   }
 
   private void setOkapi(String resource) {
-    OKAPI.setMockContent(resource, s -> s.replace("http://localhost:8080/simplesaml/", IDP_BASE_URL));
+    OKAPI.setMockContent(resource, s -> s.replace("http://localhost:8888/simplesaml/", IDP_BASE_URL));
   }
 
   private String jsonEncode(String key, String value) {
