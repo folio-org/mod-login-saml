@@ -11,7 +11,6 @@ import static io.vertx.core.http.HttpHeaders.VARY;
 import static org.pac4j.saml.state.SAML2StateGenerator.SAML_RELAY_STATE_ATTRIBUTE;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -176,8 +175,9 @@ public class SamlAPI implements Saml {
     URI relayStateUrl;
     try {
       relayStateUrl = new URI(relayState);
-    } catch (URISyntaxException e1) {
-      asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond400WithTextPlain("Invalid relay state url: " + relayState)));
+    } catch (Exception e) {
+      asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond400WithTextPlain(
+          "Invalid relay state url: " + relayState)));
       return;
     }
     final URI originalUrl = relayStateUrl;
