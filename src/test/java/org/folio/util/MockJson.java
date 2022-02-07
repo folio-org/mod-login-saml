@@ -13,7 +13,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.util.function.Function;
 
 public class MockJson extends AbstractVerticle {
   private static final Logger log = LogManager.getLogger(MockJson.class);
@@ -21,10 +23,19 @@ public class MockJson extends AbstractVerticle {
   JsonArray mocks;
   String resource;
 
-  public void setMockContent(String resource) throws IOException {
-    this.resource = resource;
-    JsonObject config = new JsonObject(IOUtils.toString(MockJson.class.getClassLoader().getResourceAsStream(resource), StandardCharsets.UTF_8));
-    mocks = config.getJsonArray("mocks");
+  public void setMockContent(String resource, Function<String,String> function) {
+    try {
+      this.resource = resource;
+      String file = IOUtils.toString(MockJson.class.getClassLoader().getResourceAsStream(resource), StandardCharsets.UTF_8);
+      JsonObject config = new JsonObject(function.apply(file));
+      mocks = config.getJsonArray("mocks");
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
+
+  public void setMockContent(String resource) {
+    setMockContent(resource, s -> s);
   }
 
   private void handle(RoutingContext context) {
