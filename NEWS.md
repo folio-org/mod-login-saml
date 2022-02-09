@@ -1,3 +1,8 @@
+## 2.4.1 - 2022-02-09
+
+ * [MODLOGSAML-123](https://issues.folio.org/browse/MODLOGSAML-123) IdP container test
+ * [MODLOGSAML-132](https://issues.folio.org/browse/MODLOGSAML-132) Update to vertx-pac4j 6.0.1 fixing "none" alg tokens (CVE-2021-44878)
+
 ## 2.4.0 - 2022-01-10
 
  * [MODLOGSAML-71](https://issues.folio.org/browse/MODLOGSAML-71) Login via SSO possible even after decryption of SAML assertions fails
