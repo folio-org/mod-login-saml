@@ -2,7 +2,6 @@ package org.folio.util;
 
 import java.net.ConnectException;
 import java.net.URI;
-
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.client.WebClient;

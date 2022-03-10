@@ -7,13 +7,11 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.predicate.ResponsePredicate;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.folio.config.model.SamlConfiguration;
 import org.folio.okapi.common.GenericCompositeFuture;
+import org.folio.okapi.common.WebClientFactory;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.util.PercentCodec;
-import org.folio.util.WebClientFactory;
 import org.folio.util.model.OkapiHeaders;
 import org.springframework.util.Assert;
 
@@ -28,8 +26,6 @@ import java.util.stream.Collectors;
  * @author rsass
  */
 public class ConfigurationsClient {
-
-  private static final Logger log = LogManager.getLogger(ConfigurationsClient.class);
 
   public static final String CONFIGURATIONS_ENTRIES_ENDPOINT_URL = "/configurations/entries";
   public static final String MODULE_NAME = "LOGIN-SAML";

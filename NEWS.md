@@ -1,3 +1,7 @@
+## 2.4.2 - 2022-03-10
+
+ * [MODLOGSAML-107](https://issues.folio.org/browse/MODLOGSAML-107) slf4j, web client timeout, Vert.x 4.2.5
+
 ## 2.4.1 - 2022-02-09
 
  * [MODLOGSAML-123](https://issues.folio.org/browse/MODLOGSAML-123) IdP container test
