@@ -116,6 +116,12 @@ public class IdpTest {
     setIdpBinding("POST");
     setOkapi("mock_idptest_post.json");
 
+    for (int i = 0; i < 2; i++) {
+      post0();
+    }
+  }
+
+  private void post0() {
     ExtractableResponse<Response> resp = given()
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
@@ -140,7 +146,6 @@ public class IdpTest {
         formParams("SAMLRequest", samlRequest).
         post(location).
         then().
-        log().all().
         statusCode(200).
         body(containsString("<form method=\"post\" "),
               containsString("action=\"" + OKAPI_URL + "/_/invoke/tenant/diku/saml/callback\">")).
@@ -157,7 +162,6 @@ public class IdpTest {
       formParams("SAMLResponse", matcher.group(1)).
       post(MODULE_URL + "/saml/callback").
     then().
-      log().all().
       statusCode(302).
       header("x-okapi-token", "saml-token").
       header("Location", startsWith("http://localhost:3000/sso-landing?ssoToken=saml-token"));
@@ -167,6 +171,13 @@ public class IdpTest {
   public void redirect() {
     setIdpBinding("Redirect");
     setOkapi("mock_idptest_redirect.json");
+
+    for (int i = 0; i < 2; i++) {
+      redirect0();
+    }
+  }
+
+  private void redirect0() {
     ExtractableResponse<Response> resp =
         given().
           header(TENANT_HEADER).
@@ -180,7 +191,6 @@ public class IdpTest {
           statusCode(200).
           body("bindingMethod", is("GET")).
           body("location", containsString("/simplesaml/saml2/idp/SSOService.php?")).
-          log().all().
           extract();
 
     Cookie cookie = resp.detailedCookie(SamlAPI.RELAY_STATE);
@@ -203,7 +213,6 @@ public class IdpTest {
         when().
           get(location).
         then().
-          log().all().
           statusCode(200).
           body(containsString(" method=\"post\" "),
                containsString("action=\"" + OKAPI_URL + "/_/invoke/tenant/diku/saml/callback\">")).
@@ -221,7 +230,6 @@ public class IdpTest {
     when().
       post(MODULE_URL + "/saml/callback").
     then().
-      log().all().
       statusCode(302).
       header("x-okapi-token", "saml-token").
       header("Location", startsWith("http://localhost:3000/sso-landing?ssoToken=saml-token"));

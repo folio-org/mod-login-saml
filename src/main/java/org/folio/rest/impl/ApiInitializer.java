@@ -4,7 +4,6 @@ import io.vertx.core.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.rest.resource.interfaces.InitAPI;
-import org.folio.util.WebClientFactory;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
@@ -19,8 +18,6 @@ public class ApiInitializer implements InitAPI {
 
   @Override
   public void init(Vertx vertx, Context context, Handler<AsyncResult<Boolean>> handler) {
-    WebClientFactory.init(vertx);
-
     String tacEnv = System.getenv("TRUST_ALL_CERTIFICATES");
 
     if ("true".equals(tacEnv)) {
