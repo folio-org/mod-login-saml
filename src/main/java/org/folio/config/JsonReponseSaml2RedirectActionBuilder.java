@@ -2,6 +2,7 @@ package org.folio.config;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.rest.jaxrs.model.SamlLogin;
@@ -41,6 +42,13 @@ public class JsonReponseSaml2RedirectActionBuilder implements RedirectionActionB
     this.client = client;
   }
 
+  private String dump(Object o) {
+    if (o == null) {
+      return "null";
+    }
+    return ToStringBuilder.reflectionToString(o);
+  }
+
   @Override
   public Optional<RedirectionAction> getRedirectionAction(WebContext webContext, SessionStore sessionStore) {
 
@@ -75,6 +83,10 @@ public class JsonReponseSaml2RedirectActionBuilder implements RedirectionActionB
 
       return Optional.of(new OkAction(Json.encode(samlLogin)));
     } catch (Exception e) {
+      log.error(() -> "getRedirectionAction saml2ObjectBuilder: " + dump(new SAML2AuthnRequestBuilder()));
+      log.error(() -> "getRedirectionAction client: " + dump(client));
+      log.error(() -> "getRedirectionAction webContext: " + dump(webContext));
+      log.error(() -> "getRedirectionAction sessionStore: " + dump(sessionStore));
       log.error("Exception processing SAML login request: {}", e.getMessage(), e);
       throw new StatusAction(500);
     }

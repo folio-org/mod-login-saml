@@ -3,8 +3,6 @@ package org.folio.util;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.folio.rest.tools.utils.NetworkUtils;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -20,8 +18,6 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 
 @RunWith(VertxUnitRunner.class)
 public class UrlUtilTest {
-
-  private static final Logger log = LogManager.getLogger(UrlUtilTest.class);
 
   public static final int MOCK_PORT = NetworkUtils.nextFreePort();
 
@@ -41,7 +37,6 @@ public class UrlUtilTest {
   @Before
   public void before(TestContext context) {
     vertx = Vertx.vertx();
-    WebClientFactory.init(vertx);
   }
 
   @AfterClass
