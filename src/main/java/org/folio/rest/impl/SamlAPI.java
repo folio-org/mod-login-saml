@@ -137,6 +137,7 @@ public class SamlAPI implements Saml {
       .map(saml2client -> postSamlLoginResponse(routingContext, saml2client))
       .recover(e -> {
         log.warn(e.getMessage(), e);
+        removeSaml2Client(routingContext);
         return Future.succeededFuture(PostSamlLoginResponse.respond500WithTextPlain("Internal Server Error"));
       })
       .onSuccess(response -> asyncResultHandler.handle(Future.succeededFuture(response)));
@@ -272,6 +273,7 @@ public class SamlAPI implements Saml {
         } else if (cause instanceof UserErrorException) {
           response = PostSamlCallbackResponse.respond400WithTextPlain(cause.getMessage());
         } else {
+          removeSaml2Client(routingContext);
           response = PostSamlCallbackResponse.respond500WithTextPlain(cause.getMessage());
         }
         log.error(cause.getMessage(), cause);
@@ -458,6 +460,11 @@ public class SamlAPI implements Saml {
     }
     return SamlClientLoader.loadFromConfiguration(routingContext, generateMissingConfig, vertxContext)
       .onSuccess(result -> configHolder.putClient(tenantId, result));
+  }
+
+  private void removeSaml2Client(RoutingContext routingContext) {
+    String tenantId = OkapiHelper.okapiHeaders(routingContext).getTenant();
+    SamlConfigHolder.getInstance().removeClient(tenantId);
   }
 
   /**

@@ -20,7 +20,7 @@ import org.pac4j.saml.client.SAML2Client;
 import org.pac4j.saml.context.SAML2MessageContext;
 import org.pac4j.saml.sso.impl.SAML2AuthnRequestBuilder;
 import org.pac4j.saml.transport.Pac4jSAMLResponse;
-
+import org.springframework.core.io.ByteArrayResource;
 import io.vertx.core.json.Json;
 import net.shibboleth.utilities.java.support.codec.Base64Support;
 import net.shibboleth.utilities.java.support.xml.SerializeSupport;
@@ -43,15 +43,21 @@ public class JsonReponseSaml2RedirectActionBuilder implements RedirectionActionB
   }
 
   private String dump(Object o) {
-    if (o == null) {
-      return "null";
+    try {
+      if (o == null) {
+        return "null";
+      }
+      if (o instanceof ByteArrayResource) {  // IdP metadata XML
+        return new String(((ByteArrayResource) o).getByteArray(), StandardCharsets.UTF_8);
+      }
+      return ToStringBuilder.reflectionToString(o);
+    } catch (Exception e) {
+      return e.getClass().getName() + " " + e.getMessage();
     }
-    return ToStringBuilder.reflectionToString(o);
   }
 
   @Override
   public Optional<RedirectionAction> getRedirectionAction(WebContext webContext, SessionStore sessionStore) {
-
     try {
       final SAML2AuthnRequestBuilder  saml2ObjectBuilder = new SAML2AuthnRequestBuilder();
       final SAML2MessageContext context = this.client.getContextProvider().buildContext(client, webContext, sessionStore);
@@ -83,14 +89,21 @@ public class JsonReponseSaml2RedirectActionBuilder implements RedirectionActionB
 
       return Optional.of(new OkAction(Json.encode(samlLogin)));
     } catch (Exception e) {
-      log.error(() -> "getRedirectionAction saml2ObjectBuilder: " + dump(new SAML2AuthnRequestBuilder()));
-      log.error(() -> "getRedirectionAction client: " + dump(client));
-      log.error(() -> "getRedirectionAction webContext: " + dump(webContext));
-      log.error(() -> "getRedirectionAction sessionStore: " + dump(sessionStore));
       log.error("Exception processing SAML login request: {}", e.getMessage(), e);
-      throw new StatusAction(500);
     }
 
+    try {
+      log.error(() -> "  webContext: " + dump(webContext));
+      log.error(() -> "  client: " + dump(client));
+      var conf = client.getConfiguration();
+      log.error(() -> "  IdP metadata resource: " + dump(conf.getIdentityProviderMetadataResource()));
+      log.error(() -> "  IdP metadata resolver: " + dump(conf.getIdentityProviderMetadataResolver()));
+      log.error(() -> "  IdP metadata: " + conf.getIdentityProviderMetadataResolver().getMetadata());
+    } catch (Exception e) {
+      // ignore
+    }
+
+    throw new StatusAction(500);
   }
 
 }

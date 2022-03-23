@@ -1,6 +1,12 @@
 {
   "mocks": [
     {
+      "url": "/idpmetadata",
+      "method": "get",
+      "status": 200,
+      "receivedData": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><EntityDescriptor xmlns=\"urn:oasis:names:tc:SAML:2.0:metadata\" entityID=\"\"></EntityDescriptor>"
+    },
+    {
       "url": "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%29",
       "method": "get",
       "status": 200,
@@ -11,7 +17,7 @@
             "module": "LOGIN-SAML",
             "configName": "saml",
             "code": "idp.url",
-            "value": "https://idp.ssocircle.com"
+            "value": "http://localhost:8888/idpmetadata"
           },
           {
             "id": "022d8342-fa51-44d1-8b2b-27da36e11f07",
@@ -56,19 +62,10 @@
           }
 
         ],
-        "totalRecords": 6
+        "totalRecords": 7
       },
       "receivedPath": "",
       "sendData": {}
-    },
-    {
-      "url": "/users?query=externalSystemId%3D%3D%22saml-user-id%22",
-      "method": "get",
-      "status": 200,
-      "receivedData": {
-        "totalRecords": 0,
-        "users": [ ]
-      }
     }
   ]
 }
