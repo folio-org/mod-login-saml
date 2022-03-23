@@ -3,9 +3,11 @@ package org.folio.rest.impl;
 import static io.restassured.RestAssured.given;
 import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
 import static org.folio.util.Base64AwareXsdMatcher.matchesBase64XsdInClasspath;
+import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThrows;
@@ -20,6 +22,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.folio.config.SamlConfigHolder;
 import org.folio.rest.RestVerticle;
 import org.folio.rest.jaxrs.model.SamlConfigRequest;
@@ -835,5 +838,11 @@ public class SamlAPITest {
     assertEquals("Unsupported user property: externalsystemid", assertThrows(RuntimeException.class, () ->
       SamlAPI.getCqlUserQuery("externalsystemid", "user@saml.com"))
       .getMessage());
+  }
+
+  //@Test
+  public void dump() {
+    assertThat(SamlAPI.dump(null), is("null"));
+    assertThat(SamlAPI.dump(new AtomicInteger(9876)), allOf(containsString("AtomicInteger"), containsString("9876")));
   }
 }
