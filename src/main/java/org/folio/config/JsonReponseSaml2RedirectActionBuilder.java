@@ -95,10 +95,6 @@ public class JsonReponseSaml2RedirectActionBuilder implements RedirectionActionB
     try {
       log.error(() -> "  webContext: " + dump(webContext));
       log.error(() -> "  client: " + dump(client));
-      var conf = client.getConfiguration();
-      log.error(() -> "  IdP metadata resource: " + dump(conf.getIdentityProviderMetadataResource()));
-      log.error(() -> "  IdP metadata resolver: " + dump(conf.getIdentityProviderMetadataResolver()));
-      log.error(() -> "  IdP metadata: " + conf.getIdentityProviderMetadataResolver().getMetadata());
     } catch (Exception e) {
       // ignore
     }
