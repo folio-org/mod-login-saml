@@ -43,6 +43,7 @@ public class MockJson extends AbstractVerticle {
     HttpServerResponse response = context.response();
     String method = request.method().name();
     String uri = request.uri();
+
     for (int i = 0; i < mocks.size(); i++) {
       JsonObject entry = mocks.getJsonObject(i);
       if (method.equalsIgnoreCase(entry.getString("method", "get"))
@@ -55,13 +56,17 @@ public class MockJson extends AbstractVerticle {
             response.putHeader(headObject.getString("name"), headObject.getString("value"));
           }
         }
-        JsonObject responseData = entry.getJsonObject("receivedData");
-        if (responseData != null) {
-          response.putHeader("Content-Type", "application/json");
-          response.end(responseData.encodePrettily());
-        } else {
+        Object responseData = entry.getValue("receivedData");
+        if (responseData == null) {
           response.end();
+          return;
         }
+        if (responseData instanceof JsonObject) {
+          response.putHeader("Content-Type", "application/json");
+          response.end(((JsonObject) responseData).encodePrettily());
+          return;
+        }
+        response.end(responseData.toString());
         return;
       }
     }
