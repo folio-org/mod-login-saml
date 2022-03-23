@@ -41,7 +41,6 @@ import io.vertx.ext.web.client.predicate.ResponsePredicate;
 import io.vertx.ext.web.impl.Utils;
 import io.vertx.ext.web.sstore.impl.SharedDataSessionImpl;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.config.ConfigurationsClient;
@@ -62,6 +61,7 @@ import org.folio.rest.jaxrs.resource.Saml;
 import org.folio.session.NoopSession;
 import org.folio.util.Base64Util;
 import org.folio.util.ConfigEntryUtil;
+import org.folio.util.DumpUtil;
 import org.folio.util.DummySessionStore;
 import org.folio.util.HttpActionMapper;
 import org.folio.util.OkapiHelper;
@@ -466,19 +466,12 @@ public class SamlAPI implements Saml {
       .onSuccess(result -> configHolder.putClient(tenantId, result));
   }
 
-  static String dump(Object o) {
-    if (o == null) {
-      return "null";
-    }
-    return ToStringBuilder.reflectionToString(o);
-  }
-
   private void removeSaml2Client(RoutingContext routingContext) {
     String tenantId = OkapiHelper.okapiHeaders(routingContext).getTenant();
     try {
       SAML2Configuration conf = SamlConfigHolder.getInstance().findClient(tenantId).getClient().getConfiguration();
-      log.error(() -> "IdP metadata resolver: " + dump(conf.getIdentityProviderMetadataResolver()));
-      log.error(() -> "IdP metadata resource: " + dump(conf.getIdentityProviderMetadataResource()));
+      log.error(() -> "IdP metadata resolver: " + DumpUtil.dump(conf.getIdentityProviderMetadataResolver()));
+      log.error(() -> "IdP metadata resource: " + DumpUtil.dump(conf.getIdentityProviderMetadataResource()));
       try (InputStream inputStream = conf.getIdentityProviderMetadataResource().getInputStream()) {
         String metadata = IOUtils.toString(inputStream, StandardCharsets.UTF_8);
         log.error(() -> "IdP metadata: " + metadata);

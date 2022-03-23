@@ -2,10 +2,10 @@ package org.folio.config;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
-import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.rest.jaxrs.model.SamlLogin;
+import org.folio.util.DumpUtil;
 import org.opensaml.core.xml.util.XMLObjectSupport;
 import org.opensaml.saml.common.xml.SAMLConstants;
 import org.opensaml.saml.saml2.core.AuthnRequest;
@@ -20,7 +20,6 @@ import org.pac4j.saml.client.SAML2Client;
 import org.pac4j.saml.context.SAML2MessageContext;
 import org.pac4j.saml.sso.impl.SAML2AuthnRequestBuilder;
 import org.pac4j.saml.transport.Pac4jSAMLResponse;
-import org.springframework.core.io.ByteArrayResource;
 import io.vertx.core.json.Json;
 import net.shibboleth.utilities.java.support.codec.Base64Support;
 import net.shibboleth.utilities.java.support.xml.SerializeSupport;
@@ -40,20 +39,6 @@ public class JsonReponseSaml2RedirectActionBuilder implements RedirectionActionB
   public JsonReponseSaml2RedirectActionBuilder(final SAML2Client client) {
     CommonHelper.assertNotNull("client", client);
     this.client = client;
-  }
-
-  private String dump(Object o) {
-    try {
-      if (o == null) {
-        return "null";
-      }
-      if (o instanceof ByteArrayResource) {  // IdP metadata XML
-        return new String(((ByteArrayResource) o).getByteArray(), StandardCharsets.UTF_8);
-      }
-      return ToStringBuilder.reflectionToString(o);
-    } catch (Exception e) {
-      return e.getClass().getName() + " " + e.getMessage();
-    }
   }
 
   @Override
@@ -93,8 +78,8 @@ public class JsonReponseSaml2RedirectActionBuilder implements RedirectionActionB
     }
 
     try {
-      log.error(() -> "  webContext: " + dump(webContext));
-      log.error(() -> "  client: " + dump(client));
+      log.error(() -> "  webContext: " + DumpUtil.dump(webContext));
+      log.error(() -> "  client: " + DumpUtil.dump(client));
     } catch (Exception e) {
       // ignore
     }
