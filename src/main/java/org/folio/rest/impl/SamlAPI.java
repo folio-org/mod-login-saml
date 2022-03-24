@@ -10,7 +10,9 @@ import static io.vertx.core.http.HttpHeaders.ORIGIN;
 import static io.vertx.core.http.HttpHeaders.VARY;
 import static org.pac4j.saml.state.SAML2StateGenerator.SAML_RELAY_STATE_ATTRIBUTE;
 
+import java.io.InputStream;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,7 +40,7 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.predicate.ResponsePredicate;
 import io.vertx.ext.web.impl.Utils;
 import io.vertx.ext.web.sstore.impl.SharedDataSessionImpl;
-
+import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.config.ConfigurationsClient;
@@ -59,6 +61,7 @@ import org.folio.rest.jaxrs.resource.Saml;
 import org.folio.session.NoopSession;
 import org.folio.util.Base64Util;
 import org.folio.util.ConfigEntryUtil;
+import org.folio.util.DumpUtil;
 import org.folio.util.DummySessionStore;
 import org.folio.util.HttpActionMapper;
 import org.folio.util.OkapiHelper;
@@ -135,9 +138,10 @@ public class SamlAPI implements Saml {
     findSaml2Client(routingContext, false, false, vertxContext) // do not allow login, if config is missing
       .map(SamlClientComposite::getClient)
       .map(saml2client -> postSamlLoginResponse(routingContext, saml2client))
-      .recover(e -> {
+      .otherwise(e -> {
         log.warn(e.getMessage(), e);
-        return Future.succeededFuture(PostSamlLoginResponse.respond500WithTextPlain("Internal Server Error"));
+        removeSaml2Client(routingContext);
+        return PostSamlLoginResponse.respond500WithTextPlain("Internal Server Error");
       })
       .onSuccess(response -> asyncResultHandler.handle(Future.succeededFuture(response)));
   }
@@ -272,6 +276,7 @@ public class SamlAPI implements Saml {
         } else if (cause instanceof UserErrorException) {
           response = PostSamlCallbackResponse.respond400WithTextPlain(cause.getMessage());
         } else {
+          removeSaml2Client(routingContext);
           response = PostSamlCallbackResponse.respond500WithTextPlain(cause.getMessage());
         }
         log.error(cause.getMessage(), cause);
@@ -417,7 +422,7 @@ public class SamlAPI implements Saml {
   private Future<String> regenerateSaml2Config(RoutingContext routingContext, Context vertxContext) {
 
     return findSaml2Client(routingContext, false, false, vertxContext)
-      .compose(result -> {
+      .<String>compose(result -> {
         Vertx vertx = vertxContext.owner();
         SAML2Client saml2Client = result.getClient();
         return vertx.executeBlocking(blockingCode -> {
@@ -434,8 +439,9 @@ public class SamlAPI implements Saml {
             blockingCode.fail(e);
           }
         });
-      });
-}
+      })
+      .onFailure(e -> removeSaml2Client(routingContext));
+  }
 
   /**
    * @param routingContext        the actual routing context
@@ -458,6 +464,22 @@ public class SamlAPI implements Saml {
     }
     return SamlClientLoader.loadFromConfiguration(routingContext, generateMissingConfig, vertxContext)
       .onSuccess(result -> configHolder.putClient(tenantId, result));
+  }
+
+  private void removeSaml2Client(RoutingContext routingContext) {
+    String tenantId = OkapiHelper.okapiHeaders(routingContext).getTenant();
+    try {
+      SAML2Configuration conf = SamlConfigHolder.getInstance().findClient(tenantId).getClient().getConfiguration();
+      log.error(() -> "IdP metadata resolver: " + DumpUtil.dump(conf.getIdentityProviderMetadataResolver()));
+      log.error(() -> "IdP metadata resource: " + DumpUtil.dump(conf.getIdentityProviderMetadataResource()));
+      try (InputStream inputStream = conf.getIdentityProviderMetadataResource().getInputStream()) {
+        String metadata = IOUtils.toString(inputStream, StandardCharsets.UTF_8);
+        log.error(() -> "IdP metadata: " + metadata);
+      }
+    } catch (Exception e) {
+      // ignore
+    }
+    SamlConfigHolder.getInstance().removeClient(tenantId);
   }
 
   /**

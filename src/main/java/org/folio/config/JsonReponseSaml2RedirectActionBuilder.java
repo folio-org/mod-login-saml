@@ -2,10 +2,10 @@ package org.folio.config;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
-import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.rest.jaxrs.model.SamlLogin;
+import org.folio.util.DumpUtil;
 import org.opensaml.core.xml.util.XMLObjectSupport;
 import org.opensaml.saml.common.xml.SAMLConstants;
 import org.opensaml.saml.saml2.core.AuthnRequest;
@@ -20,7 +20,6 @@ import org.pac4j.saml.client.SAML2Client;
 import org.pac4j.saml.context.SAML2MessageContext;
 import org.pac4j.saml.sso.impl.SAML2AuthnRequestBuilder;
 import org.pac4j.saml.transport.Pac4jSAMLResponse;
-
 import io.vertx.core.json.Json;
 import net.shibboleth.utilities.java.support.codec.Base64Support;
 import net.shibboleth.utilities.java.support.xml.SerializeSupport;
@@ -42,16 +41,8 @@ public class JsonReponseSaml2RedirectActionBuilder implements RedirectionActionB
     this.client = client;
   }
 
-  private String dump(Object o) {
-    if (o == null) {
-      return "null";
-    }
-    return ToStringBuilder.reflectionToString(o);
-  }
-
   @Override
   public Optional<RedirectionAction> getRedirectionAction(WebContext webContext, SessionStore sessionStore) {
-
     try {
       final SAML2AuthnRequestBuilder  saml2ObjectBuilder = new SAML2AuthnRequestBuilder();
       final SAML2MessageContext context = this.client.getContextProvider().buildContext(client, webContext, sessionStore);
@@ -83,14 +74,11 @@ public class JsonReponseSaml2RedirectActionBuilder implements RedirectionActionB
 
       return Optional.of(new OkAction(Json.encode(samlLogin)));
     } catch (Exception e) {
-      log.error(() -> "getRedirectionAction saml2ObjectBuilder: " + dump(new SAML2AuthnRequestBuilder()));
-      log.error(() -> "getRedirectionAction client: " + dump(client));
-      log.error(() -> "getRedirectionAction webContext: " + dump(webContext));
-      log.error(() -> "getRedirectionAction sessionStore: " + dump(sessionStore));
       log.error("Exception processing SAML login request: {}", e.getMessage(), e);
+      log.error(() -> "  webContext: " + DumpUtil.dump(webContext));
+      log.error(() -> "  client: " + DumpUtil.dump(client));
       throw new StatusAction(500);
     }
-
   }
 
 }
