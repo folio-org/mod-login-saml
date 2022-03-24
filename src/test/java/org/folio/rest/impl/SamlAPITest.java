@@ -3,7 +3,6 @@ package org.folio.rest.impl;
 import static io.restassured.RestAssured.given;
 import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
 import static org.folio.util.Base64AwareXsdMatcher.matchesBase64XsdInClasspath;
-import static org.folio.util.UrlUtilTest.MOCK_PORT;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -580,6 +579,29 @@ public class SamlAPITest {
 
   }
 
+  void postSamlLogin(int expectedStatus) {
+    given()
+        .header(TENANT_HEADER)
+        .header(TOKEN_HEADER)
+        .header(OKAPI_URL_HEADER)
+        .header(JSON_CONTENT_TYPE_HEADER)
+        .body(new JsonObject().put("stripesUrl", STRIPES_URL).encode())
+        .post("/saml/login")
+        .then()
+        .statusCode(expectedStatus);
+  }
+
+  @Test
+  public void reloadBogusMetadata() throws IOException {
+    mock.setMockContent("mock_metadata_bogus.json", s -> s.replace(":8888", ":" + JSON_MOCK_PORT));
+    postSamlLogin(500);
+
+    // Check that the bogus IdP metadata is not cached after internal server error
+    // https://issues.folio.org/browse/MODLOGSAML-107
+    mock.setMockContent("mock_content.json");
+    postSamlLogin(200);
+  }
+
   @Test
   public void getConfigurationEndpoint() {
 
@@ -624,7 +646,6 @@ public class SamlAPITest {
 
   @Test
   public void putConfigurationWithIdpMetadata(TestContext context) throws IOException {
-    mock.setMockContent("mock_content.json");
     SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
       .withIdpUrl(URI.create("http://localhost:" + IDP_MOCK_PORT + "/xml"))
       .withSamlAttribute("UserID")

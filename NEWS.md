@@ -1,3 +1,7 @@
+## 2.4.3 - 2022-03-24
+
+ * [MODLOGSAML-107](https://issues.folio.org/browse/MODLOGSAML-107) Delete configuration cache on internal error
+
 ## 2.4.2 - 2022-03-10
 
  * [MODLOGSAML-107](https://issues.folio.org/browse/MODLOGSAML-107) slf4j, web client timeout, Vert.x 4.2.5
