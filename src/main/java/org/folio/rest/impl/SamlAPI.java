@@ -122,6 +122,26 @@ public class SamlAPI implements Saml {
   public void postSamlLogin(SamlLoginRequest requestEntity, RoutingContext routingContext, Map<String, String> okapiHeaders,
     Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
+    postSamlLogin(requestEntity, routingContext, vertxContext, false)
+    .otherwise(e -> PostSamlLoginResponse.respond500WithTextPlain("Fail and retry"))
+    .compose(response -> {
+      if (response.getStatus() == 200) {
+        return Future.succeededFuture(response);
+      }
+      // retry after reloading client
+      removeSaml2Client(routingContext);
+      return postSamlLogin(requestEntity, routingContext, vertxContext, true);
+    })
+    .otherwise(e -> {
+      log.error(e.getMessage(), e);
+      return PostSamlLoginResponse.respond500WithTextPlain("Internal Server Error");
+    })
+    .onSuccess(response -> asyncResultHandler.handle(Future.succeededFuture(response)));
+  }
+
+  private Future<Response> postSamlLogin(SamlLoginRequest requestEntity, RoutingContext routingContext,
+      Context vertxContext, boolean reloadClient) {
+
     String csrfToken = UUID.randomUUID().toString();
     String stripesUrl = requestEntity.getStripesUrl();
     String relayState = stripesUrl + (stripesUrl.indexOf('?') >= 0 ? '&' : '?') + CSRF_TOKEN + '=' + csrfToken;
@@ -129,21 +149,15 @@ public class SamlAPI implements Saml {
         .setPath("/").setHttpOnly(true).setSecure(true);
     routingContext.addCookie(relayStateCookie);
 
-
     // register non-persistent session (this request only) to overWrite relayState
     Session session = new SharedDataSessionImpl(new PRNG(vertxContext.owner()));
     session.put(SAML_RELAY_STATE_ATTRIBUTE, relayState);
     routingContext.setSession(session);
 
-    findSaml2Client(routingContext, false, false, vertxContext) // do not allow login, if config is missing
+    final boolean generateMissingConfig = false;   // do not allow login if config is missing
+    return findSaml2Client(routingContext, generateMissingConfig, reloadClient, vertxContext)
       .map(SamlClientComposite::getClient)
-      .map(saml2client -> postSamlLoginResponse(routingContext, saml2client))
-      .otherwise(e -> {
-        log.warn(e.getMessage(), e);
-        removeSaml2Client(routingContext);
-        return PostSamlLoginResponse.respond500WithTextPlain("Internal Server Error");
-      })
-      .onSuccess(response -> asyncResultHandler.handle(Future.succeededFuture(response)));
+      .map(saml2client -> postSamlLoginResponse(routingContext, saml2client));
   }
 
   private Response postSamlLoginResponse(RoutingContext routingContext, SAML2Client saml2Client) {

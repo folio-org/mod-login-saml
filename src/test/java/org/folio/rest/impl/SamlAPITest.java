@@ -41,6 +41,7 @@ import org.pac4j.core.context.WebContext;
 import org.pac4j.core.context.session.SessionStore;
 import org.pac4j.core.exception.http.RedirectionAction;
 import org.pac4j.core.redirect.RedirectionActionBuilder;
+import org.pac4j.saml.client.SAML2Client;
 import org.w3c.dom.ls.LSResourceResolver;
 
 import io.restassured.RestAssured;
@@ -206,6 +207,8 @@ public class SamlAPITest {
     String relayState = resp.body().jsonPath().getString(SamlAPI.RELAY_STATE);
     assertEquals(cookie, relayState);
 
+    SAML2Client saml2client = SamlConfigHolder.getInstance().findClient(TENANT).getClient();
+
     // stripesUrl w/ query args
     resp = given()
       .header(TENANT_HEADER)
@@ -224,6 +227,8 @@ public class SamlAPITest {
     cookie = resp.cookie(SamlAPI.RELAY_STATE);
     relayState = resp.body().jsonPath().getString("relayState");
     assertEquals(cookie, relayState);
+    // saml2client should have been reused
+    assertEquals(saml2client, SamlConfigHolder.getInstance().findClient(TENANT).getClient());
 
     // AJAX 401
     given()
@@ -244,10 +249,10 @@ public class SamlAPITest {
         return Optional.of(new TemporaryRedirectAction());
       }
     };
-    SamlConfigHolder.getInstance().findClient(TENANT).getClient()
-      .setRedirectionActionBuilder(redirectionActionBuilder);
+    saml2client = SamlConfigHolder.getInstance().findClient(TENANT).getClient();
+    saml2client.setRedirectionActionBuilder(redirectionActionBuilder);
 
-    // 500 internal server error
+    // fails internally, drops the client, and the retry should result in 200
     given()
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
@@ -256,7 +261,9 @@ public class SamlAPITest {
       .body("{\"stripesUrl\":\"" + STRIPES_URL + "\"}")
       .post("/saml/login")
       .then()
-      .statusCode(500);
+      .statusCode(200);
+
+    assertNotEquals(saml2client, SamlConfigHolder.getInstance().findClient(TENANT).getClient());
   }
 
 
