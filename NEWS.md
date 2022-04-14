@@ -1,3 +1,10 @@
+## 2.4.4 - 2022-04-14
+
+ * [MODLOGSAML-135](https://issues.folio.org/browse/MODLOGSAML-135) Spring4Shell: Update Spring (CVE-2022-22965)
+ * [MODLOGSAML-136](https://issues.folio.org/browse/MODLOGSAML-136) jackson-databind 2.13.2.2 (CVE-2020-36518)
+ * [MODLOGSAML-137](https://issues.folio.org/browse/MODLOGSAML-137) secureValidation vulnerability (CVE-2021-40690)
+ * [MODLOGSAML-107](https://issues.folio.org/browse/MODLOGSAML-107) retry and check 200/500 status
+
 ## 2.4.3 - 2022-03-24
 
  * [MODLOGSAML-107](https://issues.folio.org/browse/MODLOGSAML-107) Delete configuration cache on internal error
