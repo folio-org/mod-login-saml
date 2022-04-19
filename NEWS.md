@@ -1,3 +1,7 @@
+## 2.4.5 - 2022-04-19
+
+ * [MODLOGSAML-138](https://issues.folio.org/browse/MODLOGSAML-138) Reduce error logging
+
 ## 2.4.4 - 2022-04-14
 
  * [MODLOGSAML-135](https://issues.folio.org/browse/MODLOGSAML-135) Spring4Shell: Update Spring (CVE-2022-22965)
