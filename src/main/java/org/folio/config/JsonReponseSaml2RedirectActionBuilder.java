@@ -5,7 +5,6 @@ import java.util.Optional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.rest.jaxrs.model.SamlLogin;
-import org.folio.util.DumpUtil;
 import org.opensaml.core.xml.util.XMLObjectSupport;
 import org.opensaml.saml.common.xml.SAMLConstants;
 import org.opensaml.saml.saml2.core.AuthnRequest;
@@ -75,8 +74,6 @@ public class JsonReponseSaml2RedirectActionBuilder implements RedirectionActionB
       return Optional.of(new OkAction(Json.encode(samlLogin)));
     } catch (Exception e) {
       log.error("Exception processing SAML login request: {}", e.getMessage(), e);
-      log.error(() -> "  webContext: " + DumpUtil.dump(webContext));
-      log.error(() -> "  client: " + DumpUtil.dump(client));
       throw new StatusAction(500);
     }
   }
