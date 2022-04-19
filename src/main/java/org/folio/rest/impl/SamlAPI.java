@@ -484,11 +484,11 @@ public class SamlAPI implements Saml {
     String tenantId = OkapiHelper.okapiHeaders(routingContext).getTenant();
     try {
       SAML2Configuration conf = SamlConfigHolder.getInstance().findClient(tenantId).getClient().getConfiguration();
-      log.error(() -> "IdP metadata resolver: " + DumpUtil.dump(conf.getIdentityProviderMetadataResolver()));
-      log.error(() -> "IdP metadata resource: " + DumpUtil.dump(conf.getIdentityProviderMetadataResource()));
+      log.debug(() -> "IdP metadata resolver: " + DumpUtil.dump(conf.getIdentityProviderMetadataResolver()));
+      log.debug(() -> "IdP metadata resource: " + DumpUtil.dump(conf.getIdentityProviderMetadataResource()));
       try (InputStream inputStream = conf.getIdentityProviderMetadataResource().getInputStream()) {
         String metadata = IOUtils.toString(inputStream, StandardCharsets.UTF_8);
-        log.error(() -> "IdP metadata: " + metadata);
+        log.debug(() -> "IdP metadata: " + metadata);
       }
     } catch (Exception e) {
       // ignore
