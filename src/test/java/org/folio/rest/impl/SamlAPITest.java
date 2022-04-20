@@ -6,6 +6,7 @@ import static org.folio.util.Base64AwareXsdMatcher.matchesBase64XsdInClasspath;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThrows;
@@ -816,7 +817,7 @@ public class SamlAPITest {
       .statusCode(200)
       .contentType(ContentType.JSON)
       .body("valid", is(false))
-      .body("error", is("Response content-type is not XML"))
+      .body("error", startsWith("Content-Type response header media type must be"))
       .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlValidateResponse.json"));
   }
 
