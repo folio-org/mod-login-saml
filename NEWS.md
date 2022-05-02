@@ -1,3 +1,8 @@
+## 2.4.5 - 2022-04-20
+
+ * [MODLOGSAML-138](https://issues.folio.org/browse/MODLOGSAML-138) Reduce error logging
+ * [MODLOGSAML-134](https://issues.folio.org/browse/MODLOGSAML-134) Content-Type validation for Duo's text/xhtml
+
 ## 2.4.4 - 2022-04-14
 
  * [MODLOGSAML-135](https://issues.folio.org/browse/MODLOGSAML-135) Spring4Shell: Update Spring (CVE-2022-22965)
