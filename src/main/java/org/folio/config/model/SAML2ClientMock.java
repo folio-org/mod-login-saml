@@ -17,6 +17,7 @@ import org.pac4j.core.profile.CommonProfile;
 import org.pac4j.saml.client.SAML2Client;
 import org.pac4j.saml.config.SAML2Configuration;
 import org.pac4j.saml.credentials.SAML2Credentials;
+import org.pac4j.saml.profile.converter.SimpleSAML2AttributeConverter;
 
 public class SAML2ClientMock extends SAML2Client {
 
@@ -32,11 +33,10 @@ public class SAML2ClientMock extends SAML2Client {
   protected Optional<Credentials> retrieveCredentials(WebContext context, SessionStore sessionStore) {
     log.info("Mocking SAML2Client retrieveCredentials...");
 
-    assert(context.getRequestParameter("SAMLResponse").isPresent());
-
     SAML2Credentials.SAMLNameID nameId = SAML2Credentials.SAMLNameID.from(new NameIDBuilder().buildObject());
     String issuerId = this.getClass().getName();
-    List<SAML2Credentials.SAMLAttribute> samlAttributes = SAML2Credentials.SAMLAttribute.from(Collections.emptyList());
+    List<SAML2Credentials.SAMLAttribute> samlAttributes = SAML2Credentials.SAMLAttribute.from(
+        new SimpleSAML2AttributeConverter(), Collections.emptyList());
     Conditions conditions = new ConditionsBuilder().buildObject();
     List<String> authnContexts = new ArrayList<>();
 
