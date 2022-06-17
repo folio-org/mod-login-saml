@@ -1,3 +1,7 @@
+## 2.4.6 - 2022-06-17
+
+ * [MODLOGSAML-142](https://issues.folio.org/browse/MODLOGSAML-142) Upgrade dependencies: RMB 34, Vert.x 4.3.1, pac4j 5.4.3
+
 ## 2.4.5 - 2022-04-20
 
  * [MODLOGSAML-138](https://issues.folio.org/browse/MODLOGSAML-138) Reduce error logging
