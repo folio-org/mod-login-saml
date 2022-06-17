@@ -37,12 +37,11 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-    <raml-module-builder-version>33.2.7</raml-module-builder-version>
+    <raml-module-builder-version>34.0.0</raml-module-builder-version>
     <generate_routing_context>/saml/callback,/saml/regenerate,/saml/login,/saml/check,/saml/configuration
     </generate_routing_context>
 
-    <pac4j.version>5.3.1</pac4j.version>
-    <rest-assured.version>4.4.0</rest-assured.version>
+    <pac4j.version>5.4.3</pac4j.version>
     <vertx-pac4j.version>6.0.1</vertx-pac4j.version>
 
     <ramlfiles_path>${basedir}/ramls</ramlfiles_path>
@@ -53,9 +52,17 @@
     <dependencies>
 
       <dependency>
+        <groupId>io.rest-assured</groupId>
+        <artifactId>rest-assured-bom</artifactId>
+        <version>5.1.1</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-stack-depchain</artifactId>
-        <version>4.2.6</version>
+        <version>4.3.1</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -68,18 +75,10 @@
         <scope>import</scope>
       </dependency>
 
-      <dependency>  <!-- remove when pac4j-saml ships with >= 5.3.18. CVE-2022-22965 -->
-        <groupId>org.springframework</groupId>
-        <artifactId>spring-framework-bom</artifactId>
-        <version>5.3.18</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-
       <dependency>
         <groupId>org.testcontainers</groupId>
         <artifactId>testcontainers-bom</artifactId>
-        <version>1.16.3</version>
+        <version>1.17.2</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -87,22 +86,6 @@
   </dependencyManagement>
 
   <dependencies>
-
-    <!-- Remove when vertx-stack-depchain ships with >= 2.13.2.1 fixing https://nvd.nist.gov/vuln/detail/CVE-2020-36518 -->
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
-      <version>2.13.2.2</version>
-    </dependency>
-
-    <!-- Remove when pac4j ships with xmlsec >= 2.1.7 or >= 2.2.3 or >= 2.3.0
-         https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-40690
-    -->
-    <dependency>
-      <groupId>org.apache.santuario</groupId>
-      <artifactId>xmlsec</artifactId>
-      <version>2.1.7</version>
-    </dependency>
 
     <dependency>
       <groupId>org.folio</groupId>
@@ -147,14 +130,12 @@
     <dependency>
       <groupId>io.rest-assured</groupId>
       <artifactId>rest-assured</artifactId>
-      <version>${rest-assured.version}</version>
       <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>io.rest-assured</groupId>
       <artifactId>json-schema-validator</artifactId>
-      <version>${rest-assured.version}</version>
       <scope>test</scope>
     </dependency>
 
@@ -172,9 +153,16 @@
     </dependency>
 
     <dependency>
+      <groupId>org.folio.okapi</groupId>
+      <artifactId>okapi-testing</artifactId>
+      <version>4.14.1</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <version>3.6.0</version>
+      <version>4.6.1</version>
       <scope>test</scope>
     </dependency>
 
