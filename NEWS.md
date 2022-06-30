@@ -1,3 +1,8 @@
+## 2.4.7 - 2022-06-30
+
+ * [MODLOGSAML-146](https://issues.folio.org/browse/MODLOGSAML-146) HTTP/2 causes "Invalid relay state url: null"
+ * [MODLOGSAML-144](https://issues.folio.org/browse/MODLOGSAML-144) spring framework 5.3.21 fixing file upload DoS (CVE-2022-22970)
+
 ## 2.4.6 - 2022-06-17
 
  * [MODLOGSAML-142](https://issues.folio.org/browse/MODLOGSAML-142) Upgrade dependencies: RMB 34, Vert.x 4.3.1, pac4j 5.4.3
