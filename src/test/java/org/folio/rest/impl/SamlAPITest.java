@@ -351,7 +351,7 @@ public class SamlAPITest {
   }
 
   @Test
-  public void callbackIdpMetadataTest2(TestContext context) {
+  public void callbackIdpMetadataHttp2Test(TestContext context) {
     mock.setMockContent("mock_content_with_metadata.json");
 
     WebClient.create(vertx)
