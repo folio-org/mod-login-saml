@@ -3,6 +3,7 @@ package org.folio.rest.impl;
 import static io.restassured.RestAssured.given;
 import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
 import static org.folio.util.Base64AwareXsdMatcher.matchesBase64XsdInClasspath;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -12,6 +13,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThrows;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URI;
 
 import java.nio.charset.StandardCharsets;
@@ -52,11 +54,13 @@ import io.restassured.response.ExtractableResponse;
 import io.restassured.response.Response;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.ext.web.client.WebClient;
 
 /**
  * @author rsass
@@ -109,7 +113,7 @@ public class SamlAPITest {
   }
 
   @Before
-  public void setUp(TestContext context) throws IOException {
+  public void setUp(TestContext context) {
     vertx = Vertx.vertx();
 
     DeploymentOptions options = new DeploymentOptions()
@@ -269,7 +273,7 @@ public class SamlAPITest {
 
 
   @Test
-  public void loginCorsTests() throws IOException {
+  public void loginCorsTests() {
     String origin = "http://localhost";
 
     log.info("=== Test CORS preflight - OPTIONS /saml/login - success ===");
@@ -326,7 +330,7 @@ public class SamlAPITest {
   }
 
   @Test
-  public void callbackIdpMetadataTest() throws IOException {
+  public void callbackIdpMetadataTest() {
     String origin = "http://localhost";
 
     log.info("=== Test Callback with right metadata - POST /saml/callback - success ===");
@@ -347,7 +351,24 @@ public class SamlAPITest {
   }
 
   @Test
-  public void callbackCorsTests() throws IOException {
+  public void callbackIdpMetadataTest2(TestContext context) {
+    mock.setMockContent("mock_content_with_metadata.json");
+
+    WebClient.create(vertx)
+    .post(PORT, "localhost", "/saml/callback")
+    .putHeader("X-Okapi-Token", TENANT)
+    .putHeader("X-Okapi-Tenant", TENANT)
+    .putHeader("X-Okapi-Url", "http://localhost:" + JSON_MOCK_PORT)
+    .putHeader("Content-Type", "application/x-www-form-urlencoded")
+    .putHeader("Cookie", SamlAPI.RELAY_STATE + "=" + readResourceToString("relay_state.txt").trim())
+    .sendBuffer(Buffer.buffer(readResourceToString("saml_response.txt").trim()))
+    .onComplete(context.asyncAssertSuccess(response -> {
+      assertThat(response.statusMessage() + "\n" + response.bodyAsString(), response.statusCode(), is(302));
+    }));
+  }
+
+  @Test
+  public void callbackCorsTests() {
     String origin = "http://localhost";
 
     log.info("=== Test CORS preflight - OPTIONS /saml/callback - success ===");
@@ -366,7 +387,7 @@ public class SamlAPITest {
   }
 
   @Test
-  public void testPutSamlConfiguration() throws IOException {
+  public void testPutSamlConfiguration() {
     mock.setMockContent("mock_nokeystore.json");
 
     SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
@@ -390,7 +411,7 @@ public class SamlAPITest {
   }
 
   @Test
-  public void regenerateEndpointTests() throws IOException {
+  public void regenerateEndpointTests() {
     LSResourceResolver resolver = new TestingClasspathResolver("schemas/");
 
     String metadata = given()
@@ -456,7 +477,7 @@ public class SamlAPITest {
   }
 
   @Test
-  public void callbackEndpointTests() throws IOException {
+  public void callbackEndpointTests() {
     final String testPath = "/test/path";
 
     log.info("=== Setup - POST /saml/login - need relayState and cookie ===");
@@ -600,7 +621,7 @@ public class SamlAPITest {
   }
 
   @Test
-  public void reloadBogusMetadata() throws IOException {
+  public void reloadBogusMetadata() {
     mock.setMockContent("mock_metadata_bogus.json", s -> s.replace(":8888", ":" + JSON_MOCK_PORT));
     postSamlLogin(500);
 
@@ -653,7 +674,7 @@ public class SamlAPITest {
   }
 
   @Test
-  public void putConfigurationWithIdpMetadata(TestContext context) throws IOException {
+  public void putConfigurationWithIdpMetadata(TestContext context) {
     SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
       .withIdpUrl(URI.create("http://localhost:" + IDP_MOCK_PORT + "/xml"))
       .withSamlAttribute("UserID")
@@ -677,10 +698,14 @@ public class SamlAPITest {
       .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"));
   }
 
-  private String readResourceToString(String idpMetadataFile) throws IOException {
-    return IOUtils.toString(Objects
-      .requireNonNull(getClass().getClassLoader()
-        .getResourceAsStream(idpMetadataFile)), StandardCharsets.UTF_8);
+  private String readResourceToString(String idpMetadataFile) {
+    try {
+      return IOUtils.toString(Objects
+        .requireNonNull(getClass().getClassLoader()
+          .getResourceAsStream(idpMetadataFile)), StandardCharsets.UTF_8);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
   }
 
   @Test
@@ -695,7 +720,7 @@ public class SamlAPITest {
   }
 
   @Test
-  public void testWithConfiguration400(TestContext context) throws IOException {
+  public void testWithConfiguration400(TestContext context) {
     mock.setMockContent("mock_400.json");
 
     // GET
@@ -712,7 +737,7 @@ public class SamlAPITest {
 
 
   @Test
-  public void regenerateEndpointNoIdP() throws IOException {
+  public void regenerateEndpointNoIdP() {
     mock.setMockContent("mock_noidp.json");
 
     given()
@@ -727,7 +752,7 @@ public class SamlAPITest {
   }
 
   @Test
-  public void regenerateEndpointNoKeystore() throws IOException {
+  public void regenerateEndpointNoKeystore() {
     mock.setMockContent("mock_nokeystore.json");
 
     given()

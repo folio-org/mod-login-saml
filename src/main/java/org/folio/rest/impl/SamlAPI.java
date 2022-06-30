@@ -12,6 +12,7 @@ import static org.pac4j.saml.state.SAML2StateGenerator.SAML_RELAY_STATE_ATTRIBUT
 
 import java.io.InputStream;
 import java.net.URI;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
@@ -180,16 +181,37 @@ public class SamlAPI implements Saml {
     }
   }
 
+  private String getRelayState(RoutingContext routingContext, String body) {
+    String relayState = routingContext.request().getFormAttribute("RelayState");
+    if (relayState != null) {
+      return relayState;
+    }
+
+    // Vert.x doesn't populate form attributes for HTTP/2 requests, we do it manually
+
+    if (body == null) {
+      return null;
+    }
+    String [] vars = body.split("&");
+    for (String var : vars) {
+      String [] keyVal = var.split("=", 2);
+      if (keyVal.length == 2 && "RelayState".equals(keyVal[0])) {
+        relayState = URLDecoder.decode(keyVal[1], StandardCharsets.UTF_8);
+      }
+    }
+    return relayState;
+  }
+
   @Override
-  public void postSamlCallback(RoutingContext routingContext, Map<String, String> okapiHeaders,
+  public void postSamlCallback(String body, RoutingContext routingContext, Map<String, String> okapiHeaders,
     Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
     registerFakeSession(routingContext);
 
     final SessionStore sessionStore = new DummySessionStore(routingContext.vertx(), routingContext.session());
     final VertxWebContext webContext = new VertxWebContext(routingContext, sessionStore);
-    // Form parameters "RelayState" is not part webContext.
-    final String relayState = routingContext.request().getFormAttribute("RelayState");
+    final String relayState = getRelayState(routingContext, body);
+
     URI relayStateUrl;
     try {
       relayStateUrl = new URI(relayState);
@@ -590,4 +612,5 @@ public class SamlAPI implements Saml {
     }
     return userPropertyName + "==" + StringUtil.cqlEncode(value);
   }
+
 }
