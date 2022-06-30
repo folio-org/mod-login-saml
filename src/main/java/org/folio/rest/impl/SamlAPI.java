@@ -214,6 +214,7 @@ public class SamlAPI implements Saml {
 
     URI relayStateUrl;
     try {
+      assert(relayState != null);  // this avoids a Sonar warning later on
       relayStateUrl = new URI(relayState);
     } catch (Exception e) {
       asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond400WithTextPlain(
