@@ -192,9 +192,9 @@ public class SamlAPI implements Saml {
     if (body == null) {
       return null;
     }
-    String [] vars = body.split("&");
-    for (String var : vars) {
-      String [] keyVal = var.split("=", 2);
+    String [] attributes = body.split("&");
+    for (String attribute : attributes) {
+      String [] keyVal = attribute.split("=", 2);
       if (keyVal.length == 2 && "RelayState".equals(keyVal[0])) {
         relayState = URLDecoder.decode(keyVal[1], StandardCharsets.UTF_8);
       }
