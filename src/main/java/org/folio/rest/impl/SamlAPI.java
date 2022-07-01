@@ -9,10 +9,10 @@ import static io.vertx.core.http.HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD;
 import static io.vertx.core.http.HttpHeaders.ORIGIN;
 import static io.vertx.core.http.HttpHeaders.VARY;
 import static org.pac4j.saml.state.SAML2StateGenerator.SAML_RELAY_STATE_ATTRIBUTE;
+import static org.folio.rest.impl.ApiInitializer.MAX_FORM_ATTRIBUTE_SIZE;
 
 import java.io.InputStream;
 import java.net.URI;
-import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
@@ -183,22 +183,12 @@ public class SamlAPI implements Saml {
 
   private String getRelayState(RoutingContext routingContext, String body) {
     String relayState = routingContext.request().getFormAttribute("RelayState");
-    if (relayState != null) {
-      return relayState;
+
+    if (relayState == null && body.length() > MAX_FORM_ATTRIBUTE_SIZE) {
+      log.error("HTTP body size {} exceeds MAX_FORM_ATTRIBUTE_SIZE={}",
+          body.length(), MAX_FORM_ATTRIBUTE_SIZE);
     }
 
-    // Vert.x doesn't populate form attributes for HTTP/2 requests, we do it manually
-
-    if (body == null) {
-      return null;
-    }
-    String [] attributes = body.split("&");
-    for (String attribute : attributes) {
-      String [] keyVal = attribute.split("=", 2);
-      if (keyVal.length == 2 && "RelayState".equals(keyVal[0])) {
-        relayState = URLDecoder.decode(keyVal[1], StandardCharsets.UTF_8);
-      }
-    }
     return relayState;
   }
 
