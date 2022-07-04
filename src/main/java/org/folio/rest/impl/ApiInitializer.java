@@ -3,6 +3,7 @@ package org.folio.rest.impl;
 import io.vertx.core.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.folio.rest.RestVerticle;
 import org.folio.rest.resource.interfaces.InitAPI;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -16,6 +17,8 @@ public class ApiInitializer implements InitAPI {
 
   private final Logger log = LogManager.getLogger(ApiInitializer.class);
 
+  public static final int MAX_FORM_ATTRIBUTE_SIZE = 64 * 1024;
+
   @Override
   public void init(Vertx vertx, Context context, Handler<AsyncResult<Boolean>> handler) {
     String tacEnv = System.getenv("TRUST_ALL_CERTIFICATES");
@@ -26,6 +29,9 @@ public class ApiInitializer implements InitAPI {
 
     String disableResolver = System.getProperty("vertx.disableDnsResolver");
     log.info("vertx.disableDnsResolver (netty workaround): " + disableResolver);
+
+    // https://issues.folio.org/browse/RMB-856
+    RestVerticle.getHttpServerOptions().setMaxFormAttributeSize(MAX_FORM_ATTRIBUTE_SIZE);
 
     handler.handle(Future.succeededFuture(true));
   }
