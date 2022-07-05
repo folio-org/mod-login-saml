@@ -14,6 +14,7 @@ import static org.folio.rest.impl.ApiInitializer.MAX_FORM_ATTRIBUTE_SIZE;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -230,8 +231,8 @@ public class SamlAPI implements Saml {
         SAML2Credentials credentials = (SAML2Credentials) client.getCredentials(webContext, sessionStore).get();
 
         // Get user id
-        List<?> samlAttributeList = (List<?>) credentials.getUserProfile().getAttribute(samlAttributeName);
-        if (samlAttributeList == null || samlAttributeList.isEmpty()) {
+        List<?> samlAttributeList = getList(credentials.getUserProfile().getAttribute(samlAttributeName));
+        if (samlAttributeList.isEmpty()) {
           throw new UserErrorException("SAML attribute doesn't exist: " + samlAttributeName);
         }
         final String samlAttributeValue = samlAttributeList.get(0).toString();
@@ -589,6 +590,16 @@ public class SamlAPI implements Saml {
     HttpServerResponse response = routingContext.response();
     response.putHeader(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
     response.putHeader(ACCESS_CONTROL_ALLOW_ORIGIN, origin);
+  }
+
+  private static List<?> getList(Object o) {
+    if (o == null) {
+      return Collections.emptyList();
+    }
+    if (o instanceof List) {
+      return (List) o;
+    }
+    return List.of(o);
   }
 
   private boolean isInvalidOrigin(String origin) {
