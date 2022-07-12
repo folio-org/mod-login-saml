@@ -1,3 +1,7 @@
+## 2.4.9 - 2022-07-12
+
+ * [MODLOGSAML-140](https://issues.folio.org/browse/MODLOGSAML-148) Wrap samlAttributeName String in List
+
 ## 2.4.8 - 2022-07-04
 
  * [MODLOGSAML-148](https://issues.folio.org/browse/MODLOGSAML-148) Bump maxFormAttributeSize from 8192 to 65536
