@@ -17,6 +17,7 @@ import java.io.UncheckedIOException;
 import java.net.URI;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Objects;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
@@ -25,6 +26,7 @@ import org.apache.logging.log4j.Logger;
 import java.util.Optional;
 import org.folio.config.SamlConfigHolder;
 import org.folio.rest.RestVerticle;
+import org.folio.rest.impl.SamlAPI.UserErrorException;
 import org.folio.rest.jaxrs.model.SamlConfigRequest;
 import org.folio.rest.tools.utils.NetworkUtils;
 import org.folio.util.IdpMock;
@@ -43,6 +45,8 @@ import org.pac4j.core.context.HttpConstants;
 import org.pac4j.core.context.WebContext;
 import org.pac4j.core.context.session.SessionStore;
 import org.pac4j.core.exception.http.RedirectionAction;
+import org.pac4j.core.profile.BasicUserProfile;
+import org.pac4j.core.profile.UserProfile;
 import org.pac4j.core.redirect.RedirectionActionBuilder;
 import org.pac4j.saml.client.SAML2Client;
 import org.w3c.dom.ls.LSResourceResolver;
@@ -384,6 +388,24 @@ public class SamlAPITest {
       .statusCode(204)
       .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN.toString(), equalTo(origin))
       .header(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS.toString(), equalTo("true"));
+  }
+
+  @Test
+  public void getSamlAttributeValue() {
+    UserProfile userProfile = new BasicUserProfile();
+    userProfile.addAttribute("UserID", "foo");
+    userProfile.addAttribute("uid", "bar");
+    userProfile.addAttribute("username", List.of("baz"));
+    userProfile.addAttribute("name", List.of("x", "a", "z"));
+    userProfile.addAttribute("ohoh", null);
+    userProfile.addAttribute("ohohlist", List.of());
+
+    assertThat(SamlAPI.getSamlAttributeValue(null, userProfile), is("foo"));
+    assertThat(SamlAPI.getSamlAttributeValue("uid", userProfile), is("bar"));
+    assertThat(SamlAPI.getSamlAttributeValue("username", userProfile), is("baz"));
+    assertThat(SamlAPI.getSamlAttributeValue("name", userProfile), is("x"));
+    assertThrows(UserErrorException.class, () -> SamlAPI.getSamlAttributeValue("ohoh", userProfile));
+    assertThrows(UserErrorException.class, () -> SamlAPI.getSamlAttributeValue("ohohlist", userProfile));
   }
 
   @Test

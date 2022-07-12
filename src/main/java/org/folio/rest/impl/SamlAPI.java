@@ -14,6 +14,7 @@ import static org.folio.rest.impl.ApiInitializer.MAX_FORM_ATTRIBUTE_SIZE;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -74,6 +75,7 @@ import org.pac4j.core.context.session.SessionStore;
 import org.pac4j.core.exception.http.HttpAction;
 import org.pac4j.core.exception.http.OkAction;
 import org.pac4j.core.exception.http.RedirectionAction;
+import org.pac4j.core.profile.UserProfile;
 import org.pac4j.saml.client.SAML2Client;
 import org.pac4j.saml.config.SAML2Configuration;
 import org.pac4j.saml.credentials.SAML2Credentials;
@@ -224,17 +226,11 @@ public class SamlAPI implements Saml {
       .compose(samlClientComposite -> {
         final SAML2Client client = samlClientComposite.getClient();
         final SamlConfiguration configuration = samlClientComposite.getConfiguration();
-        String userPropertyName = configuration.getUserProperty() == null ? "externalSystemId" : configuration.getUserProperty();
-        String samlAttributeName = configuration.getSamlAttribute() == null ? "UserID" : configuration.getSamlAttribute();
-
-        SAML2Credentials credentials = (SAML2Credentials) client.getCredentials(webContext, sessionStore).get();
-
-        // Get user id
-        List<?> samlAttributeList = (List<?>) credentials.getUserProfile().getAttribute(samlAttributeName);
-        if (samlAttributeList == null || samlAttributeList.isEmpty()) {
-          throw new UserErrorException("SAML attribute doesn't exist: " + samlAttributeName);
-        }
-        final String samlAttributeValue = samlAttributeList.get(0).toString();
+        final String userPropertyName =
+            configuration.getUserProperty() == null ? "externalSystemId" : configuration.getUserProperty();
+        final SAML2Credentials credentials = (SAML2Credentials) client.getCredentials(webContext, sessionStore).get();
+        final String samlAttributeValue =
+            getSamlAttributeValue(configuration.getSamlAttribute(), credentials.getUserProfile());
         final String usersCql = getCqlUserQuery(userPropertyName, samlAttributeValue);
         final String userQuery = UriBuilder.fromPath("/users").queryParam("query", usersCql).build().toString();
 
@@ -309,6 +305,30 @@ public class SamlAPI implements Saml {
         log.error(cause.getMessage(), cause);
         asyncResultHandler.handle(Future.succeededFuture(response));
       });
+  }
+
+  /**
+   * Get the user id from the first samlAttribute of userProfile.
+   *
+   * @param samlAttribute attribute name, or null for "UserID"
+   */
+  static String getSamlAttributeValue(String samlAttribute, UserProfile userProfile) {
+    String samlAttributeName = samlAttribute == null ? "UserID" : samlAttribute;
+    List<?> samlAttributeList = getList(userProfile.getAttribute(samlAttributeName));
+    if (samlAttributeList.isEmpty()) {
+      throw new UserErrorException("SAML attribute doesn't exist: " + samlAttributeName);
+    }
+    return samlAttributeList.get(0).toString();
+  }
+
+  private static List<?> getList(Object o) {
+    if (o == null) {
+      return Collections.emptyList();
+    }
+    if (o instanceof List) {
+      return (List<?>) o;
+    }
+    return List.of(o);
   }
 
   @Override
