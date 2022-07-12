@@ -5,9 +5,10 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
-import java.util.concurrent.atomic.AtomicInteger;
 import org.folio.okapi.testing.UtilityClassTester;
 import org.junit.Test;
+import org.pac4j.saml.metadata.SAML2IdentityProviderMetadataResolver;
+import org.springframework.core.io.ByteArrayResource;
 
 public class DumpUtilTest {
 
@@ -21,9 +22,19 @@ public class DumpUtilTest {
     assertThat(DumpUtil.dump(null), is("null"));
   }
 
+  // try dumping the classes used, reflection might cause access failures
+  // https://issues.folio.org/browse/MODLOGSAML-151
+
   @Test
-  public void dumpContent() {
-    assertThat(DumpUtil.dump(new AtomicInteger(9876)), allOf(containsString("AtomicInteger"), containsString("9876")));
+  public void dumpResource() {
+    var resource = new ByteArrayResource(new byte [] {100, 101, 102});
+    assertThat(DumpUtil.dump(resource), allOf(containsString("ByteArrayResource"), containsString("100,101,102")));
+  }
+
+  @Test
+  public void dumpResolver() {
+    var resolver = new SAML2IdentityProviderMetadataResolver(new ByteArrayResource(new byte [] {}), null);
+    assertThat(DumpUtil.dump(resolver), allOf(containsString("SAML2IdentityProviderMetadataResolver")));
   }
 
 }
