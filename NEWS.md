@@ -1,7 +1,3 @@
-## 2.5.0 IN-PROGRESS
-
-* [MODLOGSAML-152](https://issues.folio.org/browse/MODLOGSAML-152) Now supports users interface 14.0 15.0 16.0
-
 ## 2.4.0 - 2022-01-10
 
  * [MODLOGSAML-71](https://issues.folio.org/browse/MODLOGSAML-71) Login via SSO possible even after decryption of SAML assertions fails
