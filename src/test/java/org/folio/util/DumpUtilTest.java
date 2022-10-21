@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.is;
 
 import org.folio.okapi.testing.UtilityClassTester;
 import org.junit.Test;
+import org.pac4j.saml.config.SAML2Configuration;
 import org.pac4j.saml.metadata.SAML2IdentityProviderMetadataResolver;
 import org.springframework.core.io.ByteArrayResource;
 
@@ -33,7 +34,7 @@ public class DumpUtilTest {
 
   @Test
   public void dumpResolver() {
-    var resolver = new SAML2IdentityProviderMetadataResolver(new ByteArrayResource(new byte [] {}), null);
+    var resolver = new SAML2IdentityProviderMetadataResolver(new SAML2Configuration());
     assertThat(DumpUtil.dump(resolver), allOf(containsString("SAML2IdentityProviderMetadataResolver")));
   }
 
