@@ -1,3 +1,51 @@
+## 2.5.0 - 2022-10-25
+
+ * [MODLOGSAML-154](https://issues.folio.org/browse/MODLOGSAML-154) Upgrade to RMB 35.0.2, Vert.x 4.3.4, pac4j 5.4.6
+ * [MODLOGSAML-152](https://issues.folio.org/browse/MODLOGSAML-152) Support users interface 14.0 15.0 16.0
+ * [MODLOGSAML-151](https://issues.folio.org/browse/MODLOGSAML-151) JDK 17: java.base does not "opens java.util.concurrent.atomic"
+
+## 2.4.9 - 2022-07-12
+
+ * [MODLOGSAML-140](https://issues.folio.org/browse/MODLOGSAML-140) Wrap samlAttributeName String in List
+
+## 2.4.8 - 2022-07-04
+
+ * [MODLOGSAML-148](https://issues.folio.org/browse/MODLOGSAML-148) Bump maxFormAttributeSize from 8192 to 65536
+
+## 2.4.7 - 2022-06-30
+
+ * [MODLOGSAML-146](https://issues.folio.org/browse/MODLOGSAML-146) HTTP/2 causes "Invalid relay state url: null"
+ * [MODLOGSAML-144](https://issues.folio.org/browse/MODLOGSAML-144) spring framework 5.3.21 fixing file upload DoS (CVE-2022-22970)
+
+## 2.4.6 - 2022-06-17
+
+ * [MODLOGSAML-142](https://issues.folio.org/browse/MODLOGSAML-142) Upgrade dependencies: RMB 34, Vert.x 4.3.1, pac4j 5.4.3
+
+## 2.4.5 - 2022-04-20
+
+ * [MODLOGSAML-138](https://issues.folio.org/browse/MODLOGSAML-138) Reduce error logging
+ * [MODLOGSAML-134](https://issues.folio.org/browse/MODLOGSAML-134) Content-Type validation for Duo's text/xhtml
+
+## 2.4.4 - 2022-04-14
+
+ * [MODLOGSAML-135](https://issues.folio.org/browse/MODLOGSAML-135) Spring4Shell: Update Spring (CVE-2022-22965)
+ * [MODLOGSAML-136](https://issues.folio.org/browse/MODLOGSAML-136) jackson-databind 2.13.2.2 (CVE-2020-36518)
+ * [MODLOGSAML-137](https://issues.folio.org/browse/MODLOGSAML-137) secureValidation vulnerability (CVE-2021-40690)
+ * [MODLOGSAML-107](https://issues.folio.org/browse/MODLOGSAML-107) retry and check 200/500 status
+
+## 2.4.3 - 2022-03-24
+
+ * [MODLOGSAML-107](https://issues.folio.org/browse/MODLOGSAML-107) Delete configuration cache on internal error
+
+## 2.4.2 - 2022-03-10
+
+ * [MODLOGSAML-107](https://issues.folio.org/browse/MODLOGSAML-107) slf4j, web client timeout, Vert.x 4.2.5
+
+## 2.4.1 - 2022-02-09
+
+ * [MODLOGSAML-123](https://issues.folio.org/browse/MODLOGSAML-123) IdP container test
+ * [MODLOGSAML-132](https://issues.folio.org/browse/MODLOGSAML-132) Update to vertx-pac4j 6.0.1 fixing "none" alg tokens (CVE-2021-44878)
+
 ## 2.4.0 - 2022-01-10
 
  * [MODLOGSAML-71](https://issues.folio.org/browse/MODLOGSAML-71) Login via SSO possible even after decryption of SAML assertions fails
