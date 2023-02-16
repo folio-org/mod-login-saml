@@ -1,3 +1,7 @@
+## 2.6.0 - 2023-02-16
+
+ * [MODLOGSAML-157](https://issues.folio.org/browse/MODLOGSAML-157) Upgrade dependences: pac4j 5.7.0, RMB 35.0.6, Vert.x 4.3.8
+
 ## 2.5.0 - 2022-10-25
 
  * [MODLOGSAML-154](https://issues.folio.org/browse/MODLOGSAML-154) Upgrade to RMB 35.0.2, Vert.x 4.3.4, pac4j 5.4.6
