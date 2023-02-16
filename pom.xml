@@ -37,11 +37,11 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-    <raml-module-builder-version>35.0.2</raml-module-builder-version>
+    <raml-module-builder-version>35.0.6</raml-module-builder-version>
     <generate_routing_context>/saml/callback,/saml/regenerate,/saml/login,/saml/check,/saml/configuration
     </generate_routing_context>
 
-    <pac4j.version>5.4.6</pac4j.version>
+    <pac4j.version>5.7.0</pac4j.version>
     <vertx-pac4j.version>6.0.1</vertx-pac4j.version>
 
     <ramlfiles_path>${basedir}/ramls</ramlfiles_path>
