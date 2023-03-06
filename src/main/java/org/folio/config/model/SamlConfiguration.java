@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SamlConfiguration {
 
+  public static final String ID_CODE = "id";   //BL 
   public static final String KEYSTORE_FILE_CODE = "keystore.file";
   public static final String KEYSTORE_PASSWORD_CODE = "keystore.password"; // NOSONAR
   public static final String KEYSTORE_PRIVATEKEY_PASSWORD_CODE = "keystore.privatekey.password"; // NOSONAR
@@ -22,6 +23,8 @@ public class SamlConfiguration {
   public static final String METADATA_INVALIDATED_CODE = "metadata.invalidated";
   public static final String OKAPI_URL= "okapi.url";
 
+  @JsonProperty(ID_CODE)  //BL
+  private String id;  //BL
   @JsonProperty(IDP_URL_CODE)
   private String idpUrl;
   @JsonProperty(KEYSTORE_FILE_CODE)
@@ -45,7 +48,21 @@ public class SamlConfiguration {
   @JsonProperty(OKAPI_URL)
   private String okapiUrl;
 
+  public SamlConfiguration(){}
 
+  public SamlConfiguration(String idpUrl) {
+      setIdpUrl(idpUrl);
+      setId(null);
+  }
+
+  public String getId() {   
+    return id;
+  }
+
+  public void setId(String id) { 
+    this.id = id;
+  }
+    
   public String getIdpUrl() {
     return idpUrl;
   }
