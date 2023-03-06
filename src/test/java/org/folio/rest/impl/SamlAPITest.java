@@ -17,7 +17,9 @@ import java.io.UncheckedIOException;
 import java.net.URI;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
@@ -25,14 +27,20 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.Optional;
 import org.folio.config.SamlConfigHolder;
+import org.folio.dao.ConfigurationsDao;
+import org.folio.dao.impl.ConfigurationsDaoImpl;
 import org.folio.rest.RestVerticle;
+import org.folio.rest.client.TenantClient;
 import org.folio.rest.impl.SamlAPI.UserErrorException;
 import org.folio.rest.jaxrs.model.SamlConfigRequest;
+import org.folio.rest.persist.PostgresClient;
 import org.folio.rest.tools.utils.NetworkUtils;
 import org.folio.util.IdpMock;
 import org.folio.util.MockJson;
+import org.folio.util.OkapiHelper;
 import org.folio.util.PercentCodec;
 import org.folio.util.TestingClasspathResolver;
+import org.folio.util.model.OkapiHeaders;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -57,7 +65,9 @@ import io.restassured.http.Header;
 import io.restassured.response.ExtractableResponse;
 import io.restassured.response.Response;
 import io.vertx.core.DeploymentOptions;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.VertxOptions;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.Json;
@@ -65,15 +75,15 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.client.WebClientOptions;
 
 /**
  * @author rsass
  */
 @RunWith(VertxUnitRunner.class)
-public class SamlAPITest {
+public class SamlAPITest extends TestBase {
   private static final Logger log = LogManager.getLogger(SamlAPITest.class);
 
-  private static final String TENANT = "saml-test";
   private static final Header TENANT_HEADER = new Header("X-Okapi-Tenant", TENANT);
   private static final Header TOKEN_HEADER = new Header("X-Okapi-Token", TENANT);
   private static final Header JSON_CONTENT_TYPE_HEADER = new Header("Content-Type", "application/json");
@@ -83,15 +93,12 @@ public class SamlAPITest {
     HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD.toString(), "POST");
   private static final String STRIPES_URL = "http://localhost:3000";
 
-  public static final int PORT = 8081;
   public static final int IDP_MOCK_PORT = NetworkUtils.nextFreePort();
   private static final int JSON_MOCK_PORT = NetworkUtils.nextFreePort();
   private static final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", "http://localhost:" + JSON_MOCK_PORT);
   public MockJson mock;
 
   private static Vertx mockVertx = Vertx.vertx();
-
-  private Vertx vertx;
 
   @Rule
   public TestName testName = new TestName();
@@ -118,12 +125,6 @@ public class SamlAPITest {
 
   @Before
   public void setUp(TestContext context) {
-    vertx = Vertx.vertx();
-
-    DeploymentOptions options = new DeploymentOptions()
-      .setConfig(new JsonObject().put("http.port", PORT)
-        .put("mock", true)); // to use SAML2ClientMock
-
     RestAssured.port = PORT;
     RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
 
@@ -133,21 +134,8 @@ public class SamlAPITest {
     DeploymentOptions mockOptions = new DeploymentOptions()
       .setConfig(new JsonObject().put("http.port", JSON_MOCK_PORT));
 
-    vertx.deployVerticle(new RestVerticle(), options)
-      .compose(x -> vertx.deployVerticle(mock, mockOptions))
-      .onComplete(context.asyncAssertSuccess());
-  }
-
-  @After
-  public void tearDown(TestContext context) {
-    // Need to clear singleton to maintain test/order independence
-    SamlConfigHolder.getInstance().removeClient(TENANT);
-    vertx.close(context.asyncAssertSuccess());
-  }
-
-  @AfterClass
-  public static void tearDownOnce(TestContext context) {
-    mockVertx.close(context.asyncAssertSuccess());
+    vertx.deployVerticle(mock, mockOptions)
+       .onComplete(context.asyncAssertSuccess());
   }
 
   @Test
@@ -433,7 +421,7 @@ public class SamlAPITest {
   }
 
   @Test
-  public void regenerateEndpointTests() {
+  public void regenerateEndpointTests() { 
     LSResourceResolver resolver = new TestingClasspathResolver("schemas/");
 
     String metadata = given()
@@ -654,10 +642,11 @@ public class SamlAPITest {
   }
 
   @Test
-  public void getConfigurationEndpoint() {
-
-    // GET
-    given()
+    public void getConfigurationEndpointDB() { //former method: getConfigurationEndpoint()
+	
+      dataMigration(vertx);
+      // GET (Data from DB)
+      given()
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
       .header(OKAPI_URL_HEADER)
@@ -665,14 +654,43 @@ public class SamlAPITest {
       .get("/saml/configuration")
       .then()
       .statusCode(200)
+	  
       .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"))
       .body("idpUrl", equalTo("https://idp.ssocircle.com"))
       .body("samlBinding", equalTo("POST"))
       .body("metadataInvalidated", equalTo(Boolean.FALSE));
-  }
+      }
 
   @Test
-  public void putConfigurationEndpoint(TestContext context) {
+  public void putConfigurationEndpointEmptyDB(TestContext context) { //former method: putConfigurationEndpoint(TestContext context)
+      
+    SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
+      .withIdpUrl(URI.create("http://localhost:" + IDP_MOCK_PORT + "/xml"))
+      .withSamlAttribute("UserID")
+      .withSamlBinding(SamlConfigRequest.SamlBinding.POST)
+      .withUserProperty("externalSystemId")
+      .withOkapiUrl(URI.create("http://localhost:9130"));
+
+    String jsonString = Json.encode(samlConfigRequest);
+
+    // PUT
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .header(JSON_CONTENT_TYPE_HEADER)
+      .body(jsonString)
+      .put("/saml/configuration")
+      .then()
+      .statusCode(200)
+      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"));
+  }
+
+@Test
+  public void putConfigurationEndpointDB(TestContext context) { //former method: putConfigurationEndpoint(TestContext context)
+
+    dataMigration(vertx);
+    
     SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
       .withIdpUrl(URI.create("http://localhost:" + IDP_MOCK_PORT + "/xml"))
       .withSamlAttribute("UserID")
@@ -696,7 +714,8 @@ public class SamlAPITest {
   }
 
   @Test
-  public void putConfigurationWithIdpMetadata(TestContext context) {
+  public void putConfigurationWithIdpMetadataDB(TestContext context) { //former method: putConfigurationWithIdpMetadata(TestContext context)
+      dataMigration(vertx);
     SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
       .withIdpUrl(URI.create("http://localhost:" + IDP_MOCK_PORT + "/xml"))
       .withSamlAttribute("UserID")
@@ -718,7 +737,7 @@ public class SamlAPITest {
       .then()
       .statusCode(200)
       .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"));
-  }
+  }  
 
   private String readResourceToString(String idpMetadataFile) {
     try {
@@ -891,4 +910,26 @@ public class SamlAPITest {
       SamlAPI.getCqlUserQuery("externalsystemid", "user@saml.com"))
       .getMessage());
   }
+
+
+  private void dataMigration(Vertx vertx){
+      ConfigurationsDao configurationsDao = new ConfigurationsDaoImpl();
+      configurationsDao.getConfigurationMigration(vertx, createOkapiHeaders())
+	  .onComplete(result -> {
+		  if (result.succeeded()) {
+		      Future.succeededFuture(result);
+		  } else {
+		      Future.failedFuture("Cannot load config from mod-configuration.");
+		  }
+	      });
+  }
+
+  private static OkapiHeaders createOkapiHeaders(){
+      Map<String, String> parsedHeaders = new HashMap<String, String>();
+      parsedHeaders.put(TENANT_HEADER.getName(), TENANT_HEADER.getValue());
+      parsedHeaders.put(TOKEN_HEADER.getName(), TOKEN_HEADER.getValue());
+      parsedHeaders.put(OKAPI_URL_HEADER.getName(), OKAPI_URL_HEADER.getValue());
+      return OkapiHelper.okapiHeaders(parsedHeaders);
+  }
+
 }

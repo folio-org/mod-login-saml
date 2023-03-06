@@ -50,6 +50,8 @@ import org.folio.config.SamlClientLoader;
 import org.folio.config.SamlConfigHolder;
 import org.folio.config.model.SamlClientComposite;
 import org.folio.config.model.SamlConfiguration;
+import org.folio.dao.ConfigurationsDao;
+import org.folio.dao.impl.ConfigurationsDaoImpl;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.rest.jaxrs.model.SamlCheck;
 import org.folio.rest.jaxrs.model.SamlConfig;
@@ -105,6 +107,7 @@ public class SamlAPI implements Saml {
     }
   }
 
+  private ConfigurationsDao configurationsDao = new ConfigurationsDaoImpl(); 
 
   /**
    * Check that client can be loaded, SAML-Login button can be displayed.
@@ -357,7 +360,7 @@ public class SamlAPI implements Saml {
   public void getSamlConfiguration(RoutingContext rc, Map<String, String> okapiHeaders,
     Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
-    ConfigurationsClient.getConfiguration(vertxContext.owner(), OkapiHelper.okapiHeaders(okapiHeaders))
+      configurationsDao.getConfiguration(vertxContext.owner(), OkapiHelper.okapiHeaders(okapiHeaders), false)
       .onFailure(cause -> {
         log.warn("Cannot load configuration", cause);
         asyncResultHandler.handle(
@@ -382,10 +385,12 @@ public class SamlAPI implements Saml {
       })
       .onSuccess(checkValuesHandler -> {
         OkapiHeaders parsedHeaders = OkapiHelper.okapiHeaders(okapiHeaders);
-        ConfigurationsClient.getConfiguration(vertxContext.owner(), parsedHeaders)
+        configurationsDao.getConfiguration(vertxContext.owner(), parsedHeaders, true)
           .compose(config -> {
             Map<String, String> updateEntries = new HashMap<>();
 
+	    updateEntries.put(SamlConfiguration.ID_CODE, config.getId()); 
+	    
             ConfigEntryUtil.valueChanged(config.getIdpUrl(), updatedConfig.getIdpUrl().toString(), idpUrl -> {
               updateEntries.put(SamlConfiguration.IDP_URL_CODE, idpUrl);
               updateEntries.put(SamlConfiguration.METADATA_INVALIDATED_CODE, "true");
@@ -422,7 +427,7 @@ public class SamlAPI implements Saml {
   private Future<SamlConfig> storeConfigEntries(RoutingContext rc, OkapiHeaders parsedHeaders,
     Map<String, String> updateEntries, Context vertxContext) {
 
-    return ConfigurationsClient.storeEntries(vertxContext.owner(), parsedHeaders, updateEntries)
+    return configurationsDao.storeEntries(vertxContext.owner(), parsedHeaders, updateEntries)
       .compose(configurationSavedEvent ->
         findSaml2Client(rc, true, true, vertxContext))
       .map(configurationLoadEvent -> configToDto(configurationLoadEvent.getConfiguration())
