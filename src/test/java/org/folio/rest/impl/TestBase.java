@@ -8,7 +8,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
-//import org.folio.postgres.testing.PostgresTesterContainer;
+import org.folio.postgres.testing.PostgresTesterContainer;
 import org.folio.rest.client.TenantClient;
 import org.folio.rest.jaxrs.model.TenantAttributes;
 import org.folio.rest.persist.PostgresClient;
@@ -21,7 +21,7 @@ import org.junit.BeforeClass;
 public class TestBase {
   //Compare https://github.com/folio-org/mod-configuration/blob/master/mod-configuration-server/src/test/java/org/folio/rest/TestBase.java
   public static Vertx vertx;
-  public static final int PORT = 8081;
+  public static int PORT;//8081;
   public static WebClient webClient;
   public static TenantClient tenantClient;
   public static final String TENANT = "harvard";
@@ -29,12 +29,12 @@ public class TestBase {
 
   @BeforeClass
   public static void beforeAll(TestContext context) {
-      //PostgresClient.setPostgresTester(new PostgresTesterContainer());;
+  PostgresClient.setPostgresTester(new PostgresTesterContainer());;
 
-      //vertx = Vertx.vertx();
-    vertx = Vertx.vertx(new VertxOptions().setBlockedThreadCheckInterval(600000).setMaxEventLoopExecuteTime(600000));
-    //port = NetworkUtils.nextFreePort();
-
+    vertx = Vertx.vertx();
+    //vertx = Vertx.vertx(new VertxOptions().setBlockedThreadCheckInterval(600000).setMaxEventLoopExecuteTime(600000));
+    PORT = NetworkUtils.nextFreePort();
+    
     WebClientOptions webClientOptions = new WebClientOptions().setDefaultPort(PORT);
     webClient = WebClient.create(vertx, webClientOptions);
 
