@@ -26,7 +26,7 @@ public interface ConfigurationsDao {
 
     public Future<SamlConfiguration> getConfiguration(Vertx vertx, OkapiHeaders okapiHeaders, boolean isPut);
 
-    public Future<SamlConfiguration> storeEntries(Vertx vertx, OkapiHeaders okapiHeaders, Map<String, String> entries);
+    public Future<SamlConfiguration> storeSamlConfiguration(Vertx vertx, OkapiHeaders okapiHeaders, SamlConfiguration samlConfiguration);
 
-    public Future<SamlConfiguration> storeEntryMetadataInvaildated(Vertx vertx, OkapiHeaders okapiHeaders, String code, String value);
+    public Future<SamlConfiguration> storeEntryMetadataInvalidated(Vertx vertx, OkapiHeaders okapiHeaders, String code, String value);
  }
