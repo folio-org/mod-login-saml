@@ -44,58 +44,43 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
     }
     public ConfigurationsDaoImpl() {}
 
-    
 
     @Override
     public Future<SamlConfiguration> getConfigurationMigration(Vertx vertx, OkapiHeaders okapiHeaders) {
 	Objects.requireNonNull(okapiHeaders);
 	verifyOkapiHeaders(okapiHeaders);
- 	Promise<Results<SamlConfiguration>> promise = Promise.promise();
-	PostgresClient.getInstance(vertx, okapiHeaders.getTenant())
-	    .get(CONFIGURATION_TABLE, SamlConfiguration.class, new Criterion().addCriterion(new Criteria().addField("idp.url")), true, promise);
-	return promise.future().compose(results -> localFutureMapMigration(results, vertx, okapiHeaders));
+ 	return PostgresClient.getInstance(vertx, okapiHeaders.getTenant())
+	    .get(CONFIGURATION_TABLE, SamlConfiguration.class, new Criterion(), true)
+	    .compose(results -> localFutureGetConfigurationMigration(results, vertx, okapiHeaders));
     }
 
-
-    private Future<SamlConfiguration> localFutureMapMigration(Results<SamlConfiguration> results, Vertx vertx, OkapiHeaders okapiHeaders){
-       int localLength = results.getResultInfo().getTotalRecords();
-        if(localLength == 1){
-	   return Future.succeededFuture(results.getResults().get(0));
-       } else if(localLength == 0) {
-	    return ConfigurationsClient.getConfiguration(vertx, okapiHeaders)
-		.onComplete(result -> {
-			if (result.succeeded()) {
-			    LOGGER.warn("We have a result: " + result.result().toString());
-			    Future.succeededFuture(result)
-			    .compose(composedResult -> storeEntry(vertx, okapiHeaders, result.result())
-				     .onSuccess(composedResult1 -> Future.succeededFuture(composedResult))
-				     .onFailure(composedResult1 -> Future.failedFuture("Cannot save config from mod-configuration in DB."))
-				     );
-			} else {
-			    LOGGER.warn("Cannot load config from mod-configuration.");
-			    Future.failedFuture("Cannot load config from mod-configuration.");
-			}
-		    });
-	} else {
+    private Future<SamlConfiguration> localFutureGetConfigurationMigration(Results<SamlConfiguration> results, Vertx vertx, OkapiHeaders okapiHeaders){
+	int localLength = results.getResultInfo().getTotalRecords();
+	if (localLength == 1){
+	    return Future.succeededFuture(results.getResults().get(0));
+	}
+	if(localLength > 1) {
 	    String errorMessage = String.format("TotalRecords are not unique. Instead the number is : %s", Integer.toString(localLength));
 	    LOGGER.error("errorMessage", errorMessage);
 	    return Future.failedFuture(new IllegalArgumentException(errorMessage));
-	    }
-       
-   }
+	}
+      return ConfigurationsClient.getConfiguration(vertx, okapiHeaders)
+          .compose(result -> storeEntry(vertx, okapiHeaders, result))
+	  .onFailure(e -> LOGGER.error("Configuration migration failed: {}", e.getMessage()));
+    }
     
+     
     @Override
     public Future<SamlConfiguration> getConfiguration(Vertx vertx, OkapiHeaders okapiHeaders, boolean isPut) {
 	Objects.requireNonNull(okapiHeaders);
 	verifyOkapiHeaders(okapiHeaders);
- 	Promise<Results<SamlConfiguration>> promise = Promise.promise();
-	PostgresClient.getInstance(vertx, okapiHeaders.getTenant())
-	    .get(CONFIGURATION_TABLE, SamlConfiguration.class, new Criterion().addCriterion(new Criteria().addField("idp.url")), true, promise);
-	return promise.future().compose(results -> localFutureMap(results, vertx, okapiHeaders, isPut));
+	return PostgresClient.getInstance(vertx, okapiHeaders.getTenant())
+	    .get(CONFIGURATION_TABLE, SamlConfiguration.class, new Criterion(), true)
+	    .compose(results -> localFutureGetConfiguration(results, vertx, okapiHeaders, isPut));
     }
 
 
-    private Future<SamlConfiguration> localFutureMap(Results<SamlConfiguration> results, Vertx vertx, OkapiHeaders okapiHeaders, boolean isPut){
+    private Future<SamlConfiguration> localFutureGetConfiguration(Results<SamlConfiguration> results, Vertx vertx, OkapiHeaders okapiHeaders, boolean isPut){
        int localLength = results.getResultInfo().getTotalRecords();
         if(localLength == 1){
 	   return Future.succeededFuture(results.getResults().get(0));
@@ -113,17 +98,15 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
     
    
     @Override
-    public Future<SamlConfiguration> storeEntries(Vertx vertx, OkapiHeaders  okapiHeaders, Map<String, String> entries) {
+    public Future<SamlConfiguration> storeSamlConfiguration(Vertx vertx, OkapiHeaders okapiHeaders, SamlConfiguration samlConfiguration) {
 	Objects.requireNonNull(okapiHeaders);
-	Objects.requireNonNull(entries);
+	Objects.requireNonNull(samlConfiguration);
 	verifyOkapiHeaders(okapiHeaders);
-
-	SamlConfiguration samlConfigurationLocal = new ObjectMapper().convertValue(entries, SamlConfiguration.class);
-	return storeEntry(vertx, okapiHeaders, samlConfigurationLocal);
+	return storeEntry(vertx, okapiHeaders, samlConfiguration);
     }
 
     @Override
-    public Future<SamlConfiguration> storeEntryMetadataInvaildated(Vertx vertx, OkapiHeaders okapiHeaders, String code, String value){
+    public Future<SamlConfiguration> storeEntryMetadataInvalidated(Vertx vertx, OkapiHeaders okapiHeaders, String code, String value){
 	Objects.requireNonNull(okapiHeaders);
 	verifyOkapiHeaders(okapiHeaders);
 	
@@ -142,15 +125,15 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
 	Promise<String> promise = Promise.promise();
 	PostgresClient.getInstance(vertx, okapiHeaders.getTenant()) 
 	    .upsert(CONFIGURATION_TABLE, samlConfiguration.getId(), samlConfiguration, true, promise);
-	return promise.future().compose(result -> localFutureMapStoreEntry(result, samlConfiguration));
+	return promise.future().map(result -> localFutureMapStoreEntry(result, samlConfiguration))
+	    .onFailure(e -> LOGGER.error("Configuration Storage failed: {}", e.getMessage()));
 	} 
 
-    
-    private Future<SamlConfiguration> localFutureMapStoreEntry(String result, SamlConfiguration samlConfiguration){	
+       private SamlConfiguration localFutureMapStoreEntry(String result, SamlConfiguration samlConfiguration){	
 	    if(result != null && samlConfiguration.getId() == null){
 		samlConfiguration.setId(result);
 	    }
-	    return Future.succeededFuture(samlConfiguration);
+	    return samlConfiguration;
     }	
     
   
