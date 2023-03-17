@@ -8,6 +8,8 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
+import io.vertx.sqlclient.Row;
+import io.vertx.sqlclient.RowSet;
 import org.folio.postgres.testing.PostgresTesterContainer;
 import org.folio.rest.client.TenantClient;
 import org.folio.rest.jaxrs.model.TenantAttributes;
@@ -29,10 +31,10 @@ public class TestBase {
 
   @BeforeClass
   public static void beforeAll(TestContext context) {
-  PostgresClient.setPostgresTester(new PostgresTesterContainer());;
+    PostgresClient.setPostgresTester(new PostgresTesterContainer());;
 
     vertx = Vertx.vertx();
-    //vertx = Vertx.vertx(new VertxOptions().setBlockedThreadCheckInterval(600000).setMaxEventLoopExecuteTime(600000));
+      //vertx = Vertx.vertx(new VertxOptions().setBlockedThreadCheckInterval(600000).setMaxEventLoopExecuteTime(600000));
     PORT = NetworkUtils.nextFreePort();
     
     WebClientOptions webClientOptions = new WebClientOptions().setDefaultPort(PORT);
@@ -54,13 +56,23 @@ public class TestBase {
     dropSchema(SCHEMA).onComplete(context.asyncAssertSuccess());
     }*/
 
+
+  public static Future<RowSet<Row>> deleteAllConfigurationRecords(Vertx vertx) {
+    return deleteAllConfigurationRecordsFromTable("configuration", vertx);
+    }
+
+  private static Future<RowSet<Row>> deleteAllConfigurationRecordsFromTable(String table, Vertx vertx) {
+    return PostgresClient.getInstance(vertx, TENANT)
+        .execute("DELETE FROM " + SCHEMA + "." + table);
+   }
+     
   public static Future<Void> dropSchema(String schema) {
     PostgresClient postgresClient = PostgresClient.getInstance(vertx);
     return postgresClient.execute("DROP SCHEMA IF EXISTS " + schema + " CASCADE")
         .compose(x -> postgresClient.execute("DROP ROLE IF EXISTS " + schema))
         .mapEmpty();
   }
-
+    
   static Future<Void> postTenant() {
     try {
       TenantAttributes ta = new TenantAttributes();
