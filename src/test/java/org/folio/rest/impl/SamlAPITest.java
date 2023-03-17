@@ -29,11 +29,8 @@ import java.util.Optional;
 import org.folio.config.SamlConfigHolder;
 import org.folio.dao.ConfigurationsDao;
 import org.folio.dao.impl.ConfigurationsDaoImpl;
-import org.folio.rest.RestVerticle;
-import org.folio.rest.client.TenantClient;
 import org.folio.rest.impl.SamlAPI.UserErrorException;
 import org.folio.rest.jaxrs.model.SamlConfigRequest;
-import org.folio.rest.persist.PostgresClient;
 import org.folio.rest.tools.utils.NetworkUtils;
 import org.folio.util.IdpMock;
 import org.folio.util.MockJson;
@@ -133,6 +130,7 @@ public class SamlAPITest extends TestBase {
   public void tearDown() {
     // Need to clear singleton to maintain test order independence
     SamlConfigHolder.getInstance().removeClient(TENANT);
+    deleteAllConfigurationRecords(vertx);
   } 
    
   @Test
