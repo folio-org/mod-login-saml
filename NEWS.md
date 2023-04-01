@@ -1,3 +1,8 @@
+## 2.6.1 - 2023-04-01
+
+ * [MODLOGSAML-159](https://issues.folio.org/browse/MODLOGSAML-159) OpenSSL 3.0.8 fixing 8 vulns
+ * [MODLOGSAML-161](https://issues.folio.org/browse/MODLOGSAML-161) Use TLSv1.2, not SSL, in SSLContext.getInstance
+
 ## 2.6.0 - 2023-02-16
 
  * [MODLOGSAML-157](https://issues.folio.org/browse/MODLOGSAML-157) Upgrade dependences: pac4j 5.7.0, RMB 35.0.6, Vert.x 4.3.8
