@@ -1,3 +1,7 @@
+## 2.5.1 - 2023-04-01
+
+ * [MODLOGSAML-159](https://issues.folio.org/browse/MODLOGSAML-159) OpenSSL 3.0.8 fixing 8 vulns
+
 ## 2.5.0 - 2022-10-25
 
  * [MODLOGSAML-154](https://issues.folio.org/browse/MODLOGSAML-154) Upgrade to RMB 35.0.2, Vert.x 4.3.4, pac4j 5.4.6
