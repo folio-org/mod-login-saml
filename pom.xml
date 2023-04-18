@@ -108,6 +108,13 @@
       <groupId>org.pac4j</groupId>
       <artifactId>vertx-pac4j</artifactId>
       <version>${vertx-pac4j.version}</version>
+      <exclusions>
+        <exclusion>
+          <!-- Remove exclusion when vertx-pac4j comes with json-smart >= 2.4.10 -->
+          <groupId>net.minidev</groupId>
+          <artifactId>json-smart</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <dependency>
