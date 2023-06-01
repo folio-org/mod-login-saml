@@ -1,3 +1,8 @@
+## 2.6.2 - 2023-06-01
+
+ * [MODLOGSAML-166](https://issues.folio.org/browse/MODLOGSAML-166) xmlsec 2.3.3, woodstox-core 6.5.0 fixing DoS (CVE-2022-40152)
+ * [MODLOGSAML-165](https://issues.folio.org/browse/MODLOGSAML-165) json-smart 2.4.10 fixing DoS (CVE-2023-1370)
+
 ## 2.6.1 - 2023-04-01
 
  * [MODLOGSAML-159](https://issues.folio.org/browse/MODLOGSAML-159) OpenSSL 3.0.8 fixing 8 vulns
