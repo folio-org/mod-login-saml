@@ -23,67 +23,76 @@ import org.junit.BeforeClass;
 public class TestBase {
   //Compare https://github.com/folio-org/mod-configuration/blob/master/mod-configuration-server/src/test/java/org/folio/rest/TestBase.java
   public static Vertx vertx;
-  public static int PORT;//8081;
+  public static int MODULE_PORT;
+  public static String MODULE_URL;
   public static WebClient webClient;
   public static TenantClient tenantClient;
-  public static final String TENANT = "harvard";
+  public static final String TENANT = "diku";
   public static final String SCHEMA = TENANT + "_mod_login_saml";
-
+  
   @BeforeClass
   public static void beforeAll(TestContext context) {
-    PostgresClient.setPostgresTester(new PostgresTesterContainer());;
-
-    vertx = Vertx.vertx();
-      //vertx = Vertx.vertx(new VertxOptions().setBlockedThreadCheckInterval(600000).setMaxEventLoopExecuteTime(600000));
-    PORT = NetworkUtils.nextFreePort();
     
-    WebClientOptions webClientOptions = new WebClientOptions().setDefaultPort(PORT);
+    PostgresClient.setPostgresTester(new PostgresTesterContainer());
+    vertx = Vertx.vertx();
+    //vertx = Vertx.vertx(new VertxOptions().setBlockedThreadCheckInterval(600000).setMaxEventLoopExecuteTime(600000));
+    MODULE_PORT = setPreferredPort(9231);
+    MODULE_URL = "http://localhost:" + MODULE_PORT;
+      
+    WebClientOptions webClientOptions = new WebClientOptions().setDefaultPort(MODULE_PORT);
     webClient = WebClient.create(vertx, webClientOptions);
 
-    tenantClient = new TenantClient("http://localhost:" + PORT, TENANT, null, webClient);
+    tenantClient = new TenantClient("http://localhost:" + MODULE_PORT, TENANT, null, webClient);
 
-    DeploymentOptions options = new DeploymentOptions()
-	.setConfig(new JsonObject().put("http.port", PORT).put("mock", true));
+    DeploymentOptions moduleOptions = new DeploymentOptions()
+      .setConfig(new JsonObject().put("http.port", MODULE_PORT).put("mock", true));
 
     dropSchema(SCHEMA)
-    .compose(x -> vertx.deployVerticle(new RestVerticle(), options))
+    .compose(x -> vertx.deployVerticle(new RestVerticle(), moduleOptions))
     .compose(x -> SamlAPITest.postTenant())
     .onComplete(context.asyncAssertSuccess());
   }
 
-    /*  @AfterClass
+  
+  @AfterClass
   public static void afterAll(TestContext context) {
-    dropSchema(SCHEMA).onComplete(context.asyncAssertSuccess());
-    }*/
-
+    dropSchema(SCHEMA)
+      .onComplete(context.asyncAssertSuccess())
+      .compose(x -> vertx.close());
+  }
 
   public static Future<RowSet<Row>> deleteAllConfigurationRecords(Vertx vertx) {
     return deleteAllConfigurationRecordsFromTable("configuration", vertx);
-    }
+  }
 
   private static Future<RowSet<Row>> deleteAllConfigurationRecordsFromTable(String table, Vertx vertx) {
     return PostgresClient.getInstance(vertx, TENANT)
-        .execute("DELETE FROM " + SCHEMA + "." + table);
-   }
+      .execute("DELETE FROM " + SCHEMA + "." + table);
+  }
      
   public static Future<Void> dropSchema(String schema) {
     PostgresClient postgresClient = PostgresClient.getInstance(vertx);
     return postgresClient.execute("DROP SCHEMA IF EXISTS " + schema + " CASCADE")
-        .compose(x -> postgresClient.execute("DROP ROLE IF EXISTS " + schema))
-        .mapEmpty();
+      .compose(x -> postgresClient.execute("DROP ROLE IF EXISTS " + schema))
+      .mapEmpty();
   }
     
-  static Future<Void> postTenant() {
+  public static Future<Void> postTenant() {
     try {
       TenantAttributes ta = new TenantAttributes();
       ta.setModuleTo("mod-login-saml-2.0");
-      TenantClient tenantClient = new TenantClient("http://localhost:" + PORT, TENANT, null, webClient);
+      TenantClient tenantClient = new TenantClient("http://localhost:" + MODULE_PORT, TENANT, null, webClient);
       return TenantInit.exec(tenantClient, ta, 60000);
-      //return TenantInit.exec(tenantClient, ta, 120000);//BL
     } catch (Exception e) {
       e.printStackTrace(System.err);
       return Future.failedFuture(e);
     }
   }
 
+  public static int setPreferredPort(int port) {
+    int localPort = port;
+    if (!NetworkUtils.isLocalPortFree(localPort))
+      localPort = NetworkUtils.nextFreePort();
+    return localPort;
+  }
 }
