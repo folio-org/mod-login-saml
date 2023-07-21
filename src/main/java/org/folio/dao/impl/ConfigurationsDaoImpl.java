@@ -23,7 +23,8 @@ import static java.lang.String.format;
  */
 public class ConfigurationsDaoImpl implements ConfigurationsDao {
 	private static final Logger LOGGER = LogManager.getLogger(ConfigurationsDaoImpl.class);
-	
+  private static final String ERROR_MESSAGE_STRING = "errorMessage : %s";
+  
 	public static final String CONFIGURATION_TABLE = "configuration";
 
 	private static void verifyOkapiHeaders(OkapiHeaders okapiHeaders) throws MissingHeaderException {
@@ -38,8 +39,6 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
       throw new MissingHeaderException(MISSING_TOKEN);
     }
 	}
-
-	public ConfigurationsDaoImpl() {}
 
 	private Future<SamlConfiguration> getConfigurationMigration(Vertx vertx, OkapiHeaders okapiHeaders) {
     
@@ -58,12 +57,12 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
 		}
 		if(localLength > 1) {
 	    String errorMessage = String.format("Migration: TotalRecords are not unique. Instead the number is : %s", Integer.toString(localLength));
-	    LOGGER.error("errorMessage", errorMessage);
+	    LOGGER.error(ERROR_MESSAGE_STRING, errorMessage);
 	    return Future.failedFuture(new IllegalArgumentException(errorMessage));
 		}
 		return ConfigurationsClient.getConfiguration(vertx, okapiHeaders)
 	    .compose(result -> storeEntry(vertx, okapiHeaders, result))
-      .onFailure(cause -> LOGGER.warn("There is an empty local DB", cause.getMessage()));
+      .onFailure(cause -> LOGGER.warn("There is an empty local DB : %s", cause.getMessage()));
 	}
 
   @Override
@@ -83,26 +82,26 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
 		verifyOkapiHeaders(okapiHeaders);
 		return PostgresClient.getInstance(vertx, okapiHeaders.getTenant())
 	    .get(CONFIGURATION_TABLE, SamlConfiguration.class, new Criterion(), true)
-	    .compose(results -> localFutureGetConfiguration(results, vertx, okapiHeaders, isPut));
+	    .compose(results -> localFutureGetConfiguration(results, isPut));
 	}
 	
-	private Future<SamlConfiguration> localFutureGetConfiguration(Results<SamlConfiguration> results, Vertx vertx, OkapiHeaders okapiHeaders, boolean isPut) {
+  private Future<SamlConfiguration> localFutureGetConfiguration(Results<SamlConfiguration> results, boolean isPut) {
     
 		int localLength = results.getResultInfo().getTotalRecords();
 		if(localLength == 1) {
 			return Future.succeededFuture(results.getResults().get(0));
 		} else if(localLength == 0) {
-      if (isPut)
-				return Future.succeededFuture(new SamlConfiguration());
-      else
-      {
-        String warnMessage = "There is an empty DB";
-        LOGGER.warn(warnMessage);
-        return Future.failedFuture(warnMessage);
-      }
+        if (isPut)
+          return Future.succeededFuture(new SamlConfiguration());
+        else
+        {
+          String warnMessage = "There is an empty DB";
+          LOGGER.warn(warnMessage);
+          return Future.failedFuture(warnMessage);
+        }
 		} else {
 	    String errorMessage = String.format("TotalRecords are not unique. The number is : %s", Integer.toString(localLength));
-	    LOGGER.error("errorMessage", errorMessage);
+	    LOGGER.error(ERROR_MESSAGE_STRING, errorMessage);
 	    return Future.failedFuture(new IllegalArgumentException(errorMessage));
 		}
 	}
@@ -146,10 +145,10 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
          case SamlConfiguration.SAML_ATTRIBUTE_CODE: result.setSamlAttribute(value);
            break;
          case SamlConfiguration.USER_PROPERTY_CODE: result.setUserProperty(value);
-           
+           break;
          default: {
            String errorMessage = String.format("Switch: Incorrect code. The code value is : %s", code);
-           LOGGER.error("errorMessage", errorMessage);
+           LOGGER.error(ERROR_MESSAGE_STRING, errorMessage);
            throw new IllegalArgumentException(errorMessage);}
          }
          return storeEntry(vertx, okapiHeaders, result);
