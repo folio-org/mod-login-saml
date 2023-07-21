@@ -11,7 +11,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SamlConfiguration {
 
-  public static final String ID_CODE = "id";   //BL 
+  public static final String ID_CODE = "id";   
   public static final String KEYSTORE_FILE_CODE = "keystore.file";
   public static final String KEYSTORE_PASSWORD_CODE = "keystore.password"; // NOSONAR
   public static final String KEYSTORE_PRIVATEKEY_PASSWORD_CODE = "keystore.privatekey.password"; // NOSONAR
@@ -23,8 +23,9 @@ public class SamlConfiguration {
   public static final String METADATA_INVALIDATED_CODE = "metadata.invalidated";
   public static final String OKAPI_URL= "okapi.url";
 
-  @JsonProperty(ID_CODE)  //BL
-  private String id;  //BL
+
+  @JsonProperty(ID_CODE)  
+  private String id; 
   @JsonProperty(IDP_URL_CODE)
   private String idpUrl;
   @JsonProperty(KEYSTORE_FILE_CODE)
@@ -62,7 +63,15 @@ public class SamlConfiguration {
   public void setId(String id) { 
     this.id = id;
   }
-    
+
+  public String getIdpMetadata() {
+    return idpMetadata;
+  }
+
+  public void setIdpMetadata(String idpMetadata) {
+    this.idpMetadata = idpMetadata;
+  }
+  
   public String getIdpUrl() {
     return idpUrl;
   }
@@ -87,6 +96,22 @@ public class SamlConfiguration {
     this.keystorePassword = keystorePassword;
   }
 
+  public String getMetadataInvalidated() {
+    return metadataInvalidated;
+  }
+
+  public void setMetadataInvalidated(String metadataInvalidated) {
+    this.metadataInvalidated = metadataInvalidated;
+  }
+
+  public String getOkapiUrl() {
+    return okapiUrl;
+  }
+
+  public void setOkapiUrl(String okapiUrl) {
+    this.okapiUrl = okapiUrl;
+  }
+  
   public String getPrivateKeyPassword() {
     return privateKeyPassword;
   }
@@ -117,28 +142,5 @@ public class SamlConfiguration {
 
   public void setUserProperty(String userProperty) {
     this.userProperty = userProperty;
-  }
-
-  public String getMetadataInvalidated() {
-    return metadataInvalidated;
-  }
-
-  public void setMetadataInvalidated(String metadataInvalidated) {
-    this.metadataInvalidated = metadataInvalidated;
-  }
-  public String getOkapiUrl() {
-    return okapiUrl;
-  }
-
-  public void setOkapiUrl(String okapiUrl) {
-    this.okapiUrl = okapiUrl;
-  }
-
-  public String getIdpMetadata() {
-    return idpMetadata;
-  }
-
-  public void setIdpMetadata(String idpMetadata) {
-    this.idpMetadata = idpMetadata;
   }
 }
