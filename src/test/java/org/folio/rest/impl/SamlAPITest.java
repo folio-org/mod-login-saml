@@ -93,7 +93,7 @@ public class SamlAPITest extends TestBase {
   private static final String STRIPES_URL = "http://localhost:3000";
 
   public static final int IDP_MOCK_PORT = NetworkUtils.nextFreePort();
-  private static final int JSON_MOCK_PORT = TestBase.setPreferredPort(9230);
+  private static final int JSON_MOCK_PORT = NetworkUtils.nextFreePort();
   private static final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", "http://localhost:" + JSON_MOCK_PORT);
 
   private static final MockJson mock = new MockJson();
@@ -107,7 +107,7 @@ public class SamlAPITest extends TestBase {
 
   @BeforeClass
   public static void setupOnce(TestContext context) {
-    RestAssured.port = MODULE_PORT;
+    RestAssured.port = TestBase.MODULE_PORT;
     RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
 
     DeploymentOptions idpOptions = new DeploymentOptions()
