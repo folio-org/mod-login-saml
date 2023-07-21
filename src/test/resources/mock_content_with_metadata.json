@@ -41,13 +41,14 @@
             "code": "saml.binding",
             "value": "POST"
           },
-          {
+            {
             "id": "717bf1d1-a5a3-460f-a0de-29e6b70a0027",
             "module": "LOGIN-SAML",
             "configName": "saml",
             "code": "metadata.invalidated",
             "value": "false"
-          },{
+          },
+          {
             "id": "cb20fa86-affb-4488-8b37-2e8c597fff66",
             "module": "LOGIN-SAML",
             "configName": "saml",
