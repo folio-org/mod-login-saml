@@ -12,6 +12,8 @@ import org.apache.logging.log4j.Logger;
 import org.folio.config.model.SAML2ClientMock;
 import org.folio.config.model.SamlClientComposite;
 import org.folio.config.model.SamlConfiguration;
+import org.folio.dao.ConfigurationsDao;
+import org.folio.dao.impl.ConfigurationsDaoImpl;
 import org.folio.util.OkapiHelper;
 import org.folio.util.model.OkapiHeaders;
 import org.opensaml.saml.common.xml.SAMLConstants;
@@ -38,18 +40,18 @@ public class SamlClientLoader {
 
   public static final String CALLBACK_ENDPOINT = "/saml/callback";
   private static final Logger log = LogManager.getLogger(SamlClientLoader.class);
-
   private SamlClientLoader() {
-
   }
 
+  
   public static Future<SamlClientComposite> loadFromConfiguration(RoutingContext routingContext,
     boolean generateMissingKeyStore, Context vertxContext) {
     OkapiHeaders okapiHeaders = OkapiHelper.okapiHeaders(routingContext);
     final String tenantId = okapiHeaders.getTenant();
-
+    ConfigurationsDao configurationsDao = new ConfigurationsDaoImpl();
     Vertx vertx = vertxContext.owner();
-    return ConfigurationsClient.getConfiguration(vertx, okapiHeaders)
+    
+    return configurationsDao.getConfiguration(vertx, okapiHeaders, false)
       .compose(samlConfiguration -> {
         final String idpUrl = samlConfiguration.getIdpUrl();
         final String keystore = samlConfiguration.getKeystore();
@@ -83,7 +85,7 @@ public class SamlClientLoader {
             saml2Client.init();
             blockingHandler.complete();
           }).compose(res ->
-            storeKeystore(okapiHeaders, vertx, keystoreFileName, actualKeystorePassword, actualPrivateKeyPassword)
+            storeKeystore(okapiHeaders, vertx, keystoreFileName, actualKeystorePassword, actualPrivateKeyPassword, configurationsDao)
               .map(keystoreBytes -> {
                 ByteArrayResource keystoreResource = new ByteArrayResource(keystoreBytes.getBytes());
                 try {
@@ -119,7 +121,7 @@ public class SamlClientLoader {
    * complete returned future with original file bytes.
    */
   private static Future<Buffer> storeKeystore(OkapiHeaders okapiHeaders, Vertx vertx, String keystoreFileName,
-    String keystorePassword, String privateKeyPassword) {
+    String keystorePassword, String privateKeyPassword, ConfigurationsDao configurationsDao) {
 
     // read generated jks file
     return vertx.fileSystem().readFile(keystoreFileName).compose(fileResult -> {
@@ -129,19 +131,19 @@ public class SamlClientLoader {
 
       // store in mod-configuration with passwords, wait for all operations to finish
       return CompositeFuture.all(
-          ConfigurationsClient.storeEntry(vertx, okapiHeaders,
-            SamlConfiguration.KEYSTORE_FILE_CODE, encodedBytes.toString(StandardCharsets.UTF_8)),
-          ConfigurationsClient.storeEntry(vertx, okapiHeaders,
-            SamlConfiguration.KEYSTORE_PASSWORD_CODE, keystorePassword),
-          ConfigurationsClient.storeEntry(vertx, okapiHeaders,
-            SamlConfiguration.KEYSTORE_PRIVATEKEY_PASSWORD_CODE, privateKeyPassword),
-          ConfigurationsClient.storeEntry(vertx, okapiHeaders,
-            SamlConfiguration.METADATA_INVALIDATED_CODE, "true") // if keystore modified, current metadata is invalid.
+        configurationsDao.storeEntry(vertx, okapiHeaders,
+          SamlConfiguration.KEYSTORE_FILE_CODE, encodedBytes.toString(StandardCharsets.UTF_8)),
+        configurationsDao.storeEntry(vertx, okapiHeaders,
+          SamlConfiguration.KEYSTORE_PASSWORD_CODE, keystorePassword),
+        configurationsDao.storeEntry(vertx, okapiHeaders,
+          SamlConfiguration.KEYSTORE_PRIVATEKEY_PASSWORD_CODE, privateKeyPassword),
+        configurationsDao.storeEntry(vertx, okapiHeaders,
+          SamlConfiguration.METADATA_INVALIDATED_CODE, "true") // if keystore modified, current metadata is invalid.
         )
         .compose(res -> vertx.fileSystem().delete(keystoreFileName))
         .map(x -> Buffer.buffer(rawBytes));
-    });
-  }
+      });
+  }  
 
 
   private static SAML2Client configureSaml2Client(String okapiUrl, String tenantId, String idpUrl,
