@@ -16,7 +16,6 @@ import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -386,9 +385,7 @@ public class SamlAPI implements Saml {
       .onSuccess(checkValuesHandler -> {
         OkapiHeaders parsedHeaders = OkapiHelper.okapiHeaders(okapiHeaders);
         configurationsDao.getConfiguration(vertxContext.owner(), parsedHeaders, true)
-          .compose(config -> {
-             return storeUpdatedSamlConfiguration(rc, parsedHeaders, updateSamlConfiguration(config, updatedConfig), vertxContext);
-          })
+          .compose(config -> storeUpdatedSamlConfiguration(rc, parsedHeaders, updateSamlConfiguration(config, updatedConfig), vertxContext))
           .onFailure(cause -> {
             log.error(cause.getMessage(), cause);
             asyncResultHandler.handle(Future.succeededFuture(
@@ -617,24 +614,16 @@ public class SamlAPI implements Saml {
     });
 
     result.setSamlBinding(config.getSamlBinding());
-    ConfigEntryUtil.valueChanged(config.getSamlBinding(), updatedConfig.getSamlBinding().toString(), samlBindingCode -> {
-        result.setSamlBinding(samlBindingCode);
-	  });
+    ConfigEntryUtil.valueChanged(config.getSamlBinding(), updatedConfig.getSamlBinding().toString(), result::setSamlBinding);
 
     result.setSamlAttribute(config.getSamlAttribute());
-    ConfigEntryUtil.valueChanged(config.getSamlAttribute(), updatedConfig.getSamlAttribute(), samlAttribute -> {
-        result.setSamlAttribute(samlAttribute);
-	  });
+    ConfigEntryUtil.valueChanged(config.getSamlAttribute(), updatedConfig.getSamlAttribute(), result::setSamlAttribute);
     
     result.setUserProperty(config.getUserProperty());
-    ConfigEntryUtil.valueChanged(config.getUserProperty(), updatedConfig.getUserProperty(), userProperty -> {
-        result.setUserProperty(userProperty);
-	  });
+    ConfigEntryUtil.valueChanged(config.getUserProperty(), updatedConfig.getUserProperty(), result::setUserProperty);
 
     result.setIdpMetadata(config.getIdpMetadata());
-    ConfigEntryUtil.valueChanged(config.getSamlAttribute(), updatedConfig.getIdpMetadata(), idpMetadata -> {
-        result.setIdpMetadata(idpMetadata);
-	  });
+    ConfigEntryUtil.valueChanged(config.getSamlAttribute(), updatedConfig.getIdpMetadata(), result::setIdpMetadata);
 	    
     result.setOkapiUrl(config.getOkapiUrl());			     
     ConfigEntryUtil.valueChanged(config.getOkapiUrl(), updatedConfig.getOkapiUrl().toString(), okapiUrl -> {
