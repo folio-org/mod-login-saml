@@ -36,7 +36,7 @@ public class TestBase {
     PostgresClient.setPostgresTester(new PostgresTesterContainer());
     vertx = Vertx.vertx();
     //vertx = Vertx.vertx(new VertxOptions().setBlockedThreadCheckInterval(600000).setMaxEventLoopExecuteTime(600000));
-    MODULE_PORT = setPreferredPort(9231);
+    MODULE_PORT = NetworkUtils.nextFreePort();//setPreferredPort(9231);
     MODULE_URL = "http://localhost:" + MODULE_PORT;
       
     WebClientOptions webClientOptions = new WebClientOptions().setDefaultPort(MODULE_PORT);
