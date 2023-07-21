@@ -46,7 +46,6 @@ import io.vertx.ext.web.sstore.impl.SharedDataSessionImpl;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-//import org.folio.config.ConfigurationsClient;
 import org.folio.config.SamlClientLoader;
 import org.folio.config.SamlConfigHolder;
 import org.folio.config.model.SamlClientComposite;
@@ -101,7 +100,7 @@ public class SamlAPI implements Saml {
       super(message);
     }
   }
-
+	
   public static class ForbiddenException extends RuntimeException {
     public ForbiddenException(String message) {
       super(message);
@@ -123,7 +122,7 @@ public class SamlAPI implements Saml {
             GetSamlCheckResponse.respond200WithApplicationJson(new SamlCheck().withActive(samlClientHandler.succeeded()))
           )));
   }
-
+	
 
   @Override
   public void postSamlLogin(SamlLoginRequest requestEntity, RoutingContext routingContext, Map<String, String> okapiHeaders,
@@ -341,21 +340,20 @@ public class SamlAPI implements Saml {
 
     regenerateSaml2Config(routingContext, vertxContext)
       .compose(metadata ->
-	       //ConfigurationsClient.storeEntry(vertxContext.owner(), OkapiHelper.okapiHeaders(okapiHeaders),
-	   configurationsDao.storeEntryMetadataInvalidated(vertxContext.owner(), OkapiHelper.okapiHeaders(okapiHeaders),
-            SamlConfiguration.METADATA_INVALIDATED_CODE, "false")
-          .map(configurationEntryStoredEvent ->
-            new SamlRegenerateResponse().withFileContent(Base64Util.encode(metadata))
+			  configurationsDao.storeEntry(vertxContext.owner(), OkapiHelper.okapiHeaders(okapiHeaders),
+          SamlConfiguration.METADATA_INVALIDATED_CODE, "false")
+        .map(configurationEntryStoredEvent ->
+          new SamlRegenerateResponse().withFileContent(Base64Util.encode(metadata))
           )
-      )
+        )
       .onSuccess(res ->
         asyncResultHandler.handle(Future.succeededFuture(GetSamlRegenerateResponse.respond200WithApplicationJson(res)))
-      )
+        )
       .onFailure(cause -> {
-        log.error(cause.getMessage(), cause);
-        asyncResultHandler
-          .handle(Future.succeededFuture(GetSamlRegenerateResponse.respond500WithTextPlain(cause.getMessage())));
-      });
+          log.error(cause.getMessage(), cause);
+          asyncResultHandler
+            .handle(Future.succeededFuture(GetSamlRegenerateResponse.respond500WithTextPlain(cause.getMessage())));
+        });
   }
 
   @Override
@@ -363,16 +361,16 @@ public class SamlAPI implements Saml {
     Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
       configurationsDao.getConfiguration(vertxContext.owner(), OkapiHelper.okapiHeaders(okapiHeaders), false)
-      .onFailure(cause -> {
-        log.warn("Cannot load configuration", cause);
-        asyncResultHandler.handle(
-          Future.succeededFuture(
-            GetSamlConfigurationResponse.respond500WithTextPlain("Cannot get configuration")));
-      })
-      .onSuccess(result ->
+        .onFailure(cause -> {
+            log.warn("Cannot load configuration", cause);
+            asyncResultHandler.handle(
+              Future.succeededFuture(
+                GetSamlConfigurationResponse.respond500WithTextPlain("Cannot get configuration")));
+        })
+        .onSuccess(result ->
           asyncResultHandler.handle(
             Future.succeededFuture(GetSamlConfigurationResponse.respond200WithApplicationJson(configToDto(result)))
-      ));
+        ));
   }
 
 
@@ -389,7 +387,7 @@ public class SamlAPI implements Saml {
         OkapiHeaders parsedHeaders = OkapiHelper.okapiHeaders(okapiHeaders);
         configurationsDao.getConfiguration(vertxContext.owner(), parsedHeaders, true)
           .compose(config -> {
-		  return storeUpdatedSamlConfiguration(rc, parsedHeaders, updateSamlConfiguration(config, updatedConfig), vertxContext);
+             return storeUpdatedSamlConfiguration(rc, parsedHeaders, updateSamlConfiguration(config, updatedConfig), vertxContext);
           })
           .onFailure(cause -> {
             log.error(cause.getMessage(), cause);
@@ -402,11 +400,12 @@ public class SamlAPI implements Saml {
   }
 
   private Future<SamlConfig> storeUpdatedSamlConfiguration(RoutingContext rc, OkapiHeaders parsedHeaders,
-						SamlConfiguration samlConfigurationUpdated, Context vertxContext) {
-      return configurationsDao.storeSamlConfiguration(vertxContext.owner(), parsedHeaders, samlConfigurationUpdated)
-	  .compose(configurationSavedEvent ->
-	       findSaml2Client(rc, true, true, vertxContext))
-	  .map(configurationLoadEvent -> configToDto(configurationLoadEvent.getConfiguration())
+    SamlConfiguration samlConfigurationUpdated, Context vertxContext) {
+    
+    return configurationsDao.storeSamlConfiguration(vertxContext.owner(), parsedHeaders, samlConfigurationUpdated)
+      .compose(configurationSavedEvent ->
+        findSaml2Client(rc, true, true, vertxContext))
+      .map(configurationLoadEvent -> configToDto(configurationLoadEvent.getConfiguration())
       );
   }
 
@@ -605,49 +604,48 @@ public class SamlAPI implements Saml {
     return userPropertyName + "==" + StringUtil.cqlEncode(value);
   }
 
-    private SamlConfiguration updateSamlConfiguration(SamlConfiguration config, SamlConfigRequest updatedConfig) {
-	SamlConfiguration result = new SamlConfiguration();
+  private SamlConfiguration updateSamlConfiguration(SamlConfiguration config, SamlConfigRequest updatedConfig) {
+    SamlConfiguration result = new SamlConfiguration();
 
-	result.setId(config.getId());
+    result.setId(config.getId());
 	
-	result.setIdpUrl(config.getIdpUrl());
-	result.setMetadataInvalidated(config.getMetadataInvalidated());
-	ConfigEntryUtil.valueChanged(config.getIdpUrl(), updatedConfig.getIdpUrl().toString(), idpUrl -> {
-		result.setIdpUrl(idpUrl);
-		result.setMetadataInvalidated("true");
-		});
+    result.setIdpUrl(config.getIdpUrl());
+    result.setMetadataInvalidated(config.getMetadataInvalidated());
+    ConfigEntryUtil.valueChanged(config.getIdpUrl(), updatedConfig.getIdpUrl().toString(), idpUrl -> {
+        result.setIdpUrl(idpUrl);
+        result.setMetadataInvalidated("true");
+    });
 
-	result.setSamlBinding(config.getSamlBinding());
-	ConfigEntryUtil.valueChanged(config.getSamlBinding(), updatedConfig.getSamlBinding().toString(), samlBindingCode -> {
-		result.setSamlBinding(samlBindingCode);
-	    });
+    result.setSamlBinding(config.getSamlBinding());
+    ConfigEntryUtil.valueChanged(config.getSamlBinding(), updatedConfig.getSamlBinding().toString(), samlBindingCode -> {
+        result.setSamlBinding(samlBindingCode);
+	  });
 
-	result.setSamlAttribute(config.getSamlAttribute());
-        ConfigEntryUtil.valueChanged(config.getSamlAttribute(), updatedConfig.getSamlAttribute(), samlAttribute -> {
-		result.setSamlAttribute(samlAttribute);
-	    });
-
-	result.setUserProperty(config.getUserProperty());
-        ConfigEntryUtil.valueChanged(config.getUserProperty(), updatedConfig.getUserProperty(), userProperty -> {
-		result.setUserProperty(userProperty);
-	    });
-
-	result.setIdpMetadata(config.getIdpMetadata());
-	ConfigEntryUtil.valueChanged(config.getSamlAttribute(), updatedConfig.getIdpMetadata(), idpMetadata -> {
-              result.setIdpMetadata(idpMetadata);
-	    });
-	    
-	result.setOkapiUrl(config.getOkapiUrl());			     
-	ConfigEntryUtil.valueChanged(config.getOkapiUrl(), updatedConfig.getOkapiUrl().toString(), okapiUrl -> {
-		result.setOkapiUrl(okapiUrl);
-		result.setMetadataInvalidated("true");
-            });
-
-       result.setKeystore(config.getKeystore());	    
-       result.setKeystorePassword(config.getKeystorePassword());
-       result.setPrivateKeyPassword(config.getPrivateKeyPassword());
-	    
-       return result;
-    }
+    result.setSamlAttribute(config.getSamlAttribute());
+    ConfigEntryUtil.valueChanged(config.getSamlAttribute(), updatedConfig.getSamlAttribute(), samlAttribute -> {
+        result.setSamlAttribute(samlAttribute);
+	  });
     
+    result.setUserProperty(config.getUserProperty());
+    ConfigEntryUtil.valueChanged(config.getUserProperty(), updatedConfig.getUserProperty(), userProperty -> {
+        result.setUserProperty(userProperty);
+	  });
+
+    result.setIdpMetadata(config.getIdpMetadata());
+    ConfigEntryUtil.valueChanged(config.getSamlAttribute(), updatedConfig.getIdpMetadata(), idpMetadata -> {
+        result.setIdpMetadata(idpMetadata);
+	  });
+	    
+    result.setOkapiUrl(config.getOkapiUrl());			     
+    ConfigEntryUtil.valueChanged(config.getOkapiUrl(), updatedConfig.getOkapiUrl().toString(), okapiUrl -> {
+        result.setOkapiUrl(okapiUrl);
+        result.setMetadataInvalidated("true");
+    });
+
+    result.setKeystore(config.getKeystore());	    
+    result.setKeystorePassword(config.getKeystorePassword());
+    result.setPrivateKeyPassword(config.getPrivateKeyPassword());
+	  
+    return result;
+    }
 }
