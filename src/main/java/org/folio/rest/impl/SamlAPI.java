@@ -14,11 +14,7 @@ import static org.folio.rest.impl.ApiInitializer.MAX_FORM_ATTRIBUTE_SIZE;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
@@ -105,6 +101,11 @@ public class SamlAPI implements Saml {
     }
   }
 
+  public static class FetchTokenException extends RuntimeException {
+    public FetchTokenException(String message) {
+      super(message);
+    }
+  }
 
   /**
    * Check that client can be loaded, SAML-Login button can be displayed.
@@ -256,6 +257,7 @@ public class SamlAPI implements Saml {
               throw new ForbiddenException("Inactive user account!");
             }
             JsonObject payload = new JsonObject().put("payload", new JsonObject().put("sub", userObject.getString("username")).put("user_id", userId));
+
             return webClient.postAbs(parsedHeaders.getUrl() + "/token")
               .putHeader(XOkapiHeaders.TOKEN, parsedHeaders.getToken())
               .putHeader(XOkapiHeaders.URL, parsedHeaders.getUrl())
@@ -305,6 +307,33 @@ public class SamlAPI implements Saml {
         log.error(cause.getMessage(), cause);
         asyncResultHandler.handle(Future.succeededFuture(response));
       });
+  }
+
+  private Future<String> fetchToken(WebClient client, JsonObject payload, String tenant,
+                                    String okapiURL, String requestToken) {
+    return
+      fetchToken(client, payload, tenant, okapiURL, requestToken, "/token/sign", "accessToken")
+        .compose(token -> token != null ? Future.succeededFuture(token) :
+          fetchToken(client, payload, tenant, okapiURL, requestToken, "/token", "token"));
+  }
+
+  private Future<String> fetchToken(WebClient client, JsonObject payload, String tenant,
+                                    String okapiURL, String requestToken, String endpoint, String key) {
+    try {
+      var request = client.postAbs(okapiURL + endpoint);
+      request.putHeader(XOkapiHeaders.TENANT, tenant).putHeader(XOkapiHeaders.TOKEN, requestToken);
+      return request.sendJson(new JsonObject().put("payload", payload)).map(response -> {
+        if (response.statusCode() == 404) {
+          throw new FetchTokenException("Token endpoint is not available: " + endpoint);
+        }
+        if (response.statusCode() != 200 && response.statusCode() != 201) {
+          throw new FetchTokenException("Got response unexpected " + response.statusCode() + " fetching token");
+        }
+        return response.bodyAsJsonObject().getString(key);
+      });
+    } catch (Exception e) {
+      return Future.failedFuture(e);
+    }
   }
 
   /**
