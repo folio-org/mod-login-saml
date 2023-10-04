@@ -44,6 +44,7 @@ import io.vertx.ext.web.client.predicate.ResponsePredicate;
 import io.vertx.ext.web.impl.Utils;
 import io.vertx.ext.web.sstore.impl.SharedDataSessionImpl;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.config.ConfigurationsClient;
@@ -311,7 +312,12 @@ public class SamlAPI implements Saml {
       });
   }
 
-  private Future<JsonObject> fetchToken(WebClient client, JsonObject payload, String tenant, String okapiURL, String requestToken, String endpoint) {
+  @Override
+  public void postSamlCallbackWithExpiry(String body, RoutingContext routingContext, Map<String, String> okapiHeaders,
+                               Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+  }
+
+    private Future<JsonObject> fetchToken(WebClient client, JsonObject payload, String tenant, String okapiURL, String requestToken, String endpoint) {
     HttpRequest<Buffer> request = client.postAbs(okapiURL + endpoint);
 
     request
@@ -680,6 +686,12 @@ public class SamlAPI implements Saml {
 
   @Override
   public void optionsSamlCallback(RoutingContext routingContext, Map<String, String> okapiHeaders,
+      Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    handleOptions(routingContext);
+  }
+
+  @Override
+  public void optionsSamlCallbackWithExpiry(RoutingContext routingContext, Map<String, String> okapiHeaders,
       Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
     handleOptions(routingContext);
   }

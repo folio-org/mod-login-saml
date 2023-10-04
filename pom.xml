@@ -38,7 +38,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
     <raml-module-builder-version>35.0.6</raml-module-builder-version>
-    <generate_routing_context>/saml/callback,/saml/regenerate,/saml/login,/saml/check,/saml/configuration
+    <generate_routing_context>/saml/callback,/saml/callback-with-expiry,/saml/regenerate,/saml/login,/saml/check,/saml/configuration
     </generate_routing_context>
 
     <aspectj.version>1.9.19</aspectj.version>
