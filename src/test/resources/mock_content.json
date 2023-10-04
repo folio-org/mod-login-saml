@@ -169,12 +169,9 @@
       "url": "/token",
       "method": "post",
       "status": 200,
-      "headers": [
-        {
-          "name": "x-okapi-token",
-          "value": "saml-token"
-        }
-      ]
+      "receivedData": {
+        "token": "saml-token"
+      }
     }
   ]
 }

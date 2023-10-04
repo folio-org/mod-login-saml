@@ -14,8 +14,10 @@ import static org.folio.rest.impl.ApiInitializer.MAX_FORM_ATTRIBUTE_SIZE;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.*;
 
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
@@ -25,7 +27,9 @@ import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.Cookie;
+import io.vertx.core.http.CookieSameSite;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
@@ -34,6 +38,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.PRNG;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.Session;
+import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.predicate.ResponsePredicate;
 import io.vertx.ext.web.impl.Utils;
@@ -88,6 +93,19 @@ public class SamlAPI implements Saml {
   private static final Logger log = LogManager.getLogger(SamlAPI.class);
   public static final String CSRF_TOKEN = "csrfToken";
   public static final String RELAY_STATE = "relayState";
+  private static final String TOKEN_SIGN_ENDPOINT_LEGACY = "/token";
+  private static final String TOKEN_SIGN_ENDPOINT = "/token/sign";
+  public static final String SET_COOKIE = "Set-Cookie";
+  public static final String COOKIE_SAME_SITE_LAX = "Lax";
+  public static final String COOKIE_SAME_SITE_NONE = "None";
+  public static final String REFRESH_TOKEN = "refreshToken";
+  public static final String ACCESS_TOKEN = "accessToken";
+  public static final String FOLIO_ACCESS_TOKEN = "folioAccessToken";
+  public static final String FOLIO_REFRESH_TOKEN = "folioRefreshToken";
+  public static final String REFRESH_TOKEN_EXPIRATION = "refreshTokenExpiration";
+  public static final String ACCESS_TOKEN_EXPIRATION = "accessTokenExpiration";
+  public static final String COOKIE_SAME_SITE = "login.cookie.samesite";
+  public static final String COOKIE_SAME_SITE_ENV = "LOGIN_COOKIE_SAMESITE";
 
   public static class UserErrorException extends RuntimeException {
     public UserErrorException(String message) {
@@ -258,25 +276,9 @@ public class SamlAPI implements Saml {
             }
             JsonObject payload = new JsonObject().put("payload", new JsonObject().put("sub", userObject.getString("username")).put("user_id", userId));
 
-            return webClient.postAbs(parsedHeaders.getUrl() + "/token")
-              .putHeader(XOkapiHeaders.TOKEN, parsedHeaders.getToken())
-              .putHeader(XOkapiHeaders.URL, parsedHeaders.getUrl())
-              .putHeader(XOkapiHeaders.TENANT, parsedHeaders.getTenant())
-              .sendJsonObject(payload)
-              .map(tokenResponse -> {
-                String candidateAuthToken;
-                if (tokenResponse.statusCode() == 200) {
-                  candidateAuthToken = tokenResponse.getHeader(XOkapiHeaders.TOKEN);
-                } else if (tokenResponse.statusCode() == 201) { //mod-authtoken v2.x returns 201, with token in JSON response body
-                  try {
-                    candidateAuthToken = tokenResponse.bodyAsJsonObject().getString("token");
-                  } catch (Exception e) {
-                    throw new RuntimeException(e.getMessage());
-                  }
-                } else {
-                  throw new RuntimeException("POST /token returned " + tokenResponse.statusCode());
-                }
-                final String authToken = candidateAuthToken;
+            return fetchToken(webClient, payload, parsedHeaders.getTenant(), parsedHeaders.getUrl(),  parsedHeaders.getToken(), TOKEN_SIGN_ENDPOINT_LEGACY).map(jsonResponse -> {
+
+              String authToken = jsonResponse.getString("token");
 
                 final String location = UriBuilder.fromUri(stripesBaseUrl)
                   .path("sso-landing")
@@ -309,31 +311,101 @@ public class SamlAPI implements Saml {
       });
   }
 
-  private Future<String> fetchToken(WebClient client, JsonObject payload, String tenant,
-                                    String okapiURL, String requestToken) {
-    return
-      fetchToken(client, payload, tenant, okapiURL, requestToken, "/token/sign", "accessToken")
-        .compose(token -> token != null ? Future.succeededFuture(token) :
-          fetchToken(client, payload, tenant, okapiURL, requestToken, "/token", "token"));
+  private Future<JsonObject> fetchToken(WebClient client, JsonObject payload, String tenant, String okapiURL, String requestToken, String endpoint) {
+    HttpRequest<Buffer> request = client.postAbs(okapiURL + endpoint);
+
+    request
+      .putHeader(XOkapiHeaders.TENANT, tenant)
+      .putHeader(XOkapiHeaders.TOKEN, requestToken)
+      .putHeader(XOkapiHeaders.URL, okapiURL);
+
+    return request.sendJson(payload).map(response -> {
+      if (response.statusCode() != 200 && response.statusCode() != 201) {
+        throw new FetchTokenException("Got response " + response.statusCode() + " fetching token");
+      }
+
+      return response.bodyAsJsonObject();
+    });
   }
 
-  private Future<String> fetchToken(WebClient client, JsonObject payload, String tenant,
-                                    String okapiURL, String requestToken, String endpoint, String key) {
-    try {
-      var request = client.postAbs(okapiURL + endpoint);
-      request.putHeader(XOkapiHeaders.TENANT, tenant).putHeader(XOkapiHeaders.TOKEN, requestToken);
-      return request.sendJson(new JsonObject().put("payload", payload)).map(response -> {
-        if (response.statusCode() == 404) {
-          throw new FetchTokenException("Token endpoint is not available: " + endpoint);
-        }
-        if (response.statusCode() != 200 && response.statusCode() != 201) {
-          throw new FetchTokenException("Got response unexpected " + response.statusCode() + " fetching token");
-        }
-        return response.bodyAsJsonObject().getString(key);
-      });
-    } catch (Exception e) {
-      return Future.failedFuture(e);
+  private Response tokenResponse(JsonObject tokens) {
+    String accessToken = tokens.getString(ACCESS_TOKEN);
+    String refreshToken = tokens.getString(REFRESH_TOKEN);
+    String accessTokenExpiration = tokens.getString(ACCESS_TOKEN_EXPIRATION);
+    String refreshTokenExpiration = tokens.getString(REFRESH_TOKEN_EXPIRATION);
+    // Use the ResponseBuilder rather than RMB-generated code. We need to do this because
+    // RMB generated-code does not allow multiple headers with the same key -- which is what we need
+    // here.
+    var body = new JsonObject()
+      .put(ACCESS_TOKEN_EXPIRATION, accessTokenExpiration)
+      .put(REFRESH_TOKEN_EXPIRATION, refreshTokenExpiration)
+      .toString();
+    return Response.status(201)
+      .header(SET_COOKIE, accessTokenCookie(accessToken, accessTokenExpiration))
+      .header(SET_COOKIE, refreshTokenCookie(refreshToken, refreshTokenExpiration))
+      .type(MediaType.APPLICATION_JSON)
+      .entity(body)
+      .build();
+  }
+
+  private String refreshTokenCookie(String refreshToken, String refreshTokenExpiration) {
+    // The refresh token expiration is the time after which the token will be considered expired.
+    var exp = Instant.parse(refreshTokenExpiration).getEpochSecond();
+    var ttlSeconds = exp - Instant.now().getEpochSecond();
+
+    // RFC 6265 mandates that MaxAge is >= 1: https://datatracker.ietf.org/doc/html/rfc6265#page-9
+    if (ttlSeconds < 1) {
+      throw new FetchTokenException("MaxAge of cookie is < 1. This is not permitted.");
     }
+
+    var rtCookie = Cookie.cookie(FOLIO_REFRESH_TOKEN, refreshToken)
+      .setMaxAge(ttlSeconds)
+      .setSecure(true)
+      .setPath("/authn")
+      .setHttpOnly(true)
+      .setSameSite(getSameSiteAttribute())
+      .setDomain(null)
+      .encode();
+
+    log.debug("refreshToken cookie: {}", rtCookie);
+
+    return rtCookie;
+  }
+
+  private String accessTokenCookie(String accessToken, String accessTokenExpiration) {
+    // The refresh token expiration is the time after which the token will be considered expired.
+    var exp = Instant.parse(accessTokenExpiration).getEpochSecond();
+    var ttlSeconds = exp - Instant.now().getEpochSecond();
+
+    // RFC 6265 mandates that MaxAge is >= 1: https://datatracker.ietf.org/doc/html/rfc6265#page-9
+    if (ttlSeconds < 1) {
+      throw new FetchTokenException("MaxAge of cookie is < 1. This is not permitted.");
+    }
+
+    var atCookie = Cookie.cookie(FOLIO_ACCESS_TOKEN, accessToken)
+      .setMaxAge(ttlSeconds)
+      .setSecure(true)
+      .setPath("/")
+      .setHttpOnly(true)
+      .setSameSite(getSameSiteAttribute())
+      .encode();
+
+    log.debug("accessToken cookie: {}", atCookie);
+
+    return atCookie;
+  }
+
+  private CookieSameSite getSameSiteAttribute() {
+    return isSameSiteLax() ? CookieSameSite.LAX : CookieSameSite.NONE;
+  }
+
+  private boolean isSameSiteLax() {
+    if (System.getProperty(COOKIE_SAME_SITE) != null &&
+      System.getProperty(COOKIE_SAME_SITE).equals(COOKIE_SAME_SITE_LAX)) {
+      return true;
+    }
+    return System.getenv(COOKIE_SAME_SITE_ENV) != null &&
+      System.getenv(COOKIE_SAME_SITE_ENV).equals(COOKIE_SAME_SITE_LAX);
   }
 
   /**

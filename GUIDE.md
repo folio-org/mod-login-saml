@@ -21,7 +21,7 @@ Examples:
 
 ### SP metadata
 
-An XML file that describes the Service Point's configuration like successful login callback URL, and the encryption keys.
+An XML file that describes the Service Provider's configuration like successful login callback URL, and the encryption keys.
 
 ### SAML binding
 
