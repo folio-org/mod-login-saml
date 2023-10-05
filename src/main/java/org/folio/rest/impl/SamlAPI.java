@@ -119,6 +119,12 @@ public class SamlAPI implements Saml {
     }
   }
 
+  public static class UnsupportedUserPropertyException extends RuntimeException {
+    public UnsupportedUserPropertyException(String message) {
+      super(message);
+    }
+  }
+
   /**
    * Check that client can be loaded, SAML-Login button can be displayed.
    */
@@ -212,6 +218,13 @@ public class SamlAPI implements Saml {
                                Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
     doPostSamlCallback(body, routingContext, okapiHeaders, asyncResultHandler, vertxContext, TOKEN_SIGN_ENDPOINT_LEGACY);
   }
+
+  @Override
+  public void postSamlCallbackWithExpiry(String body, RoutingContext routingContext, Map<String, String> okapiHeaders,
+                                         Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
+    doPostSamlCallback(body, routingContext, okapiHeaders, asyncResultHandler, vertxContext, TOKEN_SIGN_ENDPOINT);
+  }
+
   private void doPostSamlCallback(String body, RoutingContext routingContext, Map<String, String> okapiHeaders,
     Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext, String tokenSignEndpoint) {
 
@@ -243,82 +256,87 @@ public class SamlAPI implements Saml {
       .compose(samlClientComposite -> {
         final SAML2Client client = samlClientComposite.getClient();
         final SamlConfiguration configuration = samlClientComposite.getConfiguration();
-        final String userPropertyName =
-          configuration.getUserProperty() == null ? "externalSystemId" : configuration.getUserProperty();
-        final SAML2Credentials credentials = (SAML2Credentials) client.getCredentials(webContext, sessionStore).get();
-        final String samlAttributeValue =
-          getSamlAttributeValue(configuration.getSamlAttribute(), credentials.getUserProfile());
-        final String usersCql = getCqlUserQuery(userPropertyName, samlAttributeValue);
-        final String userQuery = UriBuilder.fromPath("/users").queryParam("query", usersCql).build().toString();
-
         OkapiHeaders parsedHeaders = OkapiHelper.okapiHeaders(okapiHeaders);
-
         WebClient webClient = WebClientFactory.getWebClient(vertxContext.owner());
-        return webClient.getAbs(parsedHeaders.getUrl() + userQuery)
-          .putHeader(XOkapiHeaders.TOKEN, parsedHeaders.getToken())
-          .putHeader(XOkapiHeaders.URL, parsedHeaders.getUrl())
-          .putHeader(XOkapiHeaders.TENANT, parsedHeaders.getTenant())
-          .expect(ResponsePredicate.SC_OK)
-          .expect(ResponsePredicate.JSON)
-          .send()
-          .compose(res -> {
-            JsonArray users = res.bodyAsJsonObject().getJsonArray("users");
-            if (users.isEmpty()) {
-              String message = "No user found by " + userPropertyName + " == " + samlAttributeValue;
-              throw new UserErrorException(message);
-            }
-            final JsonObject userObject = users.getJsonObject(0);
-            String userId = userObject.getString("id");
-            if (!userObject.getBoolean("active", false)) {
-              throw new ForbiddenException("Inactive user account!");
-            }
-            JsonObject payload = new JsonObject().put("payload", new JsonObject().put("sub", userObject.getString("username")).put("user_id", userId));
 
-            return fetchToken(webClient, payload, parsedHeaders.getTenant(), parsedHeaders.getUrl(),
-                parsedHeaders.getToken(), tokenSignEndpoint).map(jsonResponse -> {
-              if (isLegacyResponse(tokenSignEndpoint)) {
-                return redirectResponseLegacy(jsonResponse, stripesBaseUrl, originalUrl);
-              } else {
-                return redirectResponse(jsonResponse, stripesBaseUrl, originalUrl);
-              }
-            });
+        return getUsersResponse(webClient, configuration, webContext, client, sessionStore, parsedHeaders)
+            .compose(userObject -> {
+          String userId = userObject.getString("id");
+          if (Boolean.FALSE.equals(userObject.getBoolean("active", false))) {
+            throw new ForbiddenException("Inactive user account!");
+          }
+          JsonObject payload = new JsonObject().put("payload",
+            new JsonObject().put("sub", userObject.getString("username")).put("user_id", userId));
+
+          return fetchToken(webClient, payload, parsedHeaders, tokenSignEndpoint).map(jsonResponse -> {
+            if (isLegacyResponse(tokenSignEndpoint)) {
+              return redirectResponseLegacy(jsonResponse, stripesBaseUrl, originalUrl);
+            } else {
+              return redirectResponse(jsonResponse, stripesBaseUrl, originalUrl);
+            }
           });
+        });
       })
-      .onSuccess(response ->
-        asyncResultHandler.handle(Future.succeededFuture(response))
-      )
+      .onSuccess(response -> asyncResultHandler.handle(Future.succeededFuture(response)))
       .onFailure(cause -> {
-        PostSamlCallbackResponse response;
-        if (cause instanceof ForbiddenException) {
-          response = PostSamlCallbackResponse.respond403WithTextPlain(cause.getMessage());
-        } else if (cause instanceof UserErrorException) {
-          response = PostSamlCallbackResponse.respond400WithTextPlain(cause.getMessage());
-        } else {
-          removeSaml2Client(routingContext);
-          response = PostSamlCallbackResponse.respond500WithTextPlain(cause.getMessage());
-        }
-        log.error(cause.getMessage(), cause);
+        var response = failCallbackResponse(cause, routingContext);
         asyncResultHandler.handle(Future.succeededFuture(response));
       });
   }
 
-  @Override
-  public void postSamlCallbackWithExpiry(String body, RoutingContext routingContext, Map<String, String> okapiHeaders,
-                               Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    throw new UnsupportedOperationException();
+  private Future<JsonObject> getUsersResponse(WebClient webClient, SamlConfiguration configuration,
+                                              VertxWebContext webContext, SAML2Client client, SessionStore sessionStore,
+                                              OkapiHeaders parsedHeaders) {
+    final String userPropertyName =
+      configuration.getUserProperty() == null ? "externalSystemId" : configuration.getUserProperty();
+    final SAML2Credentials credentials = (SAML2Credentials) client.getCredentials(webContext, sessionStore).get();
+    final String samlAttributeValue =
+      getSamlAttributeValue(configuration.getSamlAttribute(), credentials.getUserProfile());
+    final String usersCql = getCqlUserQuery(userPropertyName, samlAttributeValue);
+    final String userQuery = UriBuilder.fromPath("/users").queryParam("query", usersCql).build().toString();
+
+    return webClient.getAbs(parsedHeaders.getUrl() + userQuery)
+      .putHeader(XOkapiHeaders.TOKEN, parsedHeaders.getToken())
+      .putHeader(XOkapiHeaders.URL, parsedHeaders.getUrl())
+      .putHeader(XOkapiHeaders.TENANT, parsedHeaders.getTenant())
+      .expect(ResponsePredicate.SC_OK)
+      .expect(ResponsePredicate.JSON)
+      .send()
+      .map(res -> {
+        JsonArray users = res.bodyAsJsonObject().getJsonArray("users");
+        if (users.isEmpty()) {
+          String message = "No user found by " + userPropertyName + " == " + samlAttributeValue;
+          throw new UserErrorException(message);
+        }
+        return users.getJsonObject(0);
+      });
+  }
+
+  private PostSamlCallbackResponse failCallbackResponse(Throwable cause, RoutingContext routingContext) {
+    PostSamlCallbackResponse response;
+    if (cause instanceof ForbiddenException) {
+      response = PostSamlCallbackResponse.respond403WithTextPlain(cause.getMessage());
+    } else if (cause instanceof UserErrorException) {
+      response = PostSamlCallbackResponse.respond400WithTextPlain(cause.getMessage());
+    } else {
+      removeSaml2Client(routingContext);
+      response = PostSamlCallbackResponse.respond500WithTextPlain(cause.getMessage());
+    }
+    log.error(cause.getMessage(), cause);
+    return response;
   }
 
   private boolean isLegacyResponse(String endpoint) {
     return endpoint.equals(TOKEN_SIGN_ENDPOINT_LEGACY);
   }
 
-  private Future<JsonObject> fetchToken(WebClient client, JsonObject payload, String tenant, String okapiURL, String requestToken, String endpoint) {
-    HttpRequest<Buffer> request = client.postAbs(okapiURL + endpoint);
+  private Future<JsonObject> fetchToken(WebClient client, JsonObject payload, OkapiHeaders parsedHeaders, String endpoint) {
+    HttpRequest<Buffer> request = client.postAbs(parsedHeaders.getUrl() + endpoint);
 
     request
-      .putHeader(XOkapiHeaders.TENANT, tenant)
-      .putHeader(XOkapiHeaders.TOKEN, requestToken)
-      .putHeader(XOkapiHeaders.URL, okapiURL);
+      .putHeader(XOkapiHeaders.TENANT, parsedHeaders.getTenant())
+      .putHeader(XOkapiHeaders.TOKEN, parsedHeaders.getToken())
+      .putHeader(XOkapiHeaders.URL, parsedHeaders.getUrl());
 
     return request.sendJson(payload).map(response -> {
       if (response.statusCode() != 200 && response.statusCode() != 201) {
@@ -359,6 +377,7 @@ public class SamlAPI implements Saml {
       .build()
       .toString();
 
+    // NOTE RMB doesn't support sending multiple headers with the same key so we make our own response.
     return Response.status(302)
       .header(SET_COOKIE, accessTokenCookie(accessToken, accessTokenExpiration))
       .header(SET_COOKIE, refreshTokenCookie(refreshToken, refreshTokenExpiration))
