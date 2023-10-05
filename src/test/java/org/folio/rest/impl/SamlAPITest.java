@@ -500,6 +500,8 @@ public class SamlAPITest {
 
   @Test
   public void callbackEndpointTests() {
+    mock.setMockContent("mock_content_with_callback.json");
+
     final String testPath = "/test/path";
 
     log.info("=== Setup - POST /saml/login - need relayState and cookie ===");
@@ -672,6 +674,25 @@ public class SamlAPITest {
   }
 
   @Test
+  public void getConfigurationEndpointWithCallback() {
+    mock.setMockContent("mock_content_with_callback.json");
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .header(JSON_CONTENT_TYPE_HEADER)
+      .get("/saml/configuration")
+      .then()
+      .statusCode(200)
+      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"))
+      .body("idpUrl", equalTo("https://idp.ssocircle.com"))
+      .body("samlBinding", equalTo("POST"))
+      .body("callback", equalTo("callback"))
+      .body("metadataInvalidated", equalTo(Boolean.FALSE));
+  }
+
+
+  @Test
   public void putConfigurationEndpoint(TestContext context) {
     SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
       .withIdpUrl(URI.create("http://localhost:" + IDP_MOCK_PORT + "/xml"))
@@ -704,6 +725,33 @@ public class SamlAPITest {
       .withUserProperty("externalSystemId")
       .withIdpMetadata(readResourceToString("meta_test.xml"))
       .withOkapiUrl(URI.create("http://localhost:9130"));
+
+    String jsonString = Json.encode(samlConfigRequest);
+
+    // PUT
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .header(JSON_CONTENT_TYPE_HEADER)
+      .body(jsonString)
+      .put("/saml/configuration")
+      .then()
+      .statusCode(200)
+      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"));
+  }
+
+  @Test
+  public void putConfigurationWithCallback(TestContext context) {
+    mock.setMockContent("mock_content_with_callback.json");
+
+    SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
+      .withIdpUrl(URI.create("http://localhost:" + IDP_MOCK_PORT + "/xml"))
+      .withSamlAttribute("UserID")
+      .withSamlBinding(SamlConfigRequest.SamlBinding.POST)
+      .withUserProperty("externalSystemId")
+      .withOkapiUrl(URI.create("http://localhost:9130"))
+      .withCallback("callback");
 
     String jsonString = Json.encode(samlConfigRequest);
 

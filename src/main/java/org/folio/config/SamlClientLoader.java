@@ -59,6 +59,8 @@ public class SamlClientLoader {
         final Resource idpMetadata = samlConfiguration.getIdpMetadata() != null ?
           new ByteArrayResource(samlConfiguration.getIdpMetadata().getBytes()) : null;
         final String okapiUrl = samlConfiguration.getOkapiUrl();
+        final String callback = samlConfiguration.getCallback();
+        // TODO Check for null here and return login-with-expiry if needed for this.
 
         if (StringUtils.isBlank(idpUrl)) {
           return Future.failedFuture("There is no IdP configuration stored!");
@@ -112,7 +114,6 @@ public class SamlClientLoader {
         }
       });
   }
-
 
   /**
    * Store KeyStore (as Base64 string), KeyStorePassword and PrivateKeyPassword in mod-configuration,
@@ -198,6 +199,4 @@ public class SamlClientLoader {
   private static String buildCallbackUrl(String okapiUrl, String tenantId) {
     return okapiUrl + "/_/invoke/tenant/" + CommonHelper.urlEncode(tenantId) + CALLBACK_ENDPOINT;
   }
-
-
 }

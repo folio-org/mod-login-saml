@@ -545,6 +545,10 @@ public class SamlAPI implements Saml {
               updateEntries.put(SamlConfiguration.OKAPI_URL, okapiUrl);
               updateEntries.put(SamlConfiguration.METADATA_INVALIDATED_CODE, "true");
             });
+
+            ConfigEntryUtil.valueChanged(config.getCallback(), updatedConfig.getCallback(), callback ->
+              updateEntries.put(SamlConfiguration.SAML_CALLBACK, callback));
+
             return storeConfigEntries(rc, parsedHeaders, updateEntries, vertxContext);
           })
           .onFailure(cause -> {
@@ -683,6 +687,7 @@ public class SamlAPI implements Saml {
     SamlConfig samlConfig = new SamlConfig()
       .withSamlAttribute(config.getSamlAttribute())
       .withUserProperty(config.getUserProperty())
+      .withCallback(config.getCallback())
       .withMetadataInvalidated(Boolean.valueOf(config.getMetadataInvalidated()));
     try {
       URI uri = URI.create(config.getOkapiUrl());

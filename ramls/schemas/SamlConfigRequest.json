@@ -38,6 +38,11 @@
       "type": "string",
       "format": "uri",
       "required": true
+    },
+    "callback": {
+      "description": "Where the IDP should call back after login is successful. Either callback or callback-with-expiry. Defaults to callback-with-expiry if not present.",
+      "type": "string",
+      "required": false
     }
   }
 }
