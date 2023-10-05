@@ -22,7 +22,17 @@
       "receivedData": {
         "token": "saml-token"
       }
+    },
+    {
+      "url": "/token/sign",
+      "method": "post",
+      "status": 200,
+      "receivedData": {
+        "accessToken": "saml-access-token",
+        "refreshToken": "saml-refresh-token",
+        "accessTokenExpiration": "2050-10-05T20:19:33Z",
+        "refreshTokenExpiration": "2050-10-05T20:19:33Z"
+      }
     }
-
   ]
 }

@@ -27,7 +27,7 @@ public class SamlClientLoaderTest {
     Resource idpMetadata = new UrlResource("http://localhost:80");
     SAML2Client saml2Client = SamlClientLoader
       .configureSaml2Client(okaiUrl, tenantId, keystorePassword, privateKeyPassword, idpUrlResource,
-        keystoreResource, samlBinding, idpMetadata, Vertx.vertx().getOrCreateContext());
+        keystoreResource, samlBinding, idpMetadata, Vertx.vertx().getOrCreateContext(), "callback-with-expiry");
     Assert.assertNotNull(saml2Client);
   }
 }

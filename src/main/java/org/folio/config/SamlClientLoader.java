@@ -12,6 +12,7 @@ import org.apache.logging.log4j.Logger;
 import org.folio.config.model.SAML2ClientMock;
 import org.folio.config.model.SamlClientComposite;
 import org.folio.config.model.SamlConfiguration;
+import org.folio.rest.impl.SamlAPI;
 import org.folio.util.OkapiHelper;
 import org.folio.util.model.OkapiHeaders;
 import org.opensaml.saml.common.xml.SAMLConstants;
@@ -36,7 +37,8 @@ import org.springframework.core.io.Resource;
  */
 public class SamlClientLoader {
 
-  public static final String CALLBACK_ENDPOINT = "/saml/callback";
+  public static final String SAML = "/saml/";
+  public static final String CALLBACK_WITH_EXPIRY = "callback-with-expiry";
   private static final Logger log = LogManager.getLogger(SamlClientLoader.class);
 
   private SamlClientLoader() {
@@ -57,10 +59,10 @@ public class SamlClientLoader {
         final String privateKeyPassword = samlConfiguration.getPrivateKeyPassword();
         final String samlBinding = samlConfiguration.getSamlBinding();
         final Resource idpMetadata = samlConfiguration.getIdpMetadata() != null ?
-          new ByteArrayResource(samlConfiguration.getIdpMetadata().getBytes()) : null;
+            new ByteArrayResource(samlConfiguration.getIdpMetadata().getBytes()) : null;
         final String okapiUrl = samlConfiguration.getOkapiUrl();
-        final String callback = samlConfiguration.getCallback();
-        // TODO Check for null here and return login-with-expiry if needed for this.
+        final String callback = samlConfiguration.getCallback() == null ?
+            CALLBACK_WITH_EXPIRY : samlConfiguration.getCallback();
 
         if (StringUtils.isBlank(idpUrl)) {
           return Future.failedFuture("There is no IdP configuration stored!");
@@ -79,7 +81,7 @@ public class SamlClientLoader {
           final String keystoreFileName = "temp_" + randomFileName + ".jks";
 
           SAML2Client saml2Client = configureSaml2Client(okapiUrl, tenantId, idpUrl, actualKeystorePassword,
-            actualPrivateKeyPassword, keystoreFileName, samlBinding, idpMetadata,  vertxContext);
+            actualPrivateKeyPassword, keystoreFileName, samlBinding, idpMetadata,  vertxContext, callback);
 
           return vertx.executeBlocking(blockingHandler -> {
             saml2Client.init();
@@ -91,7 +93,8 @@ public class SamlClientLoader {
                 try {
                   UrlResource idpUrlResource = new UrlResource(idpUrl);
                   SAML2Client reinitedSaml2Client = configureSaml2Client(okapiUrl, tenantId, actualKeystorePassword,
-                    actualPrivateKeyPassword, idpUrlResource, keystoreResource, samlBinding, idpMetadata, vertxContext);
+                    actualPrivateKeyPassword, idpUrlResource, keystoreResource, samlBinding, idpMetadata, vertxContext,
+                    callback);
 
                   return new SamlClientComposite(reinitedSaml2Client, samlConfiguration);
                 } catch (MalformedURLException e) {
@@ -106,7 +109,7 @@ public class SamlClientLoader {
         try {
           UrlResource idpUrlResource = new UrlResource(idpUrl);
           SAML2Client saml2Client = configureSaml2Client(okapiUrl, tenantId, keystorePassword, privateKeyPassword,
-            idpUrlResource, keystoreResource, samlBinding, idpMetadata, vertxContext);
+            idpUrlResource, keystoreResource, samlBinding, idpMetadata, vertxContext, callback);
 
           return Future.succeededFuture(new SamlClientComposite(saml2Client, samlConfiguration));
         } catch (MalformedURLException e) {
@@ -146,8 +149,9 @@ public class SamlClientLoader {
 
 
   private static SAML2Client configureSaml2Client(String okapiUrl, String tenantId, String idpUrl,
-    String keystorePassword, String actualPrivateKeyPassword, String keystoreFileName, String samlBinding, Resource idpMetadata,
-    Context vertxContext) {
+                                                  String keystorePassword, String actualPrivateKeyPassword,
+                                                  String keystoreFileName, String samlBinding, Resource idpMetadata,
+                                                  Context vertxContext, String callback) {
 
     final SAML2Configuration cfg = new SAML2Configuration(keystoreFileName,
       keystorePassword,
@@ -158,10 +162,13 @@ public class SamlClientLoader {
     }
     cfg.setMaximumAuthenticationLifetime(18000);
 
-    return assembleSaml2Client(okapiUrl, tenantId, cfg, samlBinding, vertxContext);
+    return assembleSaml2Client(okapiUrl, tenantId, cfg, samlBinding, vertxContext, callback);
   }
 
-  protected static SAML2Client configureSaml2Client(String okapiUrl, String tenantId, String keystorePassword, String privateKeyPassword, UrlResource idpUrlResource, ByteArrayResource keystoreResource, String samlBinding, Resource idpMetadata, Context vertxContext) {
+  protected static SAML2Client configureSaml2Client(String okapiUrl, String tenantId, String keystorePassword,
+                                                    String privateKeyPassword, UrlResource idpUrlResource,
+                                                    ByteArrayResource keystoreResource, String samlBinding,
+                                                    Resource idpMetadata, Context vertxContext, String callback) {
 
     final SAML2Configuration byteArrayCfg = new SAML2Configuration(keystoreResource,
       keystorePassword,
@@ -172,11 +179,11 @@ public class SamlClientLoader {
     }
     byteArrayCfg.setMaximumAuthenticationLifetime(18000);
 
-    return assembleSaml2Client(okapiUrl, tenantId, byteArrayCfg, samlBinding, vertxContext);
+    return assembleSaml2Client(okapiUrl, tenantId, byteArrayCfg, samlBinding, vertxContext, callback);
   }
 
   private static SAML2Client assembleSaml2Client(String okapiUrl, String tenantId, SAML2Configuration cfg,
-    String samlBinding, Context vertxContext) {
+    String samlBinding, Context vertxContext, String callback) {
 
     if ("REDIRECT".equals(samlBinding)) {
       cfg.setAuthnRequestBindingType(SAMLConstants.SAML2_REDIRECT_BINDING_URI);
@@ -188,7 +195,7 @@ public class SamlClientLoader {
     Boolean mock = vertxContext.config().getBoolean("mock", false);
     SAML2Client saml2Client = Boolean.TRUE.equals(mock) ? new SAML2ClientMock(cfg) : new SAML2Client(cfg);
     saml2Client.setName(tenantId);
-    saml2Client.setCallbackUrl(buildCallbackUrl(okapiUrl, tenantId));
+    saml2Client.setCallbackUrl(buildCallbackUrl(okapiUrl, tenantId, callback));
     saml2Client.setRedirectionActionBuilder(new JsonReponseSaml2RedirectActionBuilder(saml2Client));
     saml2Client.setStateGenerator(new SAML2StateGenerator(saml2Client));
 
@@ -196,7 +203,7 @@ public class SamlClientLoader {
     return saml2Client;
   }
 
-  private static String buildCallbackUrl(String okapiUrl, String tenantId) {
-    return okapiUrl + "/_/invoke/tenant/" + CommonHelper.urlEncode(tenantId) + CALLBACK_ENDPOINT;
+  private static String buildCallbackUrl(String okapiUrl, String tenantId, String callback) {
+    return okapiUrl + "/_/invoke/tenant/" + CommonHelper.urlEncode(tenantId) + SAML + callback;
   }
 }
