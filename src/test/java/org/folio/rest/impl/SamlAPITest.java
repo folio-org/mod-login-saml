@@ -851,8 +851,8 @@ public class SamlAPITest {
         .domain(is(nullValue())) // Not setting domain disables subdomains.
         .sameSite(sameSite))
       .header("Location", containsString(PercentCodec.encodeAsString(testPath)))
-      .header("Location", containsString("accessToken"))
-      .header("Location", containsString("refreshToken"));
+      .header("Location", containsString(SamlAPI.ACCESS_TOKEN_EXPIRATION))
+      .header("Location", containsString(SamlAPI.REFRESH_TOKEN_EXPIRATION));
   }
 
   void postSamlLogin(int expectedStatus) {
@@ -965,7 +965,7 @@ public class SamlAPITest {
   }
 
   @Test
-  public void putConfigurationLegacy(TestContext context) {
+  public void putConfiguration_Legacy() {
     mock.setMockContent("mock_content_legacy.json");
 
     SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
@@ -975,6 +975,33 @@ public class SamlAPITest {
       .withUserProperty("externalSystemId")
       .withOkapiUrl(URI.create("http://localhost:9130"))
       .withCallback("callback");
+
+    String jsonString = Json.encode(samlConfigRequest);
+
+    // PUT
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .header(JSON_CONTENT_TYPE_HEADER)
+      .body(jsonString)
+      .put("/saml/configuration")
+      .then()
+      .statusCode(200)
+      .body("callback", equalTo("callback"))
+      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"));
+  }
+
+  @Test
+  public void putConfiguration() {
+    mock.setMockContent("mock_content.json");
+
+    SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
+      .withIdpUrl(URI.create("http://localhost:" + IDP_MOCK_PORT + "/xml"))
+      .withSamlAttribute("UserID")
+      .withSamlBinding(SamlConfigRequest.SamlBinding.POST)
+      .withUserProperty("externalSystemId")
+      .withOkapiUrl(URI.create("http://localhost:9130"));
 
     String jsonString = Json.encode(samlConfigRequest);
 
@@ -1027,7 +1054,6 @@ public class SamlAPITest {
       .contentType(ContentType.TEXT)
       .body(containsString("Cannot get configuration"));
   }
-
 
   @Test
   public void regenerateEndpointNoIdP() {

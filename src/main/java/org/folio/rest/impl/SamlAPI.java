@@ -372,8 +372,8 @@ public class SamlAPI implements Saml {
     final String location = UriBuilder.fromUri(stripesBaseUrl)
       .path("sso-landing")
       .queryParam("fwd", originalUrl.getPath())
-      .queryParam(ACCESS_TOKEN, URLEncoder.encode(accessTokenExpiration, StandardCharsets.UTF_8))
-      .queryParam(REFRESH_TOKEN, URLEncoder.encode(refreshTokenExpiration, StandardCharsets.UTF_8))
+      .queryParam(ACCESS_TOKEN_EXPIRATION, URLEncoder.encode(accessTokenExpiration, StandardCharsets.UTF_8))
+      .queryParam(REFRESH_TOKEN_EXPIRATION, URLEncoder.encode(refreshTokenExpiration, StandardCharsets.UTF_8))
       .build()
       .toString();
 

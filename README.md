@@ -35,8 +35,7 @@ Endpoints are documented in [RAML file](ramls/saml-login.raml)
 
 ### Environment variables and system properties
 
-`TRUST_ALL_CERTIFICATES`: if value is `true` then HTTPS certificates not checked. This is a security issue in
-production environment, use it for testing only! Default value is `false`.
+`TRUST_ALL_CERTIFICATES`: if value is `true` then HTTPS certificates not checked. This is a security issue in production environment, use it for testing only! Default value is `false`.
 
 `SAML_COOKIE_SAMESITE`: Set to `Lax` if domain for front end and backend are the same for a more secure cookie (default value `None` if this environment variable is not set).
 
