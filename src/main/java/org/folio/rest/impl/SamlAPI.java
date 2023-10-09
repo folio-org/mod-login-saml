@@ -98,8 +98,8 @@ public class SamlAPI implements Saml {
   public static final String FOLIO_REFRESH_TOKEN = "folioRefreshToken";
   public static final String REFRESH_TOKEN_EXPIRATION = "refreshTokenExpiration";
   public static final String ACCESS_TOKEN_EXPIRATION = "accessTokenExpiration";
-  public static final String COOKIE_SAME_SITE = "login.cookie.samesite";
-  public static final String COOKIE_SAME_SITE_ENV = "LOGIN_COOKIE_SAMESITE";
+  public static final String COOKIE_SAME_SITE = "saml.cookie.samesite";
+  public static final String COOKIE_SAME_SITE_ENV = "SAML_COOKIE_SAMESITE";
 
   public static class UserErrorException extends RuntimeException {
     public UserErrorException(String message) {
@@ -339,7 +339,7 @@ public class SamlAPI implements Saml {
       .putHeader(XOkapiHeaders.URL, parsedHeaders.getUrl());
 
     return request.sendJson(payload).map(response -> {
-      if (response.statusCode() != 200 && response.statusCode() != 201) {
+      if (response.statusCode() != 201) {
         throw new FetchTokenException("Got response " + response.statusCode() + " fetching token");
       }
 

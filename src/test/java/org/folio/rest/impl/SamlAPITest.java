@@ -4,10 +4,8 @@ import static io.restassured.RestAssured.given;
 import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
 import static org.folio.util.Base64AwareXsdMatcher.matchesBase64XsdInClasspath;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.startsWith;
+import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.hasKey;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThrows;
@@ -19,6 +17,8 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
+
+import io.restassured.matcher.RestAssuredMatchers;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -104,6 +104,8 @@ public class SamlAPITest {
 
   @BeforeClass
   public static void setupOnce(TestContext context) {
+    System.clearProperty(SamlAPI.COOKIE_SAME_SITE);
+
     DeploymentOptions mockOptions = new DeploymentOptions()
       .setConfig(new JsonObject().put("http.port", IDP_MOCK_PORT))
       .setWorker(true);
@@ -334,12 +336,12 @@ public class SamlAPITest {
   }
 
   @Test
-  public void callbackIdpMetadataTest() {
+  public void callbackIdpMetadataTest_Legacy() {
     String origin = "http://localhost";
 
     log.info("=== Test Callback with right metadata - POST /saml/callback - success ===");
 
-    mock.setMockContent("mock_content_with_metadata.json");
+    mock.setMockContent("mock_content_with_metadata_legacy.json");
 
     given()
       .header(new Header(HttpHeaders.ORIGIN.toString(), origin))
@@ -355,8 +357,29 @@ public class SamlAPITest {
   }
 
   @Test
-  public void callbackIdpMetadataHttp2Test(TestContext context) {
+  public void callbackIdpMetadataTest() {
+    String origin = "http://localhost";
+
+    log.info("=== Test Callback with right metadata - POST /saml/callback-with-expiry - success ===");
+
     mock.setMockContent("mock_content_with_metadata.json");
+
+    given()
+      .header(new Header(HttpHeaders.ORIGIN.toString(), origin))
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .contentType(ContentType.URLENC)
+      .cookie(SamlAPI.RELAY_STATE, readResourceToString("relay_state.txt"))
+      .body(readResourceToString("saml_response.txt"))
+      .post("/saml/callback-with-expiry")
+      .then()
+      .statusCode(302);
+  }
+
+  @Test
+  public void callbackIdpMetadataHttp2Test_Legacy(TestContext context) {
+    mock.setMockContent("mock_content_with_metadata_legacy.json");
 
     WebClient.create(vertx)
     .post(PORT, "localhost", "/saml/callback")
@@ -372,7 +395,24 @@ public class SamlAPITest {
   }
 
   @Test
-  public void callbackCorsTests() {
+  public void callbackIdpMetadataHttp2Test(TestContext context) {
+    mock.setMockContent("mock_content_with_metadata.json");
+
+    WebClient.create(vertx)
+      .post(PORT, "localhost", "/saml/callback-with-expiry")
+      .putHeader("X-Okapi-Token", TENANT)
+      .putHeader("X-Okapi-Tenant", TENANT)
+      .putHeader("X-Okapi-Url", "http://localhost:" + JSON_MOCK_PORT)
+      .putHeader("Content-Type", "application/x-www-form-urlencoded")
+      .putHeader("Cookie", SamlAPI.RELAY_STATE + "=" + readResourceToString("relay_state.txt").trim())
+      .sendBuffer(Buffer.buffer(readResourceToString("saml_response.txt").trim()))
+      .onComplete(context.asyncAssertSuccess(response -> {
+        assertThat(response.statusMessage() + "\n" + response.bodyAsString(), response.statusCode(), is(302));
+      }));
+  }
+
+  @Test
+  public void callbackCorsTests_Legacy() {
     String origin = "http://localhost";
 
     log.info("=== Test CORS preflight - OPTIONS /saml/callback - success ===");
@@ -384,6 +424,25 @@ public class SamlAPITest {
       .header(ACCESS_CONTROL_REQ_HEADERS_HEADER)
       .header(ACCESS_CONTROL_REQUEST_METHOD_HEADER)
       .options("/saml/callback")
+      .then()
+      .statusCode(204)
+      .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN.toString(), equalTo(origin))
+      .header(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS.toString(), equalTo("true"));
+  }
+
+  @Test
+  public void callbackCorsTests() {
+    String origin = "http://localhost";
+
+    log.info("=== Test CORS preflight - OPTIONS /saml/callback - success ===");
+    given()
+      .header(new Header(HttpHeaders.ORIGIN.toString(), origin))
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .header(ACCESS_CONTROL_REQ_HEADERS_HEADER)
+      .header(ACCESS_CONTROL_REQUEST_METHOD_HEADER)
+      .options("/saml/callback-with-expiry")
       .then()
       .statusCode(204)
       .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN.toString(), equalTo(origin))
@@ -499,7 +558,7 @@ public class SamlAPITest {
   }
 
   @Test
-  public void callbackEndpointTestsLegacy() {
+  public void callbackEndpointTests_Legacy() {
     mock.setMockContent("mock_content_legacy.json");
 
     final String testPath = "/test/path";
@@ -629,7 +688,6 @@ public class SamlAPITest {
       .header("Location", containsString(PercentCodec.encodeAsString(testPath)))
       .header("x-okapi-token", "saml-token")
       .cookie("ssoToken", "saml-token");
-
   }
 
   @Test
@@ -669,6 +727,12 @@ public class SamlAPITest {
       .statusCode(302)
       .header("Location", containsString(PercentCodec.encodeAsString(testPath)));
 
+    testCookieResponse(cookie, relayState, testPath, SamlAPI.COOKIE_SAME_SITE_NONE);
+
+    System.setProperty(SamlAPI.COOKIE_SAME_SITE, SamlAPI.COOKIE_SAME_SITE_LAX);
+    testCookieResponse(cookie, relayState, testPath, SamlAPI.COOKIE_SAME_SITE_LAX);
+    System.clearProperty(SamlAPI.COOKIE_SAME_SITE);
+
     log.info("=== Test - POST /saml/callback-with-expiry - failure (wrong cookie) ===");
     given()
       .header(TENANT_HEADER)
@@ -702,7 +766,7 @@ public class SamlAPITest {
       .header(OKAPI_URL_HEADER)
       .formParam("SAMLResponse", "saml-response")
       .formParam("RelayState", relayState)
-      .post("/saml/callback")
+      .post("/saml/callback-with-expiry")
       .then()
       .statusCode(403)
       .body(is("CSRF attempt detected"));
@@ -761,6 +825,35 @@ public class SamlAPITest {
       .header("Location", containsString(PercentCodec.encodeAsString(testPath)));
   }
 
+  private void testCookieResponse(String cookie, String relayState, String testPath, String sameSite) {
+    RestAssured.given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .cookie(SamlAPI.RELAY_STATE, cookie)
+      .formParam("SAMLResponse", "saml-response")
+      .formParam("RelayState", relayState)
+      .post("/saml/callback-with-expiry")
+      .then()
+      .statusCode(302)
+      .cookie("folioRefreshToken", RestAssuredMatchers.detailedCookie()
+        .value("saml-refresh-token")
+        .path("/authn") // Refresh is restricted to this domain.
+        .httpOnly(true)
+        .secured(true)
+        .domain(is(nullValue())) // Not setting domain disables subdomains.
+        .sameSite(sameSite))
+      .cookie("folioAccessToken", RestAssuredMatchers.detailedCookie()
+        .value("saml-access-token")
+        .path("/") // Path must be set in this way for it to mean "all paths".
+        .httpOnly(true)
+        .secured(true)
+        .domain(is(nullValue())) // Not setting domain disables subdomains.
+        .sameSite(sameSite))
+      .header("Location", containsString(PercentCodec.encodeAsString(testPath)))
+      .header("Location", containsString("accessToken"))
+      .header("Location", containsString("refreshToken"));
+  }
 
   void postSamlLogin(int expectedStatus) {
     given()

@@ -81,7 +81,7 @@
     {
       "url": "/token",
       "method": "post",
-      "status": 200,
+      "status": 201,
       "receivedData": {
         "token": "saml-token"
       }

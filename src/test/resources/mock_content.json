@@ -168,7 +168,7 @@
     {
       "url": "/token/sign",
       "method": "post",
-      "status": 200,
+      "status": 201,
       "receivedData": {
         "accessToken": "saml-access-token",
         "refreshToken": "saml-refresh-token",
