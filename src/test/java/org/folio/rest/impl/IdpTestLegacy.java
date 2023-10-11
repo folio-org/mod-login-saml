@@ -40,8 +40,8 @@ import org.testcontainers.images.builder.ImageFromDockerfile;
  * Test against a real IDP: https://simplesamlphp.org/ running in a Docker container.
  */
 @RunWith(VertxUnitRunner.class)
-public class IdpTest {
-  private static final org.slf4j.Logger logger = LoggerFactory.getLogger(IdpTest.class);
+public class IdpTestLegacy {
+  private static final org.slf4j.Logger logger = LoggerFactory.getLogger(IdpTestLegacy.class);
   private static final boolean DEBUG = false;
   private static final ImageFromDockerfile simplesamlphp =
       new ImageFromDockerfile().withFileFromPath(".", Path.of("src/test/resources/simplesamlphp/"));
@@ -114,7 +114,7 @@ public class IdpTest {
   @Test
   public void post() {
     setIdpBinding("POST");
-    setOkapi("mock_idptest_post.json");
+    setOkapi("mock_idptest_post_legacy.json");
 
     for (int i = 0; i < 2; i++) {
       post0();
@@ -170,7 +170,7 @@ public class IdpTest {
   @Test
   public void redirect() {
     setIdpBinding("Redirect");
-    setOkapi("mock_idptest_redirect.json");
+    setOkapi("mock_idptest_redirect_legacy.json");
 
     for (int i = 0; i < 2; i++) {
       redirect0();
