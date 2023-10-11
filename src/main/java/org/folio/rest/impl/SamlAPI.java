@@ -243,8 +243,8 @@ public class SamlAPI implements Saml {
         "Invalid relay state url: " + relayState)));
       return;
     }
-    final URI originalUrl = relayStateUrl;
-    final URI stripesBaseUrl = UrlUtil.parseBaseUrl(originalUrl);
+    URI originalUrl = relayStateUrl;
+    URI stripesBaseUrl = UrlUtil.parseBaseUrl(originalUrl);
 
     Cookie relayStateCookie = routingContext.getCookie(RELAY_STATE);
     if (relayStateCookie == null || !relayState.contentEquals(relayStateCookie.getValue())) {
@@ -372,8 +372,8 @@ public class SamlAPI implements Saml {
     final String location = UriBuilder.fromUri(stripesBaseUrl)
       .path("sso-landing")
       .queryParam("fwd", originalUrl.getPath())
-      .queryParam(ACCESS_TOKEN_EXPIRATION, URLEncoder.encode(accessTokenExpiration, StandardCharsets.UTF_8))
-      .queryParam(REFRESH_TOKEN_EXPIRATION, URLEncoder.encode(refreshTokenExpiration, StandardCharsets.UTF_8))
+      .queryParam(ACCESS_TOKEN_EXPIRATION, accessTokenExpiration, StandardCharsets.UTF_8)
+      .queryParam(REFRESH_TOKEN_EXPIRATION, refreshTokenExpiration, StandardCharsets.UTF_8)
       .build()
       .toString();
 

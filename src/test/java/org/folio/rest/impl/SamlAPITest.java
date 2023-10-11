@@ -694,8 +694,6 @@ public class SamlAPITest {
   public void callbackEndpointTests() {
     final String testPath = "/test/path";
 
-    // TODO Make these work with new endpoint and new response.
-
     log.info("=== Setup - POST /saml/login - need relayState and cookie ===");
     ExtractableResponse<Response> resp = given()
       .header(TENANT_HEADER)
@@ -715,18 +713,6 @@ public class SamlAPITest {
     String relayState = resp.body().jsonPath().getString(SamlAPI.RELAY_STATE);
 
     log.info("=== Test - POST /saml/callback-with-expiry - success ===");
-    given()
-      .header(TENANT_HEADER)
-      .header(TOKEN_HEADER)
-      .header(OKAPI_URL_HEADER)
-      .cookie(SamlAPI.RELAY_STATE, cookie)
-      .formParam("SAMLResponse", "saml-response")
-      .formParam("RelayState", relayState)
-      .post("/saml/callback-with-expiry")
-      .then()
-      .statusCode(302)
-      .header("Location", containsString(PercentCodec.encodeAsString(testPath)));
-
     testCookieResponse(cookie, relayState, testPath, SamlAPI.COOKIE_SAME_SITE_NONE);
 
     System.setProperty(SamlAPI.COOKIE_SAME_SITE, SamlAPI.COOKIE_SAME_SITE_LAX);
@@ -852,7 +838,11 @@ public class SamlAPITest {
         .sameSite(sameSite))
       .header("Location", containsString(PercentCodec.encodeAsString(testPath)))
       .header("Location", containsString(SamlAPI.ACCESS_TOKEN_EXPIRATION))
-      .header("Location", containsString(SamlAPI.REFRESH_TOKEN_EXPIRATION));
+      .header("Location", containsString(SamlAPI.REFRESH_TOKEN_EXPIRATION))
+      .header("Location", both(containsString(PercentCodec.encodeAsString("2050-10-05T20:19:33Z")))
+        .and(containsString(PercentCodec.encodeAsString("2050-10-05T20:19:33Z"))))
+      .header("Location", containsString("fwd"))
+      .header("Location", containsString(PercentCodec.encodeAsString("/test/path")));
   }
 
   void postSamlLogin(int expectedStatus) {
