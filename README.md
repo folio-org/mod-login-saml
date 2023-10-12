@@ -39,8 +39,6 @@ Endpoints are documented in [RAML file](ramls/saml-login.raml)
 
 `SAML_COOKIE_SAMESITE`: Defaults to `Strict` if not present. Set to `Lax` or `None` for cross-site requests.
 
-`Lax` should only be used if the backend and frontend hosts are the same, otherwise the browser will reject the cookies. There is a corresponding system property `saml.cookie.samesite`.
-
 ### Sample users for samltest.id
 
 mod-users ships with three sample users that allow SSO login using
