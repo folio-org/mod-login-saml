@@ -4,7 +4,7 @@
   "provides": [
     {
       "id": "login-saml",
-      "version": "2.0",
+      "version": "2.1",
       "handlers": [
         {
           "methods": [
@@ -22,6 +22,19 @@
             "POST"
           ],
           "pathPattern": "/saml/callback",
+          "permissionsRequired": [],
+          "delegateCORS": true,
+          "modulePermissions": [
+            "auth.signtoken",
+            "configuration.entries.collection.get",
+            "users.collection.get"
+          ]
+        },
+        {
+          "methods": [
+            "POST"
+          ],
+          "pathPattern": "/saml/callback-with-expiry",
           "permissionsRequired": [],
           "delegateCORS": true,
           "modulePermissions": [

@@ -11,8 +11,9 @@ import static org.hamcrest.Matchers.containsString;
 
 public class SamlTestHelper {
 
-  public static void testCookieResponse(Cookie cookie, String relayState, String testPath, String sameSite, String samlResponse,
-                                        Header tenantHeader, Header tokenHeader, Header okapiUrlHeader) {
+  public static void testCookieResponse(Cookie cookie, String relayState, String testPath, String sameSite,
+                                        String samlResponse, Header tenantHeader, Header tokenHeader,
+                                        Header okapiUrlHeader) {
     RestAssured.given()
       .header(tenantHeader)
       .header(tokenHeader)
@@ -25,7 +26,7 @@ public class SamlTestHelper {
       .statusCode(302)
       .cookie("folioRefreshToken", RestAssuredMatchers.detailedCookie()
         .value("saml-refresh-token")
-        .path("/authn") // Refresh is restricted to this domain.
+        .path("/authn") // Refresh is restricted to this path.
         .httpOnly(true)
         .secured(true)
         .domain(is(nullValue())) // Not setting domain disables subdomains.

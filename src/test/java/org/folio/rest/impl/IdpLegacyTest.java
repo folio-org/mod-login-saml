@@ -40,8 +40,8 @@ import org.testcontainers.images.builder.ImageFromDockerfile;
  * Test against a real IDP: https://simplesamlphp.org/ running in a Docker container.
  */
 @RunWith(VertxUnitRunner.class)
-public class IdpTestLegacy {
-  private static final org.slf4j.Logger logger = LoggerFactory.getLogger(IdpTestLegacy.class);
+public class IdpLegacyTest {
+  private static final org.slf4j.Logger logger = LoggerFactory.getLogger(IdpLegacyTest.class);
   private static final boolean DEBUG = false;
   private static final ImageFromDockerfile simplesamlphp =
       new ImageFromDockerfile().withFileFromPath(".", Path.of("src/test/resources/simplesamlphp/"));

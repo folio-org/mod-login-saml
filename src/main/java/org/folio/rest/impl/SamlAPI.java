@@ -6,7 +6,6 @@ import static org.folio.rest.impl.ApiInitializer.MAX_FORM_ATTRIBUTE_SIZE;
 
 import java.io.InputStream;
 import java.net.URI;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.*;
@@ -119,8 +118,8 @@ public class SamlAPI implements Saml {
     }
   }
 
-  public static class UnsupportedUserPropertyException extends RuntimeException {
-    public UnsupportedUserPropertyException(String message) {
+  public static class UserFetchException extends RuntimeException {
+    public UserFetchException(String message) {
       super(message);
     }
   }
@@ -289,7 +288,10 @@ public class SamlAPI implements Saml {
                                               OkapiHeaders parsedHeaders) {
     final String userPropertyName =
       configuration.getUserProperty() == null ? "externalSystemId" : configuration.getUserProperty();
-    final SAML2Credentials credentials = (SAML2Credentials) client.getCredentials(webContext, sessionStore).get();
+    var credentialsOptional = client.getCredentials(webContext, sessionStore);
+    var credentials =
+      (SAML2Credentials) credentialsOptional.orElseThrow(() -> new NullPointerException("Saml credentials was null"));
+
     final String samlAttributeValue =
       getSamlAttributeValue(configuration.getSamlAttribute(), credentials.getUserProfile());
     final String usersCql = getCqlUserQuery(userPropertyName, samlAttributeValue);
@@ -768,7 +770,7 @@ public class SamlAPI implements Saml {
     // very sad that RMB does not have an option to reject fields with no index
     List<String> supported = List.of("barcode", "externalSystemId", "id", "username", "personal.email");
     if (!supported.contains(userPropertyName)) {
-      throw new RuntimeException("Unsupported user property: " + userPropertyName);
+      throw new UserFetchException("Unsupported user property: " + userPropertyName);
     }
     return userPropertyName + "==" + StringUtil.cqlEncode(value);
   }
