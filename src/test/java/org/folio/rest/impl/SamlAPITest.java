@@ -18,6 +18,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
 
+import io.restassured.http.Cookie;
 import io.restassured.matcher.RestAssuredMatchers;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
@@ -28,11 +29,9 @@ import org.folio.config.SamlConfigHolder;
 import org.folio.rest.RestVerticle;
 import org.folio.rest.impl.SamlAPI.UserErrorException;
 import org.folio.rest.jaxrs.model.SamlConfigRequest;
+import org.folio.rest.jaxrs.resource.Saml;
 import org.folio.rest.tools.utils.NetworkUtils;
-import org.folio.util.IdpMock;
-import org.folio.util.MockJson;
-import org.folio.util.PercentCodec;
-import org.folio.util.TestingClasspathResolver;
+import org.folio.util.*;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -710,13 +709,17 @@ public class SamlAPITest {
       .extract();
 
     String cookie = resp.cookie(SamlAPI.RELAY_STATE);
+    Cookie detailedCookie = resp.detailedCookie(SamlAPI.RELAY_STATE);
     String relayState = resp.body().jsonPath().getString(SamlAPI.RELAY_STATE);
+    String samlResponse = "saml-response";
 
     log.info("=== Test - POST /saml/callback-with-expiry - success ===");
-    testCookieResponse(cookie, relayState, testPath, SamlAPI.COOKIE_SAME_SITE_NONE);
+    SamlTestHelper.testCookieResponse(detailedCookie, relayState, testPath, SamlAPI.COOKIE_SAME_SITE_NONE, samlResponse,
+                                      TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
 
     System.setProperty(SamlAPI.COOKIE_SAME_SITE, SamlAPI.COOKIE_SAME_SITE_LAX);
-    testCookieResponse(cookie, relayState, testPath, SamlAPI.COOKIE_SAME_SITE_LAX);
+    SamlTestHelper.testCookieResponse(detailedCookie, relayState, testPath, SamlAPI.COOKIE_SAME_SITE_LAX, samlResponse,
+                                      TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
     System.clearProperty(SamlAPI.COOKIE_SAME_SITE);
 
     log.info("=== Test - POST /saml/callback-with-expiry - failure (wrong cookie) ===");
@@ -809,40 +812,6 @@ public class SamlAPITest {
       .then()
       .statusCode(302)
       .header("Location", containsString(PercentCodec.encodeAsString(testPath)));
-  }
-
-  private void testCookieResponse(String cookie, String relayState, String testPath, String sameSite) {
-    RestAssured.given()
-      .header(TENANT_HEADER)
-      .header(TOKEN_HEADER)
-      .header(OKAPI_URL_HEADER)
-      .cookie(SamlAPI.RELAY_STATE, cookie)
-      .formParam("SAMLResponse", "saml-response")
-      .formParam("RelayState", relayState)
-      .post("/saml/callback-with-expiry")
-      .then()
-      .statusCode(302)
-      .cookie("folioRefreshToken", RestAssuredMatchers.detailedCookie()
-        .value("saml-refresh-token")
-        .path("/authn") // Refresh is restricted to this domain.
-        .httpOnly(true)
-        .secured(true)
-        .domain(is(nullValue())) // Not setting domain disables subdomains.
-        .sameSite(sameSite))
-      .cookie("folioAccessToken", RestAssuredMatchers.detailedCookie()
-        .value("saml-access-token")
-        .path("/") // Path must be set in this way for it to mean "all paths".
-        .httpOnly(true)
-        .secured(true)
-        .domain(is(nullValue())) // Not setting domain disables subdomains.
-        .sameSite(sameSite))
-      .header("Location", containsString(PercentCodec.encodeAsString(testPath)))
-      .header("Location", containsString(SamlAPI.ACCESS_TOKEN_EXPIRATION))
-      .header("Location", containsString(SamlAPI.REFRESH_TOKEN_EXPIRATION))
-      .header("Location", both(containsString(PercentCodec.encodeAsString("2050-10-05T20:19:33Z")))
-        .and(containsString(PercentCodec.encodeAsString("2050-10-05T20:19:33Z"))))
-      .header("Location", containsString("fwd"))
-      .header("Location", containsString(PercentCodec.encodeAsString("/test/path")));
   }
 
   void postSamlLogin(int expectedStatus) {

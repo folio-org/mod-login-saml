@@ -13,6 +13,7 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.folio.config.SamlConfigHolder;
 import org.folio.rest.RestVerticle;
 import org.folio.util.MockJson;
+import org.folio.util.SamlTestHelper;
 import org.folio.util.StringUtil;
 import org.junit.*;
 import org.junit.runner.RunWith;
@@ -51,6 +52,9 @@ public class IdpTest {
   private static final String MODULE_URL = "http://localhost:" + MODULE_PORT;
   private static final int OKAPI_PORT = 9230;
   private static final String OKAPI_URL = "http://localhost:" + OKAPI_PORT;
+
+  private static final String TEST_PATH = "/test/path";
+
   private static int IDP_PORT;
   private static String IDP_BASE_URL;
   private static final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", OKAPI_URL);
@@ -122,7 +126,7 @@ public class IdpTest {
       .header(TOKEN_HEADER)
       .header(OKAPI_URL_HEADER)
       .header(JSON_CONTENT_TYPE_HEADER)
-      .body(jsonEncode("stripesUrl", STRIPES_URL))
+      .body(jsonEncode("stripesUrl", STRIPES_URL + TEST_PATH))
       .post("/saml/login")
       .then()
       .statusCode(200)
@@ -178,7 +182,7 @@ public class IdpTest {
       .header(TOKEN_HEADER)
       .header(OKAPI_URL_HEADER)
       .header(JSON_CONTENT_TYPE_HEADER)
-      .body(jsonEncode("stripesUrl", STRIPES_URL))
+      .body(jsonEncode("stripesUrl", STRIPES_URL + TEST_PATH))
       .when()
       .post("/saml/login")
       .then()
@@ -214,19 +218,8 @@ public class IdpTest {
     var matcher = Pattern.compile("name=\"SAMLResponse\" value=\"([^\"]+)").matcher(body);
     assertThat(matcher.find(), is(true));
 
-    given()
-      .header("X-Okapi-Url", OKAPI_URL)
-      .header("X-Okapi-Tenant", "diku")
-      .cookie(cookie)
-      .params("RelayState", relayState[1])
-      .params("SAMLResponse", matcher.group(1))
-      .when()
-      .post(MODULE_URL + "/saml/callback-with-expiry")
-      .then()
-      .statusCode(302)
-      .header("Location", startsWith("http://localhost:3000/sso-landing"))
-      .header("Location", containsString(SamlAPI.ACCESS_TOKEN_EXPIRATION))
-      .header("Location", containsString(SamlAPI.REFRESH_TOKEN_EXPIRATION));
+    SamlTestHelper.testCookieResponse(cookie, relayState[1], TEST_PATH, "None", matcher.group(1),
+                                      TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
   }
 
   private void setIdpBinding(String binding) {
