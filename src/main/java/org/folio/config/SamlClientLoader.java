@@ -38,6 +38,7 @@ public class SamlClientLoader {
 
   public static final String SAML = "/saml/";
   public static final String CALLBACK_WITH_EXPIRY = "callback-with-expiry";
+  public static final String CALLBACK = "callback";
   private static final Logger log = LogManager.getLogger(SamlClientLoader.class);
 
   public static class SamlIdpUrlFormationException extends RuntimeException {
@@ -46,12 +47,11 @@ public class SamlClientLoader {
     }
   }
 
-  public static class UserErrorException extends RuntimeException {
-    public UserErrorException(String message) {
+  public static class InvalidCallbackUrlException extends RuntimeException {
+    public InvalidCallbackUrlException(String message) {
       super(message);
     }
   }
-
 
   private SamlClientLoader() {}
 
@@ -102,12 +102,12 @@ public class SamlClientLoader {
                 ByteArrayResource keystoreResource = new ByteArrayResource(keystoreBytes.getBytes());
                 try {
                   UrlResource idpUrlResource = new UrlResource(idpUrl);
-                  var reinitedConfig = getSaml2ConfigurationForByteArrayResource(keystoreResource,
+                  var reinitializedConfig = getSaml2ConfigurationForByteArrayResource(keystoreResource,
                       actualKeystorePassword, actualPrivateKeyPassword, idpUrlResource, idpMetadata);
-                  var reinitedSaml2Client = assembleSaml2Client(okapiUrl, tenantId, reinitedConfig,
+                  var reinitializedSaml2Client = assembleSaml2Client(okapiUrl, tenantId, reinitializedConfig,
                       samlBinding, vertxContext, callback);
 
-                  return new SamlClientComposite(reinitedSaml2Client, samlConfiguration);
+                  return new SamlClientComposite(reinitializedSaml2Client, samlConfiguration);
                 } catch (MalformedURLException e) {
                   log.error("Saml IdP url was malformed", e);
                   throw new SamlIdpUrlFormationException(e.getMessage());
@@ -215,7 +215,15 @@ public class SamlClientLoader {
     return saml2Client;
   }
 
-  private static String buildCallbackUrl(String okapiUrl, String tenantId, String callback) {
-    return okapiUrl + "/_/invoke/tenant/" + CommonHelper.urlEncode(tenantId) + SAML + callback;
+  public static String buildCallbackUrl(String okapiUrl, String tenantId, String callback) {
+    if (isValidCallbackUrl(callback)) {
+      return okapiUrl + "/_/invoke/tenant/" + CommonHelper.urlEncode(tenantId) + SAML + callback;
+    }
+
+    throw new InvalidCallbackUrlException("Callback url is invalid");
+  }
+
+  protected static boolean isValidCallbackUrl(String callbackUrl)  {
+    return CALLBACK.equals(callbackUrl) || CALLBACK_WITH_EXPIRY.equals(callbackUrl);
   }
 }

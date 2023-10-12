@@ -25,6 +25,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.Optional;
+
+import org.folio.config.SamlClientLoader;
 import org.folio.config.SamlConfigHolder;
 import org.folio.rest.RestVerticle;
 import org.folio.rest.impl.SamlAPI.UserErrorException;
@@ -1147,4 +1149,26 @@ public class SamlAPITest {
       SamlAPI.getCqlUserQuery("externalsystemid", "user@saml.com"))
       .getMessage());
   }
+
+  @Test
+  public void invalidCallbackUrlThrowsException() {
+    assertThrows(SamlClientLoader.InvalidCallbackUrlException.class, () -> {
+      SamlClientLoader.buildCallbackUrl("url", "tenant", "abc");
+    });
+  }
+
+  @Test
+  public void isValidCallbackUrlWhenValid_Legacy() {
+    var callback = SamlClientLoader.buildCallbackUrl("okapi", "tenantId1", "callback");
+    var expectedCallback = "okapi/_/invoke/tenant/tenantId1/saml/callback";
+    assertEquals(expectedCallback, callback);
+  }
+
+  @Test
+  public void isValidCallbackUrlWhenValid() {
+    var callbackWithExpiry = SamlClientLoader.buildCallbackUrl("okapi", "tenantId1", "callback-with-expiry");
+    var expectedCallbackWithExpiry = "okapi/_/invoke/tenant/tenantId1/saml/callback-with-expiry";
+    assertEquals(expectedCallbackWithExpiry, callbackWithExpiry);
+  }
+
 }
