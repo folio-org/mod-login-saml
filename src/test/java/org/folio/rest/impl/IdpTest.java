@@ -7,6 +7,7 @@ import io.restassured.response.ExtractableResponse;
 import io.restassured.response.Response;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.CookieSameSite;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -218,8 +219,8 @@ public class IdpTest {
     var matcher = Pattern.compile("name=\"SAMLResponse\" value=\"([^\"]+)").matcher(body);
     assertThat(matcher.find(), is(true));
 
-    SamlTestHelper.testCookieResponse(cookie, relayState[1], TEST_PATH, "None", matcher.group(1),
-                                      TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
+    SamlTestHelper.testCookieResponse(cookie, relayState[1], TEST_PATH, CookieSameSite.STRICT.toString(),
+                                      matcher.group(1), TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
   }
 
   private void setIdpBinding(String binding) {

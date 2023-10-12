@@ -89,8 +89,6 @@ public class SamlAPI implements Saml {
   private static final String TOKEN_SIGN_ENDPOINT = "/token/sign";
   public static final String SET_COOKIE = "Set-Cookie";
   public static final String LOCATION = "Location";
-  public static final String COOKIE_SAME_SITE_LAX = "Lax";
-  public static final String COOKIE_SAME_SITE_NONE = "None";
   public static final String REFRESH_TOKEN = "refreshToken";
   public static final String ACCESS_TOKEN = "accessToken";
   public static final String FOLIO_ACCESS_TOKEN = "folioAccessToken";
@@ -360,7 +358,7 @@ public class SamlAPI implements Saml {
       .toString();
 
     final String cookie = new NewCookie("ssoToken",
-      authToken, "", originalUrl.getHost(), "", 3600, false).toString();
+      authToken, "", originalUrl.getHost(), "", 3600, true).toString();
     var headers = PostSamlCallbackResponse.headersFor302().withSetCookie(cookie).withXOkapiToken(authToken).withLocation(location);
     return PostSamlCallbackResponse.respond302(headers);
   }
@@ -435,16 +433,27 @@ public class SamlAPI implements Saml {
   }
 
   private CookieSameSite getSameSiteAttribute() {
-    return isSameSiteLax() ? CookieSameSite.LAX : CookieSameSite.NONE;
+    String sameSite = System.getenv(COOKIE_SAME_SITE_ENV);
+
+    if (sameSite == null) {
+      sameSite = System.getProperty(COOKIE_SAME_SITE);
+    }
+
+    if (sameSite == null) {
+      sameSite = CookieSameSite.STRICT.toString();
+    }
+
+    return valueOf(sameSite);
   }
 
-  private boolean isSameSiteLax() {
-    if (System.getProperty(COOKIE_SAME_SITE) != null &&
-      System.getProperty(COOKIE_SAME_SITE).equals(COOKIE_SAME_SITE_LAX)) {
-      return true;
+  static CookieSameSite valueOf(String label) {
+    for (var value : CookieSameSite.values()) {
+      if (value.toString().equals(label)) {
+        return value;
+      }
     }
-    return System.getenv(COOKIE_SAME_SITE_ENV) != null &&
-      System.getenv(COOKIE_SAME_SITE_ENV).equals(COOKIE_SAME_SITE_LAX);
+    throw new IllegalArgumentException("SAML_COOKIE_SAMESITE environment variable must be "
+      + "Strict, Lax or None, but found: " + label);
   }
 
   /**

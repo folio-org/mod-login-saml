@@ -20,6 +20,7 @@ import java.util.Objects;
 
 import io.restassured.http.Cookie;
 import io.restassured.matcher.RestAssuredMatchers;
+import io.vertx.core.http.CookieSameSite;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -716,12 +717,12 @@ public class SamlAPITest {
     String samlResponse = "saml-response";
 
     log.info("=== Test - POST /saml/callback-with-expiry - success ===");
-    SamlTestHelper.testCookieResponse(detailedCookie, relayState, testPath, SamlAPI.COOKIE_SAME_SITE_NONE, samlResponse,
-                                      TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
+    SamlTestHelper.testCookieResponse(detailedCookie, relayState, testPath, CookieSameSite.STRICT.toString(),
+                                      samlResponse, TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
 
-    System.setProperty(SamlAPI.COOKIE_SAME_SITE, SamlAPI.COOKIE_SAME_SITE_LAX);
-    SamlTestHelper.testCookieResponse(detailedCookie, relayState, testPath, SamlAPI.COOKIE_SAME_SITE_LAX, samlResponse,
-                                      TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
+    System.setProperty(SamlAPI.COOKIE_SAME_SITE, CookieSameSite.LAX.toString());
+    SamlTestHelper.testCookieResponse(detailedCookie, relayState, testPath, CookieSameSite.LAX.toString(),
+                                      samlResponse, TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
     System.clearProperty(SamlAPI.COOKIE_SAME_SITE);
 
     log.info("=== Test - POST /saml/callback-with-expiry - failure (wrong cookie) ===");
@@ -874,7 +875,6 @@ public class SamlAPITest {
       .body("callback", equalTo("callback"))
       .body("metadataInvalidated", equalTo(Boolean.FALSE));
   }
-
 
   @Test
   public void putConfigurationEndpoint(TestContext context) {
