@@ -1,3 +1,8 @@
+## 2.7.0 - 2023-10-12
+
+ * [MODLOGSAML-169](https://issues.folio.org/browse/MODLOGSAML-169) Update to Java 17
+ * [MODLOGSAML-173](https://issues.folio.org/browse/MODLOGSAML-173) Upgrade dependencies for Poppy
+
 ## 2.6.2 - 2023-06-01
 
  * [MODLOGSAML-166](https://issues.folio.org/browse/MODLOGSAML-166) xmlsec 2.3.3, woodstox-core 6.5.0 fixing DoS (CVE-2022-40152)
