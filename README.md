@@ -37,7 +37,7 @@ Endpoints are documented in [RAML file](ramls/saml-login.raml)
 
 `TRUST_ALL_CERTIFICATES`: if value is `true` then HTTPS certificates not checked. This is a security issue in production environment, use it for testing only! Default value is `false`.
 
-`SAML_COOKIE_SAMESITE`: Defaults to `Strict` if not present. Set to `Lax` or `None` for cross-site requests.
+`LOGIN_COOKIE_SAMESITE`: Configures the SameSite attribute of the login token cookies. Defaults to `Lax` if not set. If served from the same host name `Lax` allows deep links from other sites, for example from a wiki or webmail to an inventory instance record, whereas `Strict` doesn't allow them.
 
 ### Sample users for samltest.id
 

@@ -5,7 +5,6 @@ import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInC
 import static org.folio.util.Base64AwareXsdMatcher.matchesBase64XsdInClasspath;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.hamcrest.Matchers.hasKey;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThrows;
@@ -17,9 +16,9 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
+import java.util.Map;
 
 import io.restassured.http.Cookie;
-import io.restassured.matcher.RestAssuredMatchers;
 import io.vertx.core.http.CookieSameSite;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
@@ -32,7 +31,6 @@ import org.folio.config.SamlConfigHolder;
 import org.folio.rest.RestVerticle;
 import org.folio.rest.impl.SamlAPI.UserErrorException;
 import org.folio.rest.jaxrs.model.SamlConfigRequest;
-import org.folio.rest.jaxrs.resource.Saml;
 import org.folio.rest.tools.utils.NetworkUtils;
 import org.folio.util.*;
 import org.junit.After;
@@ -106,8 +104,6 @@ public class SamlAPITest {
 
   @BeforeClass
   public static void setupOnce(TestContext context) {
-    System.clearProperty(SamlAPI.COOKIE_SAME_SITE);
-
     DeploymentOptions mockOptions = new DeploymentOptions()
       .setConfig(new JsonObject().put("http.port", IDP_MOCK_PORT))
       .setWorker(true);
@@ -717,13 +713,13 @@ public class SamlAPITest {
     String samlResponse = "saml-response";
 
     log.info("=== Test - POST /saml/callback-with-expiry - success ===");
-    SamlTestHelper.testCookieResponse(detailedCookie, relayState, testPath, CookieSameSite.STRICT.toString(),
-                                      samlResponse, TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
-
-    System.setProperty(SamlAPI.COOKIE_SAME_SITE, CookieSameSite.LAX.toString());
     SamlTestHelper.testCookieResponse(detailedCookie, relayState, testPath, CookieSameSite.LAX.toString(),
                                       samlResponse, TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
-    System.clearProperty(SamlAPI.COOKIE_SAME_SITE);
+
+    CookieSameSiteConfig.set(Map.of("LOGIN_COOKIE_SAMESITE", CookieSameSite.NONE.toString()));
+    SamlTestHelper.testCookieResponse(detailedCookie, relayState, testPath, CookieSameSite.NONE.toString(),
+                                      samlResponse, TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
+    CookieSameSiteConfig.set(Map.of());
 
     log.info("=== Test - POST /saml/callback-with-expiry - failure (wrong cookie) ===");
     given()

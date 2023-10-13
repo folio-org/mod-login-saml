@@ -153,18 +153,8 @@ public class IdpTest {
     var matcher = Pattern.compile("name=\"SAMLResponse\" value=\"([^\"]+)").matcher(body);
     assertThat(matcher.find(), is(true));
 
-    given()
-      .header("X-Okapi-Url", OKAPI_URL)
-      .header("X-Okapi-Tenant", "diku")
-      .cookie(cookie)
-      .formParams("RelayState", relayState)
-      .formParams("SAMLResponse", matcher.group(1))
-      .post(MODULE_URL + "/saml/callback-with-expiry")
-      .then()
-      .statusCode(302)
-      .header("Location", startsWith("http://localhost:3000/sso-landing"))
-      .header("Location", containsString(SamlAPI.ACCESS_TOKEN_EXPIRATION))
-      .header("Location", containsString(SamlAPI.REFRESH_TOKEN_EXPIRATION));
+     SamlTestHelper.testCookieResponse(cookie, relayState, TEST_PATH, CookieSameSite.LAX.toString(),
+      matcher.group(1), TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
   }
 
   @Test
@@ -219,7 +209,7 @@ public class IdpTest {
     var matcher = Pattern.compile("name=\"SAMLResponse\" value=\"([^\"]+)").matcher(body);
     assertThat(matcher.find(), is(true));
 
-    SamlTestHelper.testCookieResponse(cookie, relayState[1], TEST_PATH, CookieSameSite.STRICT.toString(),
+    SamlTestHelper.testCookieResponse(cookie, relayState[1], TEST_PATH, CookieSameSite.LAX.toString(),
                                       matcher.group(1), TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
   }
 

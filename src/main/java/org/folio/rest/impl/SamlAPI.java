@@ -64,6 +64,7 @@ import org.folio.util.StringUtil;
 import org.folio.util.UrlUtil;
 import org.folio.util.WebClientFactory;
 import org.folio.util.model.OkapiHeaders;
+import org.folio.util.CookieSameSiteConfig;
 import org.pac4j.core.context.session.SessionStore;
 import org.pac4j.core.exception.http.HttpAction;
 import org.pac4j.core.exception.http.OkAction;
@@ -95,8 +96,6 @@ public class SamlAPI implements Saml {
   public static final String FOLIO_REFRESH_TOKEN = "folioRefreshToken";
   public static final String REFRESH_TOKEN_EXPIRATION = "refreshTokenExpiration";
   public static final String ACCESS_TOKEN_EXPIRATION = "accessTokenExpiration";
-  public static final String COOKIE_SAME_SITE = "saml.cookie.samesite";
-  public static final String COOKIE_SAME_SITE_ENV = "SAML_COOKIE_SAMESITE";
 
   public static class UserErrorException extends RuntimeException {
     public UserErrorException(String message) {
@@ -400,7 +399,7 @@ public class SamlAPI implements Saml {
       .setSecure(true)
       .setPath("/authn")
       .setHttpOnly(true)
-      .setSameSite(getSameSiteAttribute())
+      .setSameSite(CookieSameSiteConfig.get())
       .setDomain(null)
       .encode();
 
@@ -424,36 +423,12 @@ public class SamlAPI implements Saml {
       .setSecure(true)
       .setPath("/")
       .setHttpOnly(true)
-      .setSameSite(getSameSiteAttribute())
+      .setSameSite(CookieSameSiteConfig.get())
       .encode();
 
     log.debug("accessToken cookie: {}", atCookie);
 
     return atCookie;
-  }
-
-  private CookieSameSite getSameSiteAttribute() {
-    String sameSite = System.getenv(COOKIE_SAME_SITE_ENV);
-
-    if (sameSite == null) {
-      sameSite = System.getProperty(COOKIE_SAME_SITE);
-    }
-
-    if (sameSite == null) {
-      sameSite = CookieSameSite.STRICT.toString();
-    }
-
-    return valueOf(sameSite);
-  }
-
-  static CookieSameSite valueOf(String label) {
-    for (var value : CookieSameSite.values()) {
-      if (value.toString().equals(label)) {
-        return value;
-      }
-    }
-    throw new IllegalArgumentException("SAML_COOKIE_SAMESITE environment variable must be "
-      + "Strict, Lax or None, but found: " + label);
   }
 
   /**
