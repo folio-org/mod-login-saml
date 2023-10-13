@@ -33,7 +33,7 @@ This module provides SAML2 SSO functionality for FOLIO.
 
 Endpoints are documented in [RAML file](ramls/saml-login.raml)
 
-### Environment variables and system properties
+### Environment variables
 
 `TRUST_ALL_CERTIFICATES`: if value is `true` then HTTPS certificates not checked. This is a security issue in production environment, use it for testing only! Default value is `false`.
 

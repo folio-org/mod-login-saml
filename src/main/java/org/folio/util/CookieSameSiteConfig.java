@@ -5,6 +5,7 @@ import java.util.Map;
 import io.vertx.core.http.CookieSameSite;
 
 public class CookieSameSiteConfig {
+  private  CookieSameSiteConfig() {}
   private static CookieSameSite cookieSameSite = valueOf(System.getenv());
 
   public static CookieSameSite get() {
