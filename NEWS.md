@@ -1,3 +1,13 @@
+## 2.7.0 - 2023-10-12
+
+* [MODLOGSAML-173](https://issues.folio.org/browse/) Upgrade dependencies for Poppy
+* [Explain pac4j authentication and authorization mechanisms](https://github.com/folio-org/mod-login-saml/pull/146)
+* [MODLOGSAML-169](https://issues.folio.org/browse/MODLOGSAML-169) Update to Java 17
+* [FOLIO-3678](https://issues.folio.org/browse/FOLIO-3678) [MODLOGSAML-160](https://issues.folio.org/browse/MODLOGSAML-160) Enable API-related GitHub Workflows, replace those Jenkins stages
+* [MODLOGSAML-167](https://issues.folio.org/browse/MODLOGSAML-167) release 2.6.2 for Orchid R1 2023 Service Patch #1
+* [MODLOGSAML-166](https://issues.folio.org/browse/MODLOGSAML-166) xmlsec 2.3.3, woodstox-core 6.5.0 fixing DoS CVE-2022-40152
+* [MODLOGSAML-165](https://issues.folio.org/browse/MODLOGSAML-165): json-smart 2.4.10 json-smart fixing CVE-2023-1370
+
 ## 2.6.2 - 2023-06-01
 
  * [MODLOGSAML-166](https://issues.folio.org/browse/MODLOGSAML-166) xmlsec 2.3.3, woodstox-core 6.5.0 fixing DoS (CVE-2022-40152)
