@@ -1,6 +1,6 @@
 ## 2.7.0 - 2023-10-12
 
-* [MODLOGSAML-173](https://issues.folio.org/browse/) Upgrade dependencies for Poppy
+* [MODLOGSAML-173](https://issues.folio.org/browse/MODLOGSAML-173) Upgrade dependencies for Poppy
 * [MODLOGSAML-172](https://issues.folio.org/browse/MODLOGSAML-172) Support new mod-authtoken /token/sign endpoint
 * [Explain pac4j authentication and authorization mechanisms](https://github.com/folio-org/mod-login-saml/pull/146)
 * [MODLOGSAML-169](https://issues.folio.org/browse/MODLOGSAML-169) Update to Java 17
