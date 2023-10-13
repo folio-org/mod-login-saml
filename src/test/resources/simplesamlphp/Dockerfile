@@ -1,4 +1,4 @@
-FROM kenchan0130/simplesamlphp:1.19.3
+FROM kenchan0130/simplesamlphp:develop
 
 COPY server.key      /var/www/simplesamlphp/cert/server.key
 COPY server.crt      /var/www/simplesamlphp/cert/server.crt

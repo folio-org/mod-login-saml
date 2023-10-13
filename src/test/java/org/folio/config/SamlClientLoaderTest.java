@@ -16,8 +16,8 @@ import org.springframework.core.io.UrlResource;
 public class SamlClientLoaderTest {
 
   @Test
-  public void configureSaml2ClientTest(TestContext context) throws MalformedURLException {
-    String okaiUrl = "okaiUrl";
+  public void configureSaml2ClientTest() throws MalformedURLException {
+    String okapiUrl = "okapiUrl";
     String tenantId = "tenantId";
     String keystorePassword = "keystorePassword";
     String privateKeyPassword = "privateKeyPassword";
@@ -25,9 +25,12 @@ public class SamlClientLoaderTest {
     ByteArrayResource keystoreResource = new ByteArrayResource(new byte[]{});
     String samlBinding = "samlBinding";
     Resource idpMetadata = new UrlResource("http://localhost:80");
-    SAML2Client saml2Client = SamlClientLoader
-      .configureSaml2Client(okaiUrl, tenantId, keystorePassword, privateKeyPassword, idpUrlResource,
-        keystoreResource, samlBinding, idpMetadata, Vertx.vertx().getOrCreateContext());
+
+    var cfg = SamlClientLoader.getSaml2ConfigurationForByteArrayResource(keystoreResource,
+        keystorePassword, privateKeyPassword, idpUrlResource, idpMetadata);
+    var saml2Client = SamlClientLoader.assembleSaml2Client(okapiUrl, tenantId, cfg, samlBinding,
+        Vertx.vertx().getOrCreateContext(), "callback-with-expiry");
+
     Assert.assertNotNull(saml2Client);
   }
 }

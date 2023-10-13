@@ -4,10 +4,7 @@ import static io.restassured.RestAssured.given;
 import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
 import static org.folio.util.Base64AwareXsdMatcher.matchesBase64XsdInClasspath;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.startsWith;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThrows;
@@ -19,20 +16,23 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
+import java.util.Map;
+
+import io.restassured.http.Cookie;
+import io.vertx.core.http.CookieSameSite;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.Optional;
+
+import org.folio.config.SamlClientLoader;
 import org.folio.config.SamlConfigHolder;
 import org.folio.rest.RestVerticle;
 import org.folio.rest.impl.SamlAPI.UserErrorException;
 import org.folio.rest.jaxrs.model.SamlConfigRequest;
 import org.folio.rest.tools.utils.NetworkUtils;
-import org.folio.util.IdpMock;
-import org.folio.util.MockJson;
-import org.folio.util.PercentCodec;
-import org.folio.util.TestingClasspathResolver;
+import org.folio.util.*;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -334,12 +334,12 @@ public class SamlAPITest {
   }
 
   @Test
-  public void callbackIdpMetadataTest() {
+  public void callbackIdpMetadataTest_Legacy() {
     String origin = "http://localhost";
 
     log.info("=== Test Callback with right metadata - POST /saml/callback - success ===");
 
-    mock.setMockContent("mock_content_with_metadata.json");
+    mock.setMockContent("mock_content_with_metadata_legacy.json");
 
     given()
       .header(new Header(HttpHeaders.ORIGIN.toString(), origin))
@@ -355,8 +355,29 @@ public class SamlAPITest {
   }
 
   @Test
-  public void callbackIdpMetadataHttp2Test(TestContext context) {
+  public void callbackIdpMetadataTest() {
+    String origin = "http://localhost";
+
+    log.info("=== Test Callback with right metadata - POST /saml/callback-with-expiry - success ===");
+
     mock.setMockContent("mock_content_with_metadata.json");
+
+    given()
+      .header(new Header(HttpHeaders.ORIGIN.toString(), origin))
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .contentType(ContentType.URLENC)
+      .cookie(SamlAPI.RELAY_STATE, readResourceToString("relay_state.txt"))
+      .body(readResourceToString("saml_response.txt"))
+      .post("/saml/callback-with-expiry")
+      .then()
+      .statusCode(302);
+  }
+
+  @Test
+  public void callbackIdpMetadataHttp2Test_Legacy(TestContext context) {
+    mock.setMockContent("mock_content_with_metadata_legacy.json");
 
     WebClient.create(vertx)
     .post(PORT, "localhost", "/saml/callback")
@@ -372,7 +393,24 @@ public class SamlAPITest {
   }
 
   @Test
-  public void callbackCorsTests() {
+  public void callbackIdpMetadataHttp2Test(TestContext context) {
+    mock.setMockContent("mock_content_with_metadata.json");
+
+    WebClient.create(vertx)
+      .post(PORT, "localhost", "/saml/callback-with-expiry")
+      .putHeader("X-Okapi-Token", TENANT)
+      .putHeader("X-Okapi-Tenant", TENANT)
+      .putHeader("X-Okapi-Url", "http://localhost:" + JSON_MOCK_PORT)
+      .putHeader("Content-Type", "application/x-www-form-urlencoded")
+      .putHeader("Cookie", SamlAPI.RELAY_STATE + "=" + readResourceToString("relay_state.txt").trim())
+      .sendBuffer(Buffer.buffer(readResourceToString("saml_response.txt").trim()))
+      .onComplete(context.asyncAssertSuccess(response -> {
+        assertThat(response.statusMessage() + "\n" + response.bodyAsString(), response.statusCode(), is(302));
+      }));
+  }
+
+  @Test
+  public void callbackCorsTests_Legacy() {
     String origin = "http://localhost";
 
     log.info("=== Test CORS preflight - OPTIONS /saml/callback - success ===");
@@ -384,6 +422,25 @@ public class SamlAPITest {
       .header(ACCESS_CONTROL_REQ_HEADERS_HEADER)
       .header(ACCESS_CONTROL_REQUEST_METHOD_HEADER)
       .options("/saml/callback")
+      .then()
+      .statusCode(204)
+      .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN.toString(), equalTo(origin))
+      .header(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS.toString(), equalTo("true"));
+  }
+
+  @Test
+  public void callbackCorsTests() {
+    String origin = "http://localhost";
+
+    log.info("=== Test CORS preflight - OPTIONS /saml/callback - success ===");
+    given()
+      .header(new Header(HttpHeaders.ORIGIN.toString(), origin))
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .header(ACCESS_CONTROL_REQ_HEADERS_HEADER)
+      .header(ACCESS_CONTROL_REQUEST_METHOD_HEADER)
+      .options("/saml/callback-with-expiry")
       .then()
       .statusCode(204)
       .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN.toString(), equalTo(origin))
@@ -499,7 +556,9 @@ public class SamlAPITest {
   }
 
   @Test
-  public void callbackEndpointTests() {
+  public void callbackEndpointTests_Legacy() {
+    mock.setMockContent("mock_content_legacy.json");
+
     final String testPath = "/test/path";
 
     log.info("=== Setup - POST /saml/login - need relayState and cookie ===");
@@ -627,7 +686,131 @@ public class SamlAPITest {
       .header("Location", containsString(PercentCodec.encodeAsString(testPath)))
       .header("x-okapi-token", "saml-token")
       .cookie("ssoToken", "saml-token");
+  }
 
+  @Test
+  public void callbackEndpointTests() {
+    final String testPath = "/test/path";
+
+    log.info("=== Setup - POST /saml/login - need relayState and cookie ===");
+    ExtractableResponse<Response> resp = given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .header(JSON_CONTENT_TYPE_HEADER)
+      .body("{\"stripesUrl\":\"" + STRIPES_URL + testPath + "\"}")
+      .post("/saml/login")
+      .then()
+      .contentType(ContentType.JSON)
+      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlLogin.json"))
+      .body("bindingMethod", equalTo("POST"))
+      .statusCode(200)
+      .extract();
+
+    String cookie = resp.cookie(SamlAPI.RELAY_STATE);
+    Cookie detailedCookie = resp.detailedCookie(SamlAPI.RELAY_STATE);
+    String relayState = resp.body().jsonPath().getString(SamlAPI.RELAY_STATE);
+    String samlResponse = "saml-response";
+
+    log.info("=== Test - POST /saml/callback-with-expiry - success ===");
+    SamlTestHelper.testCookieResponse(detailedCookie, relayState, testPath, CookieSameSite.LAX.toString(),
+                                      samlResponse, TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
+
+    CookieSameSiteConfig.set(Map.of("LOGIN_COOKIE_SAMESITE", CookieSameSite.NONE.toString()));
+    SamlTestHelper.testCookieResponse(detailedCookie, relayState, testPath, CookieSameSite.NONE.toString(),
+                                      samlResponse, TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
+    CookieSameSiteConfig.set(Map.of());
+
+    log.info("=== Test - POST /saml/callback-with-expiry - failure (wrong cookie) ===");
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .cookie(SamlAPI.RELAY_STATE, "bad" + cookie)
+      .formParam("SAMLResponse", "saml-response")
+      .formParam("RelayState", relayState)
+      .post("/saml/callback-with-expiry")
+      .then()
+      .statusCode(403)
+      .body(is("CSRF attempt detected"));
+
+    log.info("=== Test - POST /saml/callback/callback-with-expiry - failure (wrong relay) ===");
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .cookie(SamlAPI.RELAY_STATE, cookie)
+      .formParam("SAMLResponse", "saml-response")
+      .formParam("RelayState", relayState.replace("localhost", "^"))
+      .post("/saml/callback-with-expiry")
+      .then()
+      .statusCode(400)
+      .body(containsString("Invalid relay state url"));
+
+    log.info("=== Test - POST /saml/callback-with-expiry - failure (no cookie) ===");
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .formParam("SAMLResponse", "saml-response")
+      .formParam("RelayState", relayState)
+      .post("/saml/callback-with-expiry")
+      .then()
+      .statusCode(403)
+      .body(is("CSRF attempt detected"));
+
+    // not found ..
+    mock.setMockContent("mock_400.json");
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .cookie(SamlAPI.RELAY_STATE, cookie)
+      .formParam("SAMLResponse", "saml-response")
+      .formParam("RelayState", relayState)
+      .post("/saml/callback-with-expiry")
+      .then()
+      .statusCode(500)
+      .body(is("Response status code 404 is not equal to 200"));
+
+    mock.setMockContent("mock_nouser.json");
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .cookie(SamlAPI.RELAY_STATE, cookie)
+      .formParam("SAMLResponse", "saml-response")
+      .formParam("RelayState", relayState)
+      .post("/saml/callback-with-expiry")
+      .then()
+      .statusCode(400)
+      .body(is("No user found by externalSystemId == saml-user-id"));
+
+    mock.setMockContent("mock_inactiveuser.json");
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .cookie(SamlAPI.RELAY_STATE, cookie)
+      .formParam("SAMLResponse", "saml-response")
+      .formParam("RelayState", relayState)
+      .post("/saml/callback-with-expiry")
+      .then()
+      .statusCode(403)
+      .body(is("Inactive user account!"));
+
+    mock.setMockContent("mock_tokenresponse.json");
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .cookie(SamlAPI.RELAY_STATE, cookie)
+      .formParam("SAMLResponse", "saml-response")
+      .formParam("RelayState", relayState)
+      .post("/saml/callback-with-expiry")
+      .then()
+      .statusCode(302)
+      .header("Location", containsString(PercentCodec.encodeAsString(testPath)));
   }
 
   void postSamlLogin(int expectedStatus) {
@@ -672,6 +855,24 @@ public class SamlAPITest {
   }
 
   @Test
+  public void getConfigurationEndpointLegacy() {
+    mock.setMockContent("mock_content_legacy.json");
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .header(JSON_CONTENT_TYPE_HEADER)
+      .get("/saml/configuration")
+      .then()
+      .statusCode(200)
+      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"))
+      .body("idpUrl", equalTo("https://idp.ssocircle.com"))
+      .body("samlBinding", equalTo("POST"))
+      .body("callback", equalTo("callback"))
+      .body("metadataInvalidated", equalTo(Boolean.FALSE));
+  }
+
+  @Test
   public void putConfigurationEndpoint(TestContext context) {
     SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
       .withIdpUrl(URI.create("http://localhost:" + IDP_MOCK_PORT + "/xml"))
@@ -703,6 +904,60 @@ public class SamlAPITest {
       .withSamlBinding(SamlConfigRequest.SamlBinding.POST)
       .withUserProperty("externalSystemId")
       .withIdpMetadata(readResourceToString("meta_test.xml"))
+      .withOkapiUrl(URI.create("http://localhost:9130"));
+
+    String jsonString = Json.encode(samlConfigRequest);
+
+    // PUT
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .header(JSON_CONTENT_TYPE_HEADER)
+      .body(jsonString)
+      .put("/saml/configuration")
+      .then()
+      .statusCode(200)
+      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"));
+  }
+
+  @Test
+  public void putConfiguration_Legacy() {
+    mock.setMockContent("mock_content_legacy.json");
+
+    SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
+      .withIdpUrl(URI.create("http://localhost:" + IDP_MOCK_PORT + "/xml"))
+      .withSamlAttribute("UserID")
+      .withSamlBinding(SamlConfigRequest.SamlBinding.POST)
+      .withUserProperty("externalSystemId")
+      .withOkapiUrl(URI.create("http://localhost:9130"))
+      .withCallback("callback");
+
+    String jsonString = Json.encode(samlConfigRequest);
+
+    // PUT
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .header(JSON_CONTENT_TYPE_HEADER)
+      .body(jsonString)
+      .put("/saml/configuration")
+      .then()
+      .statusCode(200)
+      .body("callback", equalTo("callback"))
+      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"));
+  }
+
+  @Test
+  public void putConfiguration() {
+    mock.setMockContent("mock_content.json");
+
+    SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
+      .withIdpUrl(URI.create("http://localhost:" + IDP_MOCK_PORT + "/xml"))
+      .withSamlAttribute("UserID")
+      .withSamlBinding(SamlConfigRequest.SamlBinding.POST)
+      .withUserProperty("externalSystemId")
       .withOkapiUrl(URI.create("http://localhost:9130"));
 
     String jsonString = Json.encode(samlConfigRequest);
@@ -756,7 +1011,6 @@ public class SamlAPITest {
       .contentType(ContentType.TEXT)
       .body(containsString("Cannot get configuration"));
   }
-
 
   @Test
   public void regenerateEndpointNoIdP() {
@@ -891,4 +1145,26 @@ public class SamlAPITest {
       SamlAPI.getCqlUserQuery("externalsystemid", "user@saml.com"))
       .getMessage());
   }
+
+  @Test
+  public void invalidCallbackUrlThrowsException() {
+    assertThrows(SamlClientLoader.InvalidCallbackUrlException.class, () -> {
+      SamlClientLoader.buildCallbackUrl("url", "tenant", "abc");
+    });
+  }
+
+  @Test
+  public void isValidCallbackUrlWhenValid_Legacy() {
+    var callback = SamlClientLoader.buildCallbackUrl("okapi", "tenantId1", "callback");
+    var expectedCallback = "okapi/_/invoke/tenant/tenantId1/saml/callback";
+    assertEquals(expectedCallback, callback);
+  }
+
+  @Test
+  public void isValidCallbackUrlWhenValid() {
+    var callbackWithExpiry = SamlClientLoader.buildCallbackUrl("okapi", "tenantId1", "callback-with-expiry");
+    var expectedCallbackWithExpiry = "okapi/_/invoke/tenant/tenantId1/saml/callback-with-expiry";
+    assertEquals(expectedCallbackWithExpiry, callbackWithExpiry);
+  }
+
 }

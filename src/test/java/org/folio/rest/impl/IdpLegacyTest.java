@@ -1,5 +1,11 @@
 package org.folio.rest.impl;
 
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.startsWith;
+import static org.hamcrest.Matchers.is;
+
 import io.restassured.RestAssured;
 import io.restassured.http.Cookie;
 import io.restassured.http.Header;
@@ -7,38 +13,35 @@ import io.restassured.response.ExtractableResponse;
 import io.restassured.response.Response;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.CookieSameSite;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.file.Path;
+import java.util.regex.Pattern;
 import org.folio.config.SamlConfigHolder;
 import org.folio.rest.RestVerticle;
 import org.folio.util.MockJson;
-import org.folio.util.SamlTestHelper;
 import org.folio.util.StringUtil;
-import org.junit.*;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.nio.file.Path;
-import java.util.regex.Pattern;
-
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
-
 /**
  * Test against a real IDP: https://simplesamlphp.org/ running in a Docker container.
  */
 @RunWith(VertxUnitRunner.class)
-public class IdpTest {
-  private static final org.slf4j.Logger logger = LoggerFactory.getLogger(IdpTest.class);
+public class IdpLegacyTest {
+  private static final org.slf4j.Logger logger = LoggerFactory.getLogger(IdpLegacyTest.class);
   private static final boolean DEBUG = false;
   private static final ImageFromDockerfile simplesamlphp =
       new ImageFromDockerfile().withFileFromPath(".", Path.of("src/test/resources/simplesamlphp/"));
@@ -53,9 +56,6 @@ public class IdpTest {
   private static final String MODULE_URL = "http://localhost:" + MODULE_PORT;
   private static final int OKAPI_PORT = 9230;
   private static final String OKAPI_URL = "http://localhost:" + OKAPI_PORT;
-
-  private static final String TEST_PATH = "/test/path";
-
   private static int IDP_PORT;
   private static String IDP_BASE_URL;
   private static final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", OKAPI_URL);
@@ -66,9 +66,9 @@ public class IdpTest {
   @ClassRule
   public static final GenericContainer<?> IDP = new GenericContainer<>(simplesamlphp)
       .withExposedPorts(8080)
-      .withEnv("SIMPLESAMLPHP_SP_ENTITY_ID", OKAPI_URL + "/_/invoke/tenant/diku/saml/callback-with-expiry")
+      .withEnv("SIMPLESAMLPHP_SP_ENTITY_ID", OKAPI_URL + "/_/invoke/tenant/diku/saml/callback")
       .withEnv("SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE",
-               OKAPI_URL + "/_/invoke/tenant/diku/saml/callback-with-expiry");
+               OKAPI_URL + "/_/invoke/tenant/diku/saml/callback");
 
   @BeforeClass
   public static void setupOnce(TestContext context) throws Exception {
@@ -114,7 +114,7 @@ public class IdpTest {
   @Test
   public void post() {
     setIdpBinding("POST");
-    setOkapi("mock_idptest_post.json");
+    setOkapi("mock_idptest_post_legacy.json");
 
     for (int i = 0; i < 2; i++) {
       post0();
@@ -127,7 +127,7 @@ public class IdpTest {
       .header(TOKEN_HEADER)
       .header(OKAPI_URL_HEADER)
       .header(JSON_CONTENT_TYPE_HEADER)
-      .body(jsonEncode("stripesUrl", STRIPES_URL + TEST_PATH))
+      .body(jsonEncode("stripesUrl", STRIPES_URL))
       .post("/saml/login")
       .then()
       .statusCode(200)
@@ -140,27 +140,37 @@ public class IdpTest {
     Cookie cookie = resp.detailedCookie(SamlAPI.RELAY_STATE);
     assertThat(cookie.getValue(), is(relayState));
 
-    String body = given()
-      .formParams("RelayState", relayState)
-      .formParams("SAMLRequest", samlRequest)
-      .post(location)
-      .then()
-      .statusCode(200)
-      .body(containsString("<form method=\"post\" "),
-            containsString("action=\"" + OKAPI_URL + "/_/invoke/tenant/diku/saml/callback-with-expiry\">"))
-      .extract().asString();
+    String body =
+        given().
+        formParams("RelayState", relayState).
+        formParams("SAMLRequest", samlRequest).
+        post(location).
+        then().
+        statusCode(200).
+        body(containsString("<form method=\"post\" "),
+             containsString("action=\"" + OKAPI_URL + "/_/invoke/tenant/diku/saml/callback\">")).
+        extract().asString();
 
     var matcher = Pattern.compile("name=\"SAMLResponse\" value=\"([^\"]+)").matcher(body);
     assertThat(matcher.find(), is(true));
 
-     SamlTestHelper.testCookieResponse(cookie, relayState, TEST_PATH, CookieSameSite.LAX.toString(),
-      matcher.group(1), TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
+    given().
+      header("X-Okapi-Url", OKAPI_URL).
+      header("X-Okapi-Tenant", "diku").
+      cookie(cookie).
+      formParams("RelayState", relayState).
+      formParams("SAMLResponse", matcher.group(1)).
+      post(MODULE_URL + "/saml/callback").
+    then().
+      statusCode(302).
+      header("x-okapi-token", "saml-token").
+      header("Location", startsWith("http://localhost:3000/sso-landing?ssoToken=saml-token"));
   }
 
   @Test
   public void redirect() {
     setIdpBinding("Redirect");
-    setOkapi("mock_idptest_redirect.json");
+    setOkapi("mock_idptest_redirect_legacy.json");
 
     for (int i = 0; i < 2; i++) {
       redirect0();
@@ -168,19 +178,20 @@ public class IdpTest {
   }
 
   private void redirect0() {
-    ExtractableResponse<Response> resp = given()
-      .header(TENANT_HEADER)
-      .header(TOKEN_HEADER)
-      .header(OKAPI_URL_HEADER)
-      .header(JSON_CONTENT_TYPE_HEADER)
-      .body(jsonEncode("stripesUrl", STRIPES_URL + TEST_PATH))
-      .when()
-      .post("/saml/login")
-      .then()
-      .statusCode(200)
-      .body("bindingMethod", is("GET"))
-      .body("location", containsString("/simplesaml/saml2/idp/SSOService.php?"))
-      .extract();
+    ExtractableResponse<Response> resp =
+        given().
+          header(TENANT_HEADER).
+          header(TOKEN_HEADER).
+          header(OKAPI_URL_HEADER).
+          header(JSON_CONTENT_TYPE_HEADER).
+          body(jsonEncode("stripesUrl", STRIPES_URL)).
+        when().
+          post("/saml/login").
+        then().
+          statusCode(200).
+          body("bindingMethod", is("GET")).
+          body("location", containsString("/simplesaml/saml2/idp/SSOService.php?")).
+          extract();
 
     Cookie cookie = resp.detailedCookie(SamlAPI.RELAY_STATE);
     String location = resp.body().jsonPath().getString("location");
@@ -195,22 +206,33 @@ public class IdpTest {
     String [] relayState = parameters[1].split("=", 2);
     location = location.substring(0, location.indexOf("?"));
 
-    String body = given()
-      .param(samlRequest[0], samlRequest[1])
-      .param(relayState[0], relayState[1])
-      .when()
-      .get(location)
-      .then()
-      .statusCode(200)
-      .body(containsString(" method=\"post\" "),
-            containsString("action=\"" + OKAPI_URL + "/_/invoke/tenant/diku/saml/callback-with-expiry\">"))
-      .extract().asString();
+    String body =
+        given().
+          param(samlRequest[0], samlRequest[1]).
+          param(relayState[0], relayState[1]).
+        when().
+          get(location).
+        then().
+          statusCode(200).
+          body(containsString(" method=\"post\" "),
+               containsString("action=\"" + OKAPI_URL + "/_/invoke/tenant/diku/saml/callback\">")).
+          extract().asString();
 
     var matcher = Pattern.compile("name=\"SAMLResponse\" value=\"([^\"]+)").matcher(body);
     assertThat(matcher.find(), is(true));
 
-    SamlTestHelper.testCookieResponse(cookie, relayState[1], TEST_PATH, CookieSameSite.LAX.toString(),
-                                      matcher.group(1), TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
+    given().
+      header("X-Okapi-Url", OKAPI_URL).
+      header("X-Okapi-Tenant", "diku").
+      cookie(cookie).
+      params("RelayState", relayState[1]).
+      params("SAMLResponse", matcher.group(1)).
+    when().
+      post(MODULE_URL + "/saml/callback").
+    then().
+      statusCode(302).
+      header("x-okapi-token", "saml-token").
+      header("Location", startsWith("http://localhost:3000/sso-landing?ssoToken=saml-token"));
   }
 
   private void setIdpBinding(String binding) {
