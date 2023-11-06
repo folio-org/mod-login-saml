@@ -13,8 +13,7 @@ import io.restassured.response.ExtractableResponse;
 import io.restassured.response.Response;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
-import io.vertx.core.VertxOptions;
-import io.vertx.core.json.JsonObject; //
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import java.io.IOException;
@@ -23,10 +22,6 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.util.regex.Pattern;
 import org.folio.config.SamlConfigHolder;
-import org.folio.postgres.testing.PostgresTesterContainer;
-import org.folio.rest.persist.PostgresClient;
-import org.folio.rest.tools.utils.NetworkUtils;
-import org.folio.rest.RestVerticle;
 import org.folio.util.DataMigrationHelper;
 import org.folio.util.MockJson;
 import org.folio.util.StringUtil;
@@ -49,7 +44,7 @@ public class IdpTest extends TestBase{
   private static final org.slf4j.Logger logger = LoggerFactory.getLogger(IdpTest.class);
   private static final boolean DEBUG = false;
   private static final ImageFromDockerfile simplesamlphp =
-      new ImageFromDockerfile().withFileFromPath(".", Path.of("src/test/resources/simplesamlphp/"));
+    new ImageFromDockerfile().withFileFromPath(".", Path.of("src/test/resources/simplesamlphp/"));
 
   private static final String TENANT = "diku";
   private static final Header TENANT_HEADER = new Header("X-Okapi-Tenant", TENANT);
@@ -70,17 +65,17 @@ public class IdpTest extends TestBase{
 
   @ClassRule
   public static final GenericContainer<?> IDP = new GenericContainer<>(simplesamlphp)
-      .withExposedPorts(8080)
-      .withEnv("SIMPLESAMLPHP_SP_ENTITY_ID", OKAPI_URL + "/_/invoke/tenant/diku/saml/callback")
-      .withEnv("SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE",
-               OKAPI_URL + "/_/invoke/tenant/diku/saml/callback");
+    .withExposedPorts(8080)
+    .withEnv("SIMPLESAMLPHP_SP_ENTITY_ID", OKAPI_URL + "/_/invoke/tenant/diku/saml/callback")
+    .withEnv("SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE",
+      OKAPI_URL + "/_/invoke/tenant/diku/saml/callback");
 
   @BeforeClass
   public static void setupOnce(TestContext context) throws Exception {
     RestAssured.port = MODULE_PORT;
     RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
     VERTX = Vertx.vertx();
-     
+    
     if (DEBUG) {
       IDP.followOutput(new Slf4jLogConsumer(logger).withSeparateOutputStreams());
     }
@@ -88,9 +83,9 @@ public class IdpTest extends TestBase{
     IDP_BASE_URL = "http://" + IDP.getHost() + ":" + IDP_PORT + "/simplesaml/";
     String baseurlpath = IDP_BASE_URL.replace("/", "\\/");
     exec("sed", "-i", "s/'baseurlpath' =>.*/'baseurlpath' => '" + baseurlpath + "',/",
-        "/var/www/simplesamlphp/config/config.php");
+      "/var/www/simplesamlphp/config/config.php");
     exec("sed", "-i", "s/'auth' =>.*/'auth' => 'example-static',/",
-        "/var/www/simplesamlphp/metadata/saml20-idp-hosted.php");
+      "/var/www/simplesamlphp/metadata/saml20-idp-hosted.php");
 
     /* DeploymentOptions moduleOptions = new DeploymentOptions()
         .setConfig(new JsonObject().put("http.port", MODULE_PORT)
@@ -98,18 +93,19 @@ public class IdpTest extends TestBase{
 
     OKAPI = new MockJson();
     DeploymentOptions okapiOptions = new DeploymentOptions()
-        .setConfig(new JsonObject().put("http.port", OKAPI_PORT));
+      .setConfig(new JsonObject().put("http.port", OKAPI_PORT));
 
     VERTX.deployVerticle(OKAPI, okapiOptions)
+      .compose(x -> postTenantWithToken())
       .onComplete(context.asyncAssertSuccess());
   }
 
-  /*  @AfterClass
+  @AfterClass
   public static void tearDownOnce(TestContext context) {
     TestBase.dropSchema(TestBase.SCHEMA)
       .onComplete(context.asyncAssertSuccess())
       .compose(x -> VERTX.close());
-      }*/
+  }
 
   @After
   public void after() {
@@ -120,7 +116,7 @@ public class IdpTest extends TestBase{
   public void post(TestContext context) {
     setIdpBinding("POST");
     setOkapi("mock_idptest_post.json");
-    dataMigrationHelper.dataMigrationCompleted(VERTX, context);
+    dataMigrationHelper.dataMigrationCompleted(VERTX, context, false);
     for (int i = 0; i < 2; i++) {
       post0();
     }
@@ -146,16 +142,16 @@ public class IdpTest extends TestBase{
     assertThat(cookie.getValue(), is(relayState));
 
     String body =
-        given().
-        formParams("RelayState", relayState).
-        formParams("SAMLRequest", samlRequest).
-        post(location).
-        then().
-        statusCode(200).
-        body(containsString("<form method=\"post\" "),
-              containsString("action=\"" + OKAPI_URL + "/_/invoke/tenant/diku/saml/callback\">")).
-        extract().asString();
-
+      given().
+      formParams("RelayState", relayState).
+      formParams("SAMLRequest", samlRequest).
+      post(location).
+      then().
+      statusCode(200).
+      body(containsString("<form method=\"post\" "),
+        containsString("action=\"" + OKAPI_URL + "/_/invoke/tenant/diku/saml/callback\">")).
+      extract().asString();
+    
     var matcher = Pattern.compile("name=\"SAMLResponse\" value=\"([^\"]+)").matcher(body);
     assertThat(matcher.find(), is(true));
 
@@ -166,7 +162,7 @@ public class IdpTest extends TestBase{
       formParams("RelayState", relayState).
       formParams("SAMLResponse", matcher.group(1)).
       post(MODULE_URL + "/saml/callback").
-    then().
+      then().
       statusCode(302).
       header("x-okapi-token", "saml-token").
       header("Location", startsWith("http://localhost:3000/sso-landing?ssoToken=saml-token"));
@@ -176,7 +172,7 @@ public class IdpTest extends TestBase{
   public void redirect(TestContext context) {
     setIdpBinding("Redirect");
     setOkapi("mock_idptest_redirect.json");
-    dataMigrationHelper.dataMigrationCompleted(VERTX, context);
+    dataMigrationHelper.dataMigrationCompleted(VERTX, context, false);
     
     for (int i = 0; i < 2; i++) {
       redirect0();
@@ -185,20 +181,20 @@ public class IdpTest extends TestBase{
 
   private void redirect0() {
     ExtractableResponse<Response> resp =
-        given().
-          header(TENANT_HEADER).
-          header(TOKEN_HEADER).
-          header(OKAPI_URL_HEADER).
-          header(JSON_CONTENT_TYPE_HEADER).
-          body(jsonEncode("stripesUrl", STRIPES_URL)).
-        when().
-          post("/saml/login").
-        then().
-          statusCode(200).
-          body("bindingMethod", is("GET")).
-          body("location", containsString("/simplesaml/saml2/idp/SSOService.php?")).
-          extract();
-
+      given().
+      header(TENANT_HEADER).
+      header(TOKEN_HEADER).
+      header(OKAPI_URL_HEADER).
+      header(JSON_CONTENT_TYPE_HEADER).
+      body(jsonEncode("stripesUrl", STRIPES_URL)).
+      when().
+      post("/saml/login").
+      then().
+      statusCode(200).
+      body("bindingMethod", is("GET")).
+      body("location", containsString("/simplesaml/saml2/idp/SSOService.php?")).
+      extract();
+    
     Cookie cookie = resp.detailedCookie(SamlAPI.RELAY_STATE);
     String location = resp.body().jsonPath().getString("location");
     URL url;
@@ -211,31 +207,31 @@ public class IdpTest extends TestBase{
     String [] samlRequest = parameters[0].split("=", 2);
     String [] relayState = parameters[1].split("=", 2);
     location = location.substring(0, location.indexOf("?"));
-
+    
     String body =
-        given().
-          param(samlRequest[0], samlRequest[1]).
-          param(relayState[0], relayState[1]).
-        when().
-          get(location).
-        then().
-          statusCode(200).
-          body(containsString(" method=\"post\" "),
-               containsString("action=\"" + OKAPI_URL + "/_/invoke/tenant/diku/saml/callback\">")).
-          extract().asString();
-
+      given().
+      param(samlRequest[0], samlRequest[1]).
+      param(relayState[0], relayState[1]).
+      when().
+      get(location).
+      then().
+      statusCode(200).
+      body(containsString(" method=\"post\" "),
+        containsString("action=\"" + OKAPI_URL + "/_/invoke/tenant/diku/saml/callback\">")).
+      extract().asString();
+    
     var matcher = Pattern.compile("name=\"SAMLResponse\" value=\"([^\"]+)").matcher(body);
     assertThat(matcher.find(), is(true));
-
+    
     given().
       header("X-Okapi-Url", OKAPI_URL).
       header("X-Okapi-Tenant", "diku").
       cookie(cookie).
       params("RelayState", relayState[1]).
       params("SAMLResponse", matcher.group(1)).
-    when().
+      when().
       post(MODULE_URL + "/saml/callback").
-    then().
+      then().
       statusCode(302).
       header("x-okapi-token", "saml-token").
       header("Location", startsWith("http://localhost:3000/sso-landing?ssoToken=saml-token"));
@@ -244,8 +240,8 @@ public class IdpTest extends TestBase{
   private void setIdpBinding(String binding) {
     // append entry at end, last entry wins
     exec("sed", "-i",
-        "s/];/'SingleSignOnServiceBinding' => 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-" + binding + "',\\n];/",
-        "/var/www/simplesamlphp/metadata/saml20-idp-hosted.php");
+      "s/];/'SingleSignOnServiceBinding' => 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-" + binding + "',\\n];/",
+      "/var/www/simplesamlphp/metadata/saml20-idp-hosted.php");
   }
 
   private static void exec(String... command) {
@@ -254,17 +250,17 @@ public class IdpTest extends TestBase{
       if (result.getExitCode() > 0) {
         System.out.println(result.getStdout());
         System.err.println(result.getStderr());
-          throw new RuntimeException("failure in IDP.execInContainer");
+        throw new RuntimeException("failure in IDP.execInContainer");
       }
     } catch (UnsupportedOperationException | IOException | InterruptedException e) {
       throw new RuntimeException(e);
     }
   }
-
+  
   private void setOkapi(String resource) {
     OKAPI.setMockContent(resource, s -> s.replace("http://localhost:8888/simplesaml/", IDP_BASE_URL));
   }
-
+  
   private String jsonEncode(String key, String value) {
     return new JsonObject().put(key, value).encode();
   }
