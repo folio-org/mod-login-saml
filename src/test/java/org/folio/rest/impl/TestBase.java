@@ -3,8 +3,8 @@ package org.folio.rest.impl;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonObject;
+//import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
@@ -20,6 +20,10 @@ import org.folio.rest.tools.utils.TenantInit;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
+
+//import java.util.concurrent.TimeUnit;
+//import io.vertx.core.VertxOptions;
+
 public class TestBase {
   //Compare https://github.com/folio-org/mod-configuration/blob/master/mod-configuration-server/src/test/java/org/folio/rest/TestBase.java
   public static Vertx vertx;
@@ -29,30 +33,29 @@ public class TestBase {
   public static TenantClient tenantClient;
   public static final String TENANT = "diku";
   public static final String SCHEMA = TENANT + "_mod_login_saml";
+  public String localClassName = null;
   
   @BeforeClass
   public static void beforeAll(TestContext context) {
-    
     PostgresClient.setPostgresTester(new PostgresTesterContainer());
     vertx = Vertx.vertx();
-    //vertx = Vertx.vertx(new VertxOptions().setBlockedThreadCheckInterval(600000).setMaxEventLoopExecuteTime(600000));
+    //vertx = Vertx.vertx(new VertxOptions().setBlockedThreadCheckInterval(TimeUnit.MILLISECONDS.convert(150L, TimeUnit.MINUTES))
+    //  .setMaxEventLoopExecuteTime(TimeUnit.NANOSECONDS.convert(200L, TimeUnit.MINUTES)));
     MODULE_PORT = NetworkUtils.nextFreePort();//setPreferredPort(9231);
     MODULE_URL = "http://localhost:" + MODULE_PORT;
       
     WebClientOptions webClientOptions = new WebClientOptions().setDefaultPort(MODULE_PORT);
     webClient = WebClient.create(vertx, webClientOptions);
 
-    tenantClient = new TenantClient("http://localhost:" + MODULE_PORT, TENANT, null, webClient);
-
     DeploymentOptions moduleOptions = new DeploymentOptions()
       .setConfig(new JsonObject().put("http.port", MODULE_PORT).put("mock", true));
 
     dropSchema(SCHEMA)
-    .compose(x -> vertx.deployVerticle(new RestVerticle(), moduleOptions))
-    .compose(x -> SamlAPITest.postTenant())
     .onComplete(context.asyncAssertSuccess());
-  }
 
+    vertx.deployVerticle(new RestVerticle(), moduleOptions)
+       .onComplete(context.asyncAssertSuccess());
+  }
   
   @AfterClass
   public static void afterAll(TestContext context) {
@@ -76,13 +79,13 @@ public class TestBase {
       .compose(x -> postgresClient.execute("DROP ROLE IF EXISTS " + schema))
       .mapEmpty();
   }
-    
-  public static Future<Void> postTenant() {
+
+  public static Future<Void> postTenantWithToken() {
     try {
       TenantAttributes ta = new TenantAttributes();
       ta.setModuleTo("mod-login-saml-2.0");
-      TenantClient tenantClient = new TenantClient("http://localhost:" + MODULE_PORT, TENANT, null, webClient);
-      return TenantInit.exec(tenantClient, ta, 60000);
+      TenantClient tenantClient = new TenantClient("http://localhost:" + MODULE_PORT, TENANT, TENANT, webClient);
+      return TenantInit.exec(tenantClient, ta, 6000);
     } catch (Exception e) {
       e.printStackTrace(System.err);
       return Future.failedFuture(e);
