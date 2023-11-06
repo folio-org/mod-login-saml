@@ -25,6 +25,10 @@ public class ConfigurationObjectMapper {
     }
   }
 
+  public static <T> T mapWithoutFuture(JsonArray array, Class<T> clazz) throws NullPointerException {
+    return mapInternal(array, clazz);
+  }
+
   private static <T> T mapInternal(JsonArray array, Class<T> clazz) {
 
     return array.stream()
