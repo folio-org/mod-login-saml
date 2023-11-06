@@ -2,6 +2,8 @@ package org.folio.config.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * POJO for strongly typed configuration client
@@ -23,8 +25,7 @@ public class SamlConfiguration {
   public static final String METADATA_INVALIDATED_CODE = "metadata.invalidated";
   public static final String OKAPI_URL= "okapi.url";
 
-
-  @JsonProperty(ID_CODE)  
+  @JsonProperty(ID_CODE)
   private String id; 
   @JsonProperty(IDP_URL_CODE)
   private String idpUrl;
@@ -44,16 +45,18 @@ public class SamlConfiguration {
   private String idpMetadata;
   @JsonProperty(METADATA_INVALIDATED_CODE)
   private String metadataInvalidated = "true";
-
-
   @JsonProperty(OKAPI_URL)
   private String okapiUrl;
+  private List<String> idsList;
 
-  public SamlConfiguration(){}
+  public SamlConfiguration(){
+    idsList = new ArrayList<>(0);
+  }
 
   public SamlConfiguration(String idpUrl) {
-      setIdpUrl(idpUrl);
-      setId(null);
+    idsList = new ArrayList<>(0);
+    setIdpUrl(idpUrl);
+    setId(null);
   }
 
   public String getId() {   
@@ -64,6 +67,18 @@ public class SamlConfiguration {
     this.id = id;
   }
 
+  public List<String> getIdsList() {
+    return idsList;
+  }
+
+  public void addToIdsList(String externalId) {
+    this.idsList.add(externalId);
+  }
+
+  public void setIdsList(List<String> externalList) {
+    this.idsList = externalList;
+  }
+  
   public String getIdpMetadata() {
     return idpMetadata;
   }
@@ -142,5 +157,5 @@ public class SamlConfiguration {
 
   public void setUserProperty(String userProperty) {
     this.userProperty = userProperty;
-  }
+  } 
 }
