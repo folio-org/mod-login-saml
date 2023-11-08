@@ -21,8 +21,8 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
 
-//import java.util.concurrent.TimeUnit;
-//import io.vertx.core.VertxOptions;
+import java.util.concurrent.TimeUnit;
+import io.vertx.core.VertxOptions;
 
 public class TestBase {
   //Compare https://github.com/folio-org/mod-configuration/blob/master/mod-configuration-server/src/test/java/org/folio/rest/TestBase.java
@@ -38,9 +38,9 @@ public class TestBase {
   @BeforeClass
   public static void beforeAll(TestContext context) {
     PostgresClient.setPostgresTester(new PostgresTesterContainer());
-    vertx = Vertx.vertx();
-    //vertx = Vertx.vertx(new VertxOptions().setBlockedThreadCheckInterval(TimeUnit.MILLISECONDS.convert(150L, TimeUnit.MINUTES))
-    //  .setMaxEventLoopExecuteTime(TimeUnit.NANOSECONDS.convert(200L, TimeUnit.MINUTES)));
+    //vertx = Vertx.vertx();
+    vertx = Vertx.vertx(new VertxOptions().setBlockedThreadCheckInterval(TimeUnit.MILLISECONDS.convert(150L, TimeUnit.MINUTES))
+      .setMaxEventLoopExecuteTime(TimeUnit.NANOSECONDS.convert(200L, TimeUnit.MINUTES)));
     MODULE_PORT = NetworkUtils.nextFreePort();//setPreferredPort(9231);
     MODULE_URL = "http://localhost:" + MODULE_PORT;
       
