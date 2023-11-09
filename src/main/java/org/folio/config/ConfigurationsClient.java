@@ -7,8 +7,6 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.predicate.ResponsePredicate;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 import org.folio.config.model.SamlConfiguration;
 import org.folio.okapi.common.GenericCompositeFuture;
 import org.folio.okapi.common.WebClientFactory;
@@ -29,9 +27,6 @@ import java.util.stream.Collectors;
  * @author rsass
  */
 public class ConfigurationsClient {
-  private static final Logger LOGGER = LogManager.getLogger(ConfigurationsClient.class);
-  private static final String ERROR_MESSAGE_STRING = "errorMessage : %s";
-  
   public static final String CONFIGURATIONS_ENTRIES_ENDPOINT_URL = "/configurations/entries";
   public static final String MODULE_NAME = "LOGIN-SAML";
   public static final String CONFIG_NAME = "saml";
@@ -173,24 +168,18 @@ public class ConfigurationsClient {
     requestBody
       .put("module", MODULE_NAME)
       .put("configName", CONFIG_NAME);
-    if(configId != null) {
-      return WebClientFactory.getWebClient(vertx)
-        .requestAbs(httpMethod, okapiHeaders.getUrl() + endpoint)
-        .putHeader(XOkapiHeaders.TOKEN, okapiHeaders.getToken())
-        .putHeader(XOkapiHeaders.URL, okapiHeaders.getUrl())
-        .putHeader(XOkapiHeaders.TENANT, okapiHeaders.getTenant())
-        .expect(ResponsePredicate.status(201, 205))
-        .sendJsonObject(requestBody)
-        .mapEmpty();
-    } else {
-      String warnMessage = String.format("The Configurations Entry Id with value : %s", configId, " does not exist");
-      LOGGER.warn(warnMessage);
-      return Future.failedFuture(warnMessage);
-    }
+    return WebClientFactory.getWebClient(vertx)
+      .requestAbs(httpMethod, okapiHeaders.getUrl() + endpoint)
+      .putHeader(XOkapiHeaders.TOKEN, okapiHeaders.getToken())
+      .putHeader(XOkapiHeaders.URL, okapiHeaders.getUrl())
+      .putHeader(XOkapiHeaders.TENANT, okapiHeaders.getTenant())
+      .expect(ResponsePredicate.status(201, 205))
+      .sendJsonObject(requestBody)
+      .mapEmpty();
   }
 
   public static Map<String, String> samlConfiguration2Map(SamlConfiguration samlConfiguration) {
-    Map localMap = new HashMap();
+    Map<String, String> localMap = new HashMap<>();
 
     if(samlConfiguration.getKeystore() != null)
       localMap.put(SamlConfiguration.KEYSTORE_FILE_CODE, samlConfiguration.getKeystore());
