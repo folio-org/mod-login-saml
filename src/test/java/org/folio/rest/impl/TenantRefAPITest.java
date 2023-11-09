@@ -101,7 +101,8 @@ public class TenantRefAPITest extends TestBase {
     try {
       TenantAttributes ta = new TenantAttributes();
       ta.setModuleTo("mod-login-saml-2.0");
-      TenantClient tenantClient = new TenantClientExtended("http://localhost:" + jsonMockPort, "http://localhost:" + jsonMockPort, TENANT, TENANT, webClient);
+      TenantClient tenantClient = new TenantClientExtended("http://localhost:" + TestBase.MODULE_PORT,
+        "http://localhost:" + jsonMockPort, TENANT, TENANT, webClient);
       return TenantInit.exec(tenantClient, ta, 6000);
     } catch (Exception e) {
       e.printStackTrace(System.err);
