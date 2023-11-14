@@ -166,4 +166,5 @@ public class SamlConfiguration {
 
   public void setUserProperty(String userProperty) {
     this.userProperty = userProperty;
+  }
 }
