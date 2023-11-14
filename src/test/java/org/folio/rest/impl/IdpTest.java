@@ -170,7 +170,7 @@ public class IdpTest extends TestBase{
   }
 
   private void redirect0() {
-
+    ExtractableResponse<Response> resp = given()
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
       .header(OKAPI_URL_HEADER)
