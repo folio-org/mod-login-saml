@@ -1,3 +1,21 @@
+## 2.7.0 - 2023-10-12
+
+* [MODLOGSAML-173](https://issues.folio.org/browse/MODLOGSAML-173) Upgrade dependencies for Poppy
+* [MODLOGSAML-172](https://issues.folio.org/browse/MODLOGSAML-172) Support new mod-authtoken /token/sign endpoint
+* [Explain pac4j authentication and authorization mechanisms](https://github.com/folio-org/mod-login-saml/pull/146)
+* [MODLOGSAML-169](https://issues.folio.org/browse/MODLOGSAML-169) Update to Java 17
+* [FOLIO-3678](https://issues.folio.org/browse/FOLIO-3678) [MODLOGSAML-160](https://issues.folio.org/browse/MODLOGSAML-160) Enable API-related GitHub Workflows, replace those Jenkins stages
+
+## 2.6.2 - 2023-06-01
+
+ * [MODLOGSAML-166](https://issues.folio.org/browse/MODLOGSAML-166) xmlsec 2.3.3, woodstox-core 6.5.0 fixing DoS (CVE-2022-40152)
+ * [MODLOGSAML-165](https://issues.folio.org/browse/MODLOGSAML-165) json-smart 2.4.10 fixing DoS (CVE-2023-1370)
+
+## 2.6.1 - 2023-04-01
+
+ * [MODLOGSAML-159](https://issues.folio.org/browse/MODLOGSAML-159) OpenSSL 3.0.8 fixing 8 vulns
+ * [MODLOGSAML-161](https://issues.folio.org/browse/MODLOGSAML-161) Use TLSv1.2, not SSL, in SSLContext.getInstance
+
 ## 2.6.0 - 2023-02-16
 
  * [MODLOGSAML-157](https://issues.folio.org/browse/MODLOGSAML-157) Upgrade dependences: pac4j 5.7.0, RMB 35.0.6, Vert.x 4.3.8

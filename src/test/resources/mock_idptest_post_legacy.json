@@ -39,7 +39,7 @@
             "module": "LOGIN-SAML",
             "configName": "saml",
             "code": "saml.binding",
-            "value": "REDIRECT"
+            "value": "POST"
           },
           {
             "id": "717bf1d1-a5a3-460f-a0de-29e6b70a0027",
@@ -47,13 +47,19 @@
             "configName": "saml",
             "code": "metadata.invalidated",
             "value": "false"
-          },
-          {
+          },{
             "id": "cb20fa86-affb-4488-8b37-2e8c597fff66",
             "module": "LOGIN-SAML",
             "configName": "saml",
             "code": "okapi.url",
             "value": "http://localhost:9230"
+          },
+          {
+            "id": "81816efc-63b1-11ee-8c99-0242ac120002",
+            "module": "LOGIN-SAML",
+            "configName": "saml",
+            "code": "saml.callback",
+            "value": "callback"
           }
         ],
         "totalRecords": 6
@@ -79,14 +85,11 @@
       "sendData": {}
     },
     {
-      "url": "/token/sign",
+      "url": "/token",
       "method": "post",
       "status": 201,
       "receivedData": {
-        "accessToken": "saml-access-token",
-        "refreshToken": "saml-refresh-token",
-        "accessTokenExpiration": "2050-10-05T20:19:33Z",
-        "refreshTokenExpiration": "2050-10-05T20:19:33Z"
+        "token": "saml-token"
       }
     }
   ]

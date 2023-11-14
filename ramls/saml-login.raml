@@ -59,7 +59,7 @@ types:
               example: "Bad request"
   /callback:
     post:
-      description: Redirect browser to sso-landing page with generated token.
+      description: Redirect browser to sso-landing page with generated token. Deprecated.
       body:
         application/octet-stream:
           type: string
@@ -94,6 +94,49 @@ types:
               example: "Internal server error"
     options:
       description: "Preflight CORS for /saml/callback"
+      responses:
+        204:
+          description: "Return with appropriate CORS headers"
+        400:
+          description: "Bad request"
+          body:
+            text/plain:
+              example: "Bad request"
+  /callback-with-expiry:
+    post:
+      description: Redirect browser to sso-landing page with expiring access and refresh tokens.
+      body:
+        application/octet-stream:
+          type: string
+        application/x-www-form-urlencoded:
+          type: string
+      responses:
+        302:
+          description: "Generate JWT token and set cookie"
+          headers:
+            Location:
+        400:
+          description: "Bad request"
+          body:
+            text/plain:
+              example: "Bad request"
+        401:
+          description: "Unauthorized"
+          body:
+            text/plain:
+              example: "Unauthorized"
+        403:
+          description: "Forbidden"
+          body:
+            text/plain:
+              example: "Forbidden"
+        500:
+          description: "Internal server error"
+          body:
+            text/plain:
+              example: "Internal server error"
+    options:
+      description: "Preflight CORS for /saml/callback-with-expiry"
       responses:
         204:
           description: "Return with appropriate CORS headers"
@@ -179,3 +222,4 @@ types:
           body:
             text/plain:
               example: "Internal server error"
+

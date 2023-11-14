@@ -35,8 +35,9 @@ Endpoints are documented in [RAML file](ramls/saml-login.raml)
 
 ### Environment variables
 
-`TRUST_ALL_CERTIFICATES`: if value is `true` then HTTPS certificates not checked. This is a security issue in
-production environment, use it for testing only! Default value is `false`.
+`TRUST_ALL_CERTIFICATES`: if value is `true` then HTTPS certificates not checked. This is a security issue in production environment, use it for testing only! Default value is `false`.
+
+`LOGIN_COOKIE_SAMESITE`: Configures the SameSite attribute of the login token cookies. Defaults to `Lax` if not set. If served from the same host name `Lax` allows deep links from other sites, for example from a wiki or webmail to an inventory instance record, whereas `Strict` doesn't allow them.
 
 ### Sample users for samltest.id
 
@@ -60,9 +61,17 @@ Refer to the user documentation [Guide](GUIDE.md).
 For upgrading see [NEWS](NEWS.md) or
 [Releases](https://github.com/folio-org/mod-login-saml/releases).
 
-This module is based on the [https://www.pac4j.org/](PAC4J) library, more
-authentication methods supported by PAC4J can be added to this module if
-needed.
+This module is based on the [https://www.pac4j.org/](PAC4J) library
+and supports SAML Single Sign On (SSO) including federations like
+[https://edugain.org/](eduGAIN).
+
+More mechanisms supported by PAC4J can be added to this module if needed:
+
+Authentication mechanisms: OAuth (Facebook, Twitter, Google...) - CAS -
+OpenID Connect - HTTP - Google App Engine - LDAP - SQL - JWT - MongoDB -
+CouchDB - IP address - Kerberos (SPNEGO) - REST API.
+
+Authorization mechanisms: Roles/permissions.
 
 Other [modules](https://dev.folio.org/source-code/#server-side) are described,
 with further FOLIO Developer documentation at

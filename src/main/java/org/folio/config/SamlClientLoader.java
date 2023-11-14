@@ -38,12 +38,25 @@ import org.springframework.core.io.Resource;
  */
 public class SamlClientLoader {
 
-  public static final String CALLBACK_ENDPOINT = "/saml/callback";
+  public static final String SAML = "/saml/";
+  public static final String CALLBACK_WITH_EXPIRY = "callback-with-expiry";
+  public static final String CALLBACK = "callback";
   private static final Logger log = LogManager.getLogger(SamlClientLoader.class);
-  private SamlClientLoader() {
+
+  public static class SamlIdpUrlFormationException extends RuntimeException {
+    public SamlIdpUrlFormationException(String message) {
+      super(message);
+    }
   }
 
-  
+  public static class InvalidCallbackUrlException extends RuntimeException {
+    public InvalidCallbackUrlException(String message) {
+      super(message);
+    }
+  }
+
+  private SamlClientLoader() {}
+
   public static Future<SamlClientComposite> loadFromConfiguration(RoutingContext routingContext,
     boolean generateMissingKeyStore, Context vertxContext) {
     OkapiHeaders okapiHeaders = OkapiHelper.okapiHeaders(routingContext);
@@ -59,8 +72,10 @@ public class SamlClientLoader {
         final String privateKeyPassword = samlConfiguration.getPrivateKeyPassword();
         final String samlBinding = samlConfiguration.getSamlBinding();
         final Resource idpMetadata = samlConfiguration.getIdpMetadata() != null ?
-          new ByteArrayResource(samlConfiguration.getIdpMetadata().getBytes()) : null;
+            new ByteArrayResource(samlConfiguration.getIdpMetadata().getBytes()) : null;
         final String okapiUrl = samlConfiguration.getOkapiUrl();
+        final String callback = samlConfiguration.getCallback() == null ?
+            CALLBACK_WITH_EXPIRY : samlConfiguration.getCallback();
 
         if (StringUtils.isBlank(idpUrl)) {
           return Future.failedFuture("There is no IdP configuration stored!");
@@ -70,7 +85,6 @@ public class SamlClientLoader {
             return Future.failedFuture("No KeyStore stored in configuration and regeneration is not allowed.");
           }
           // Generate new KeyStore
-
           final String randomId = RandomStringUtils.randomAlphanumeric(12);
           final String randomFileName = RandomStringUtils.randomAlphanumeric(12);
 
@@ -78,8 +92,9 @@ public class SamlClientLoader {
           final String actualPrivateKeyPassword = StringUtils.isBlank(privateKeyPassword) ? randomId : privateKeyPassword;
           final String keystoreFileName = "temp_" + randomFileName + ".jks";
 
-          SAML2Client saml2Client = configureSaml2Client(okapiUrl, tenantId, idpUrl, actualKeystorePassword,
-            actualPrivateKeyPassword, keystoreFileName, samlBinding, idpMetadata,  vertxContext);
+          var cfg = getSaml2ConfigurationForFileResource(keystoreFileName, actualKeystorePassword,
+              actualPrivateKeyPassword, idpUrl, idpMetadata);
+          var saml2Client = assembleSaml2Client(okapiUrl, tenantId, cfg, samlBinding, vertxContext, callback);
 
           return vertx.executeBlocking(blockingHandler -> {
             saml2Client.init();
@@ -90,12 +105,15 @@ public class SamlClientLoader {
                 ByteArrayResource keystoreResource = new ByteArrayResource(keystoreBytes.getBytes());
                 try {
                   UrlResource idpUrlResource = new UrlResource(idpUrl);
-                  SAML2Client reinitedSaml2Client = configureSaml2Client(okapiUrl, tenantId, actualKeystorePassword,
-                    actualPrivateKeyPassword, idpUrlResource, keystoreResource, samlBinding, idpMetadata, vertxContext);
+                  var reinitializedConfig = getSaml2ConfigurationForByteArrayResource(keystoreResource,
+                      actualKeystorePassword, actualPrivateKeyPassword, idpUrlResource, idpMetadata);
+                  var reinitializedSaml2Client = assembleSaml2Client(okapiUrl, tenantId, reinitializedConfig,
+                      samlBinding, vertxContext, callback);
 
-                  return new SamlClientComposite(reinitedSaml2Client, samlConfiguration);
+                  return new SamlClientComposite(reinitializedSaml2Client, samlConfiguration);
                 } catch (MalformedURLException e) {
-                  throw new RuntimeException(e);
+                  log.error("Saml IdP url was malformed", e);
+                  throw new SamlIdpUrlFormationException(e.getMessage());
                 }
               })
           );
@@ -105,16 +123,17 @@ public class SamlClientLoader {
         ByteArrayResource keystoreResource = new ByteArrayResource(keystoreBytes.getBytes());
         try {
           UrlResource idpUrlResource = new UrlResource(idpUrl);
-          SAML2Client saml2Client = configureSaml2Client(okapiUrl, tenantId, keystorePassword, privateKeyPassword,
-            idpUrlResource, keystoreResource, samlBinding, idpMetadata, vertxContext);
+          var cfg = getSaml2ConfigurationForByteArrayResource(keystoreResource, keystorePassword,
+            privateKeyPassword, idpUrlResource, idpMetadata);
+          var saml2Client = assembleSaml2Client(okapiUrl, tenantId, cfg, samlBinding, vertxContext, callback);
 
           return Future.succeededFuture(new SamlClientComposite(saml2Client, samlConfiguration));
         } catch (MalformedURLException e) {
-          throw new RuntimeException(e);
+          log.error("Saml IdP url was malformed", e);
+          throw new SamlIdpUrlFormationException(e.getMessage());
         }
       });
   }
-
 
   /**
    * Store KeyStore (as Base64 string), KeyStorePassword and PrivateKeyPassword in mod-configuration,
@@ -145,39 +164,42 @@ public class SamlClientLoader {
       });
   }  
 
-
-  private static SAML2Client configureSaml2Client(String okapiUrl, String tenantId, String idpUrl,
-    String keystorePassword, String actualPrivateKeyPassword, String keystoreFileName, String samlBinding, Resource idpMetadata,
-    Context vertxContext) {
-
-    final SAML2Configuration cfg = new SAML2Configuration(keystoreFileName,
+  protected static SAML2Configuration getSaml2ConfigurationForByteArrayResource(ByteArrayResource keystoreResource,
+                                                                              String keystorePassword,
+                                                                              String keystorePrivateKeyPassword,
+                                                                              UrlResource idpUrlResource,
+                                                                              Resource idpMetadata) {
+    final var cfg = new SAML2Configuration(keystoreResource,
       keystorePassword,
-      actualPrivateKeyPassword,
-      idpUrl);
-    if(idpMetadata != null) {
+      keystorePrivateKeyPassword,
+      idpUrlResource);
+    if (idpMetadata != null) {
       cfg.setIdentityProviderMetadataResource(idpMetadata);
     }
     cfg.setMaximumAuthenticationLifetime(18000);
 
-    return assembleSaml2Client(okapiUrl, tenantId, cfg, samlBinding, vertxContext);
+    return cfg;
   }
 
-  protected static SAML2Client configureSaml2Client(String okapiUrl, String tenantId, String keystorePassword, String privateKeyPassword, UrlResource idpUrlResource, ByteArrayResource keystoreResource, String samlBinding, Resource idpMetadata, Context vertxContext) {
-
-    final SAML2Configuration byteArrayCfg = new SAML2Configuration(keystoreResource,
+  protected static SAML2Configuration getSaml2ConfigurationForFileResource(String keystoreFileName,
+                                                                         String keystorePassword,
+                                                                         String keystorePrivateKeyPassword,
+                                                                         String idpUrlResource,
+                                                                         Resource idpMetadata) {
+    final var cfg = new SAML2Configuration(keystoreFileName,
       keystorePassword,
-      privateKeyPassword,
+      keystorePrivateKeyPassword,
       idpUrlResource);
-    if(idpMetadata != null) {
-      byteArrayCfg.setIdentityProviderMetadataResource(idpMetadata);
+    if (idpMetadata != null) {
+      cfg.setIdentityProviderMetadataResource(idpMetadata);
     }
-    byteArrayCfg.setMaximumAuthenticationLifetime(18000);
+    cfg.setMaximumAuthenticationLifetime(18000);
 
-    return assembleSaml2Client(okapiUrl, tenantId, byteArrayCfg, samlBinding, vertxContext);
+    return cfg;
   }
 
-  private static SAML2Client assembleSaml2Client(String okapiUrl, String tenantId, SAML2Configuration cfg,
-    String samlBinding, Context vertxContext) {
+  protected static SAML2Client assembleSaml2Client(String okapiUrl, String tenantId, SAML2Configuration cfg,
+    String samlBinding, Context vertxContext, String callback) {
 
     if ("REDIRECT".equals(samlBinding)) {
       cfg.setAuthnRequestBindingType(SAMLConstants.SAML2_REDIRECT_BINDING_URI);
@@ -189,17 +211,22 @@ public class SamlClientLoader {
     Boolean mock = vertxContext.config().getBoolean("mock", false);
     SAML2Client saml2Client = Boolean.TRUE.equals(mock) ? new SAML2ClientMock(cfg) : new SAML2Client(cfg);
     saml2Client.setName(tenantId);
-    saml2Client.setCallbackUrl(buildCallbackUrl(okapiUrl, tenantId));
+    saml2Client.setCallbackUrl(buildCallbackUrl(okapiUrl, tenantId, callback));
     saml2Client.setRedirectionActionBuilder(new JsonReponseSaml2RedirectActionBuilder(saml2Client));
     saml2Client.setStateGenerator(new SAML2StateGenerator(saml2Client));
-
 
     return saml2Client;
   }
 
-  private static String buildCallbackUrl(String okapiUrl, String tenantId) {
-    return okapiUrl + "/_/invoke/tenant/" + CommonHelper.urlEncode(tenantId) + CALLBACK_ENDPOINT;
+  public static String buildCallbackUrl(String okapiUrl, String tenantId, String callback) {
+    if (isValidCallbackUrl(callback)) {
+      return okapiUrl + "/_/invoke/tenant/" + CommonHelper.urlEncode(tenantId) + SAML + callback;
+    }
+
+    throw new InvalidCallbackUrlException("Callback url is invalid");
   }
 
-
+  protected static boolean isValidCallbackUrl(String callbackUrl)  {
+    return CALLBACK.equals(callbackUrl) || CALLBACK_WITH_EXPIRY.equals(callbackUrl);
+  }
 }
