@@ -22,6 +22,7 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.util.regex.Pattern;
 import org.folio.config.SamlConfigHolder;
+import org.folio.util.DataMigrationHelper;
 import org.folio.rest.RestVerticle;
 import org.folio.util.MockJson;
 import org.folio.util.StringUtil;
@@ -40,7 +41,7 @@ import org.testcontainers.images.builder.ImageFromDockerfile;
  * Test against a real IDP: https://simplesamlphp.org/ running in a Docker container.
  */
 @RunWith(VertxUnitRunner.class)
-public class IdpLegacyTest {
+public class IdpLegacyTest extends TestBase{
   private static final org.slf4j.Logger logger = LoggerFactory.getLogger(IdpLegacyTest.class);
   private static final boolean DEBUG = false;
   private static final ImageFromDockerfile simplesamlphp =
@@ -52,9 +53,9 @@ public class IdpLegacyTest {
   private static final Header JSON_CONTENT_TYPE_HEADER = new Header("Content-Type", "application/json");
   private static final String STRIPES_URL = "http://localhost:3000";
 
-  private static final int MODULE_PORT = 9231;
+  //private static final int MODULE_PORT = 9231;
   private static final String MODULE_URL = "http://localhost:" + MODULE_PORT;
-  private static final int OKAPI_PORT = 9230;
+  private static final int OKAPI_PORT = TestBase.setPreferredPort(9230);
   private static final String OKAPI_URL = "http://localhost:" + OKAPI_PORT;
   private static int IDP_PORT;
   private static String IDP_BASE_URL;
@@ -62,7 +63,8 @@ public class IdpLegacyTest {
   private static MockJson OKAPI;
 
   private static Vertx VERTX;
-
+  private DataMigrationHelper dataMigrationHelper = new DataMigrationHelper(TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
+  
   @ClassRule
   public static final GenericContainer<?> IDP = new GenericContainer<>(simplesamlphp)
       .withExposedPorts(8080)
@@ -102,8 +104,9 @@ public class IdpLegacyTest {
 
   @AfterClass
   public static void tearDownOnce(TestContext context) {
-    VERTX.close()
-    .onComplete(context.asyncAssertSuccess());
+    TestBase.dropSchema(TestBase.SCHEMA)
+      .onComplete(context.asyncAssertSuccess())
+      .compose(x -> VERTX.close());
   }
 
   @After
@@ -112,10 +115,10 @@ public class IdpLegacyTest {
   }
 
   @Test
-  public void post() {
+  public void post(TestContext context) {
     setIdpBinding("POST");
     setOkapi("mock_idptest_post_legacy.json");
-
+    dataMigrationHelper.dataMigrationCompleted(VERTX, context, false);
     for (int i = 0; i < 2; i++) {
       post0();
     }
@@ -168,10 +171,11 @@ public class IdpLegacyTest {
   }
 
   @Test
-  public void redirect() {
+  public void redirect(TestContext context) {
     setIdpBinding("Redirect");
     setOkapi("mock_idptest_redirect_legacy.json");
-
+    dataMigrationHelper.dataMigrationCompleted(VERTX, context, false);
+    
     for (int i = 0; i < 2; i++) {
       redirect0();
     }
