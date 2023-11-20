@@ -1,0 +1,13 @@
+{
+  "mocks": [
+    {
+      "url": "/users?query=externalSystemId%3D%3D%22saml-user-id%22",
+      "method": "get",
+      "status": 200,
+      "receivedData": {
+        "totalRecords": 0,
+        "users": [ ]
+      }
+    }
+  ]
+}

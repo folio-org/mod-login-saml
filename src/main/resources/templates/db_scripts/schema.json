@@ -1,0 +1,10 @@
+{
+  "scripts": [],
+  "tables": [
+    {
+      "tableName": "configuration",
+      "withMetadata": true
+    }
+   ]
+}
+

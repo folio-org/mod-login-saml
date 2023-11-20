@@ -1,0 +1,13 @@
+{
+  "mocks": [
+    {
+      "url": "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%29",
+      "method": "get",
+      "status": 200,
+        "receivedData": {
+        "totalRecords": 0,
+        "configs": []
+        } 
+    }
+  ]
+}

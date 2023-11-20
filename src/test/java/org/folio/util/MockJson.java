@@ -43,11 +43,14 @@ public class MockJson extends AbstractVerticle {
     HttpServerResponse response = context.response();
     String method = request.method().name();
     String uri = request.uri();
-
+    log.info("Used in mock={} method={} uri={}", resource, method, uri);/////
+    
     for (int i = 0; i < mocks.size(); i++) {
       JsonObject entry = mocks.getJsonObject(i);
-      if (method.equalsIgnoreCase(entry.getString("method", "get"))
+      if ((method.equalsIgnoreCase(entry.getString("method", "get"))
+          || method.equalsIgnoreCase(entry.getString("method", "delete")))
         && uri.equals(entry.getString("url"))) {
+        //log.info("Used in mock={} method={} uri={}", resource, method, uri);/////
         response.setStatusCode(entry.getInteger("status", 200));
         JsonArray headers = entry.getJsonArray("headers");
         if (headers != null) {
