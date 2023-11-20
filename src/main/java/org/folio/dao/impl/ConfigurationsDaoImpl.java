@@ -174,6 +174,8 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
            break;
          case SamlConfiguration.SAML_ATTRIBUTE_CODE: result.setSamlAttribute(value);
            break;
+         case SamlConfiguration.SAML_CALLBACK: result.setCallback(value);
+           break;  
          case SamlConfiguration.USER_PROPERTY_CODE: result.setUserProperty(value);
            break;
          default: {

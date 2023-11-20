@@ -4,7 +4,6 @@ import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
-//import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
@@ -38,9 +37,9 @@ public class TestBase {
   @BeforeClass
   public static void beforeAll(TestContext context) {
     PostgresClient.setPostgresTester(new PostgresTesterContainer());
-    //vertx = Vertx.vertx();
-    vertx = Vertx.vertx(new VertxOptions().setBlockedThreadCheckInterval(TimeUnit.MILLISECONDS.convert(150L, TimeUnit.MINUTES))
-      .setMaxEventLoopExecuteTime(TimeUnit.NANOSECONDS.convert(200L, TimeUnit.MINUTES)));
+    vertx = Vertx.vertx();
+    /*vertx = Vertx.vertx(new VertxOptions().setBlockedThreadCheckInterval(TimeUnit.MILLISECONDS.convert(150L, TimeUnit.MINUTES))
+      .setMaxEventLoopExecuteTime(TimeUnit.NANOSECONDS.convert(200L, TimeUnit.MINUTES)));*/
     MODULE_PORT = NetworkUtils.nextFreePort();//setPreferredPort(9231);
     MODULE_URL = "http://localhost:" + MODULE_PORT;
       

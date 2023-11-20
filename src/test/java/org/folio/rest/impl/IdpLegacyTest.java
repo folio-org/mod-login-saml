@@ -54,7 +54,7 @@ public class IdpLegacyTest extends TestBase{
   private static final String STRIPES_URL = "http://localhost:3000";
 
   //private static final int MODULE_PORT = 9231;
-  private static final String MODULE_URL = "http://localhost:" + MODULE_PORT;
+  //private static final String MODULE_URL = "http://localhost:" + MODULE_PORT;
   private static final int OKAPI_PORT = TestBase.setPreferredPort(9230);
   private static final String OKAPI_URL = "http://localhost:" + OKAPI_PORT;
   private static int IDP_PORT;
@@ -89,17 +89,17 @@ public class IdpLegacyTest extends TestBase{
     exec("sed", "-i", "s/'auth' =>.*/'auth' => 'example-static',/",
         "/var/www/simplesamlphp/metadata/saml20-idp-hosted.php");
 
-    DeploymentOptions moduleOptions = new DeploymentOptions()
+    /*DeploymentOptions moduleOptions = new DeploymentOptions()
         .setConfig(new JsonObject().put("http.port", MODULE_PORT)
-          .put("mock", true)); // to use SAML2ClientMock
+        .put("mock", true)); // to use SAML2ClientMock*/
 
     OKAPI = new MockJson();
     DeploymentOptions okapiOptions = new DeploymentOptions()
         .setConfig(new JsonObject().put("http.port", OKAPI_PORT));
 
-    VERTX.deployVerticle(new RestVerticle(), moduleOptions)
-    .compose(x -> VERTX.deployVerticle(OKAPI, okapiOptions))
-    .onComplete(context.asyncAssertSuccess());
+    VERTX.deployVerticle(OKAPI, okapiOptions)
+      .compose(x -> postTenantWithToken())
+      .onComplete(context.asyncAssertSuccess());
   }
 
   @AfterClass
