@@ -72,7 +72,7 @@ public class SamlClientLoader {
             new ByteArrayResource(samlConfiguration.getIdpMetadata().getBytes()) : null;
         final String okapiUrl = samlConfiguration.getOkapiUrl();
         final String callback = samlConfiguration.getCallback() == null ?
-            CALLBACK_WITH_EXPIRY : samlConfiguration.getCallback();
+            CALLBACK : samlConfiguration.getCallback();
 
         if (StringUtils.isBlank(idpUrl)) {
           return Future.failedFuture("There is no IdP configuration stored!");

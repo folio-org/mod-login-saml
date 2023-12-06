@@ -153,7 +153,7 @@ public class IdpTest {
     var matcher = Pattern.compile("name=\"SAMLResponse\" value=\"([^\"]+)").matcher(body);
     assertThat(matcher.find(), is(true));
 
-     SamlTestHelper.testCookieResponse(cookie, relayState, TEST_PATH, CookieSameSite.LAX.toString(),
+    SamlTestHelper.testCookieResponse(cookie, relayState, TEST_PATH, CookieSameSite.LAX.toString(),
       matcher.group(1), TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
   }
 
