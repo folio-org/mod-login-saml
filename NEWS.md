@@ -1,3 +1,7 @@
+## 2.7.1 - 2023-12-07
+
+* [MODLOGSAML-180](https://issues.folio.org/browse/MODLOGSAML-180) Make callback-with-expiry not the default
+
 ## 2.7.0 - 2023-10-12
 
 * [MODLOGSAML-173](https://issues.folio.org/browse/MODLOGSAML-173) Upgrade dependencies for Poppy
