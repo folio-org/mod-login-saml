@@ -1,6 +1,7 @@
 package org.folio.rest.impl;
 
 import static io.vertx.core.http.HttpHeaders.*;
+import static org.folio.util.UserFields.*;
 import static org.pac4j.saml.state.SAML2StateGenerator.SAML_RELAY_STATE_ATTRIBUTE;
 import static org.folio.rest.impl.ApiInitializer.MAX_FORM_ATTRIBUTE_SIZE;
 
@@ -54,6 +55,7 @@ import org.folio.rest.jaxrs.model.SamlRegenerateResponse;
 import org.folio.rest.jaxrs.model.SamlValidateGetType;
 import org.folio.rest.jaxrs.model.SamlValidateResponse;
 import org.folio.rest.jaxrs.resource.Saml;
+import org.folio.service.UserService;
 import org.folio.session.NoopSession;
 import org.folio.util.Base64Util;
 import org.folio.util.ConfigEntryUtil;
@@ -61,7 +63,6 @@ import org.folio.util.DumpUtil;
 import org.folio.util.DummySessionStore;
 import org.folio.util.HttpActionMapper;
 import org.folio.util.OkapiHelper;
-import org.folio.util.StringUtil;
 import org.folio.util.UrlUtil;
 import org.folio.util.WebClientFactory;
 import org.folio.util.model.OkapiHeaders;
@@ -70,10 +71,8 @@ import org.pac4j.core.context.session.SessionStore;
 import org.pac4j.core.exception.http.HttpAction;
 import org.pac4j.core.exception.http.OkAction;
 import org.pac4j.core.exception.http.RedirectionAction;
-import org.pac4j.core.profile.UserProfile;
 import org.pac4j.saml.client.SAML2Client;
 import org.pac4j.saml.config.SAML2Configuration;
-import org.pac4j.saml.credentials.SAML2Credentials;
 import org.pac4j.vertx.VertxWebContext;
 
 
@@ -89,7 +88,6 @@ public class SamlAPI implements Saml {
   public static final String RELAY_STATE = "relayState";
   private static final String TOKEN_SIGN_ENDPOINT_LEGACY = "/token";
   private static final String TOKEN_SIGN_ENDPOINT = "/token/sign";
-  private static final String USER_TENANT_ENDPOINT = "/user-tenants";
   public static final String SET_COOKIE = "Set-Cookie";
   public static final String LOCATION = "Location";
   public static final String REFRESH_TOKEN = "refreshToken";
@@ -98,25 +96,8 @@ public class SamlAPI implements Saml {
   public static final String FOLIO_REFRESH_TOKEN = "folioRefreshToken";
   public static final String REFRESH_TOKEN_EXPIRATION = "refreshTokenExpiration";
   public static final String ACCESS_TOKEN_EXPIRATION = "accessTokenExpiration";
-  private static final String USER_TENANT_GET_ERROR = "Error getting user-tenant by %s = %s: %s";
-  private static final String MULTIPLE_MATCHING_USERS = "Multiple matching users by {} = {}";
-  private static final String USER_TENANT_DOES_NOT_HAVE_A_TENANT_ID_ERROR = "The matching user-tenant record founded by %s = %s does not have a tenant id";
-  private static final String TOTAL_RECORDS = "totalRecords";
-  private static final String USER_TENANTS = "userTenants";
-  private static final String TENANT_ID = "tenantId";
-  private static final String BARCODE = "barcode";
-  private static final String EXTERNAL_SYSTEM_ID = "externalSystemId";
-  private static final String ID = "id";
-  private static final String USER_ID = "userId";
-  private static final String USERNAME = "username";
-  private static final String PERSONAL_EMAIL = "personal.email";
-  private static final String EMAIL = "email";
 
-  public static class UserErrorException extends RuntimeException {
-    public UserErrorException(String message) {
-      super(message);
-    }
-  }
+  private final UserService userService = new UserService();
 
   public static class ForbiddenException extends RuntimeException {
     public ForbiddenException(String message) {
@@ -126,12 +107,6 @@ public class SamlAPI implements Saml {
 
   public static class FetchTokenException extends RuntimeException {
     public FetchTokenException(String message) {
-      super(message);
-    }
-  }
-
-  public static class UserFetchException extends RuntimeException {
-    public UserFetchException(String message) {
       super(message);
     }
   }
@@ -270,7 +245,7 @@ public class SamlAPI implements Saml {
         OkapiHeaders parsedHeaders = OkapiHelper.okapiHeaders(okapiHeaders);
         WebClient webClient = WebClientFactory.getWebClient(vertxContext.owner());
 
-        return getUsersResponse(webClient, configuration, webContext, client, sessionStore, parsedHeaders)
+        return userService.getUser(webClient, configuration, webContext, client, sessionStore, parsedHeaders)
             .compose(userObject -> {
           String userId = userObject.getString(ID);
           if (Boolean.FALSE.equals(userObject.getBoolean("active", false))) {
@@ -295,89 +270,11 @@ public class SamlAPI implements Saml {
       });
   }
 
-  private Future<JsonObject> getUsersResponse(WebClient webClient, SamlConfiguration configuration,
-                                              VertxWebContext webContext, SAML2Client client, SessionStore sessionStore,
-                                              OkapiHeaders parsedHeaders) {
-    final String userPropertyName =
-      configuration.getUserProperty() == null ? EXTERNAL_SYSTEM_ID : configuration.getUserProperty();
-    var credentialsOptional = client.getCredentials(webContext, sessionStore);
-    var credentials =
-      (SAML2Credentials) credentialsOptional.orElseThrow(() -> new NullPointerException("Saml credentials was null"));
-
-    final String samlAttributeValue =
-      getSamlAttributeValue(configuration.getSamlAttribute(), credentials.getUserProfile());
-    final String usersCql = getCqlUserQuery(userPropertyName, samlAttributeValue);
-    final String userQuery = UriBuilder.fromPath("/users").queryParam("query", usersCql).build().toString();
-
-    return handleGetUser(userPropertyName, samlAttributeValue, webClient, parsedHeaders)
-      .compose(tenantId -> webClient.getAbs(parsedHeaders.getUrl() + userQuery)
-        .putHeader(XOkapiHeaders.TOKEN, parsedHeaders.getToken())
-        .putHeader(XOkapiHeaders.URL, parsedHeaders.getUrl())
-        .putHeader(XOkapiHeaders.TENANT, tenantId)
-        .expect(ResponsePredicate.SC_OK)
-        .expect(ResponsePredicate.JSON)
-        .send()
-        .map(res -> {
-          JsonArray users = res.bodyAsJsonObject().getJsonArray("users");
-          if (users.isEmpty()) {
-            String message = "No user found by " + userPropertyName + " == " + samlAttributeValue;
-            throw new UserErrorException(message);
-          }
-          return users.getJsonObject(0);
-        }));
-  }
-
-  private Future<String> handleGetUser(String userPropertyName, String value, WebClient webClient, OkapiHeaders okapiHeaders) {
-    return getUserTenant(userPropertyName, value, webClient, okapiHeaders)
-      .compose(userTenantsObject -> {
-        if (userTenantsObject.getInteger(TOTAL_RECORDS) == 0) {
-          return Future.succeededFuture(okapiHeaders.getTenant());
-        } else if (userTenantsObject.getInteger(TOTAL_RECORDS) > 1) {
-          log.warn(MULTIPLE_MATCHING_USERS, userPropertyName, value);
-          return Future.succeededFuture(okapiHeaders.getTenant());
-        } else {
-          String tenantId = userTenantsObject.getJsonArray(USER_TENANTS).getJsonObject(0).getString(TENANT_ID);
-          if (StringUtils.isBlank(tenantId)) {
-            String errorMassage = String.format(USER_TENANT_DOES_NOT_HAVE_A_TENANT_ID_ERROR, userTenantsObject, value);
-            log.error("handleGetUser: {}", errorMassage);
-            return Future.failedFuture(errorMassage);
-          }
-          okapiHeaders.setTenant(tenantId);
-          return Future.succeededFuture(tenantId);
-        }
-      });
-  }
-
-  private Future<JsonObject> getUserTenant(String userPropertyName, String value, WebClient webClient, OkapiHeaders okapiHeaders) {
-    final String userTenantQuery = okapiHeaders.getUrl() + USER_TENANT_ENDPOINT;
-    HttpRequest<Buffer> request = webClient.getAbs(userTenantQuery);
-
-    switch (userPropertyName) {
-      case BARCODE -> request.addQueryParam(BARCODE, value);
-      case EXTERNAL_SYSTEM_ID -> request.addQueryParam(EXTERNAL_SYSTEM_ID, value);
-      case ID -> request.addQueryParam(USER_ID, value);
-      case USERNAME -> request.addQueryParam(USERNAME, value);
-      case PERSONAL_EMAIL -> request.addQueryParam(EMAIL, value);
-    }
-
-    return request.putHeader(XOkapiHeaders.TOKEN, okapiHeaders.getToken())
-      .putHeader(XOkapiHeaders.TENANT, okapiHeaders.getTenant())
-      .expect(ResponsePredicate.SC_OK)
-      .expect(ResponsePredicate.JSON)
-      .send()
-      .map(HttpResponse::bodyAsJsonObject)
-      .recover(e -> {
-        String message = String.format(USER_TENANT_GET_ERROR, userPropertyName, value, e.getMessage());
-        log.info("{}", message, e);
-        return Future.failedFuture(message);
-      });
-  }
-
   private PostSamlCallbackResponse failCallbackResponse(Throwable cause, RoutingContext routingContext) {
     PostSamlCallbackResponse response;
     if (cause instanceof ForbiddenException) {
       response = PostSamlCallbackResponse.respond403WithTextPlain(cause.getMessage());
-    } else if (cause instanceof UserErrorException) {
+    } else if (cause instanceof UserService.UserErrorException) {
       response = PostSamlCallbackResponse.respond400WithTextPlain(cause.getMessage());
     } else {
       removeSaml2Client(routingContext);
@@ -491,30 +388,6 @@ public class SamlAPI implements Saml {
     log.debug("accessToken cookie: {}", atCookie);
 
     return atCookie;
-  }
-
-  /**
-   * Get the user id from the first samlAttribute of userProfile.
-   *
-   * @param samlAttribute attribute name, or null for "UserID"
-   */
-  static String getSamlAttributeValue(String samlAttribute, UserProfile userProfile) {
-    String samlAttributeName = samlAttribute == null ? "UserID" : samlAttribute;
-    List<?> samlAttributeList = getList(userProfile.getAttribute(samlAttributeName));
-    if (samlAttributeList.isEmpty()) {
-      throw new UserErrorException("SAML attribute doesn't exist: " + samlAttributeName);
-    }
-    return samlAttributeList.get(0).toString();
-  }
-
-  private static List<?> getList(Object o) {
-    if (o == null) {
-      return Collections.emptyList();
-    }
-    if (o instanceof List) {
-      return (List<?>) o;
-    }
-    return List.of(o);
   }
 
   @Override
@@ -811,14 +684,4 @@ public class SamlAPI implements Saml {
   private boolean isInvalidOrigin(String origin) {
     return origin == null || origin.isBlank() || origin.trim().contentEquals("*");
   }
-
-  static String getCqlUserQuery(String userPropertyName, String value) {
-    // very sad that RMB does not have an option to reject fields with no index
-    List<String> supported = List.of(BARCODE, EXTERNAL_SYSTEM_ID, ID, USERNAME, PERSONAL_EMAIL);
-    if (!supported.contains(userPropertyName)) {
-      throw new UserFetchException("Unsupported user property: " + userPropertyName);
-    }
-    return userPropertyName + "==" + StringUtil.cqlEncode(value);
-  }
-
 }

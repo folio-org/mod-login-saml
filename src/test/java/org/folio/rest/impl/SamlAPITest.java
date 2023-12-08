@@ -29,9 +29,9 @@ import java.util.Optional;
 import org.folio.config.SamlClientLoader;
 import org.folio.config.SamlConfigHolder;
 import org.folio.rest.RestVerticle;
-import org.folio.rest.impl.SamlAPI.UserErrorException;
 import org.folio.rest.jaxrs.model.SamlConfigRequest;
 import org.folio.rest.tools.utils.NetworkUtils;
+import org.folio.service.UserService;
 import org.folio.util.*;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -457,12 +457,12 @@ public class SamlAPITest {
     userProfile.addAttribute("ohoh", null);
     userProfile.addAttribute("ohohlist", List.of());
 
-    assertThat(SamlAPI.getSamlAttributeValue(null, userProfile), is("foo"));
-    assertThat(SamlAPI.getSamlAttributeValue("uid", userProfile), is("bar"));
-    assertThat(SamlAPI.getSamlAttributeValue("username", userProfile), is("baz"));
-    assertThat(SamlAPI.getSamlAttributeValue("name", userProfile), is("x"));
-    assertThrows(UserErrorException.class, () -> SamlAPI.getSamlAttributeValue("ohoh", userProfile));
-    assertThrows(UserErrorException.class, () -> SamlAPI.getSamlAttributeValue("ohohlist", userProfile));
+    assertThat(UserService.getSamlAttributeValue(null, userProfile), is("foo"));
+    assertThat(UserService.getSamlAttributeValue("uid", userProfile), is("bar"));
+    assertThat(UserService.getSamlAttributeValue("username", userProfile), is("baz"));
+    assertThat(UserService.getSamlAttributeValue("name", userProfile), is("x"));
+    assertThrows(UserService.UserErrorException.class, () -> UserService.getSamlAttributeValue("ohoh", userProfile));
+    assertThrows(UserService.UserErrorException.class, () -> UserService.getSamlAttributeValue("ohohlist", userProfile));
   }
 
   @Test
@@ -1153,17 +1153,17 @@ public class SamlAPITest {
   @Test
   public void getCqlUserQuery() {
     assertEquals("personal.email==\"user@saml.com\"",
-      SamlAPI.getCqlUserQuery("personal.email", "user@saml.com"));
+      UserService.getCqlUserQuery("personal.email", "user@saml.com"));
 
     assertEquals("externalSystemId==\"\\*\"",
-      SamlAPI.getCqlUserQuery("externalSystemId", "*"));
+      UserService.getCqlUserQuery("externalSystemId", "*"));
 
     assertEquals("Unsupported user property: email", assertThrows(RuntimeException.class, () ->
-      SamlAPI.getCqlUserQuery("email", "user@saml.com"))
+      UserService.getCqlUserQuery("email", "user@saml.com"))
       .getMessage());
 
     assertEquals("Unsupported user property: externalsystemid", assertThrows(RuntimeException.class, () ->
-      SamlAPI.getCqlUserQuery("externalsystemid", "user@saml.com"))
+      UserService.getCqlUserQuery("externalsystemid", "user@saml.com"))
       .getMessage());
   }
 
