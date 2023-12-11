@@ -94,7 +94,7 @@ public class UserService {
           String tenantId = userTenantsObject.getJsonArray(USER_TENANTS).getJsonObject(0).getString(TENANT_ID);
           if (StringUtils.isBlank(tenantId)) {
             String errorMassage = String.format(USER_TENANT_DOES_NOT_HAVE_A_TENANT_ID_ERROR, userTenantsObject, value);
-            log.error("handleGetUser: {}", errorMassage);
+            log.error("extractTenantId: {}", errorMassage);
             return Future.failedFuture(errorMassage);
           }
           okapiHeaders.setTenant(tenantId);
@@ -113,7 +113,11 @@ public class UserService {
       case ID -> request.addQueryParam(USER_ID, value);
       case USERNAME -> request.addQueryParam(USERNAME, value);
       case PERSONAL_EMAIL -> request.addQueryParam(EMAIL, value);
-      default -> log.warn("The property name '{}' with value '{}' is not expected", userPropertyName, value);
+      default -> {
+        String errorMassage = String.format("The property name '%s' with value '%s' is not expected", userPropertyName, value);
+        log.error("getUserTenant: {}", errorMassage);
+        return Future.failedFuture(errorMassage);
+      }
     }
 
     return request.putHeader(XOkapiHeaders.TOKEN, okapiHeaders.getToken())
