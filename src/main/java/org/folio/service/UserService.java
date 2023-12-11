@@ -111,6 +111,7 @@ public class UserService {
       case ID -> request.addQueryParam(USER_ID, value);
       case USERNAME -> request.addQueryParam(USERNAME, value);
       case PERSONAL_EMAIL -> request.addQueryParam(EMAIL, value);
+      default -> log.warn("The property name '{}' with value '{}' is not expected", userPropertyName, value);
     }
 
     return request.putHeader(XOkapiHeaders.TOKEN, okapiHeaders.getToken())

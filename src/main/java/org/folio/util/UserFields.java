@@ -2,6 +2,8 @@ package org.folio.util;
 
 public class UserFields {
 
+  private UserFields() {}
+
   public static final String ID = "id";
   public static final String EMAIL = "email";
   public static final String USER_ID = "userId";
