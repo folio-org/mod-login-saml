@@ -49,18 +49,18 @@ public class UserService {
   }
 
   public Future<JsonObject> getUser(WebClient webClient, SamlConfiguration configuration,
-                                              VertxWebContext webContext, SAML2Client client, SessionStore sessionStore,
-                                              OkapiHeaders parsedHeaders) {
-    final String userPropertyName =
+                                    VertxWebContext webContext, SAML2Client client, SessionStore sessionStore,
+                                    OkapiHeaders parsedHeaders) {
+    String userPropertyName =
       configuration.getUserProperty() == null ? EXTERNAL_SYSTEM_ID : configuration.getUserProperty();
     var credentialsOptional = client.getCredentials(webContext, sessionStore);
     var credentials =
       (SAML2Credentials) credentialsOptional.orElseThrow(() -> new NullPointerException("Saml credentials was null"));
 
-    final String samlAttributeValue =
+    String samlAttributeValue =
       getSamlAttributeValue(configuration.getSamlAttribute(), credentials.getUserProfile());
-    final String usersCql = getCqlUserQuery(userPropertyName, samlAttributeValue);
-    final String userQuery = UriBuilder.fromPath("/users").queryParam("query", usersCql).build().toString();
+    String usersCql = getCqlUserQuery(userPropertyName, samlAttributeValue);
+    String userQuery = UriBuilder.fromPath("/users").queryParam("query", usersCql).build().toString();
 
     return handleGetUser(userPropertyName, samlAttributeValue, webClient, parsedHeaders)
       .compose(tenantId -> webClient.getAbs(parsedHeaders.getUrl() + userQuery)
@@ -102,7 +102,7 @@ public class UserService {
   }
 
   private Future<JsonObject> getUserTenant(String userPropertyName, String value, WebClient webClient, OkapiHeaders okapiHeaders) {
-    final String userTenantQuery = okapiHeaders.getUrl() + USER_TENANT_ENDPOINT;
+    String userTenantQuery = okapiHeaders.getUrl() + USER_TENANT_ENDPOINT;
     HttpRequest<Buffer> request = webClient.getAbs(userTenantQuery);
 
     switch (userPropertyName) {
