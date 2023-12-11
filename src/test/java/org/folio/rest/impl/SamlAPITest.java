@@ -689,6 +689,29 @@ public class SamlAPITest {
   }
 
   @Test
+  public void callbackForConsortiumWithMultipleMatchingUserTenant() {
+    String origin = "http://localhost";
+
+    log.info("=== Test Callback for enabled consortium with multiple matching userTenant - success ===");
+
+    mock.setMockContent("mock_multiple_user_tenant.json");
+
+    given()
+      .header(new Header(HttpHeaders.ORIGIN.toString(), origin))
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .contentType(ContentType.URLENC)
+      .cookie(SamlAPI.RELAY_STATE, readResourceToString("relay_state.txt"))
+      .body(readResourceToString("saml_response.txt"))
+      .post("/saml/callback")
+      .then()
+      .statusCode(302)
+      .header("x-okapi-token", "new-saml-token")
+      .cookie("ssoToken", "new-saml-token");
+  }
+
+  @Test
   public void callbackForConsortium() {
     String origin = "http://localhost";
 
