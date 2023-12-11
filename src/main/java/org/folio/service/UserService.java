@@ -62,7 +62,7 @@ public class UserService {
     String usersCql = getCqlUserQuery(userPropertyName, samlAttributeValue);
     String userQuery = UriBuilder.fromPath("/users").queryParam("query", usersCql).build().toString();
 
-    return handleGetUser(userPropertyName, samlAttributeValue, webClient, parsedHeaders)
+    return extractTenantId(userPropertyName, samlAttributeValue, webClient, parsedHeaders)
       .compose(tenantId -> webClient.getAbs(parsedHeaders.getUrl() + userQuery)
         .putHeader(XOkapiHeaders.TOKEN, parsedHeaders.getToken())
         .putHeader(XOkapiHeaders.URL, parsedHeaders.getUrl())
@@ -80,15 +80,18 @@ public class UserService {
         }));
   }
 
-  private Future<String> handleGetUser(String userPropertyName, String value, WebClient webClient, OkapiHeaders okapiHeaders) {
+  private Future<String> extractTenantId(String userPropertyName, String value, WebClient webClient, OkapiHeaders okapiHeaders) {
     return getUserTenant(userPropertyName, value, webClient, okapiHeaders)
       .compose(userTenantsObject -> {
         if (userTenantsObject.getInteger(TOTAL_RECORDS) == 0) {
+          log.debug("No matching tenant - if a tenant was specified");
           return Future.succeededFuture(okapiHeaders.getTenant());
         } else if (userTenantsObject.getInteger(TOTAL_RECORDS) > 1) {
+          log.debug("Multiple matching user-tenant, using tenant from okapi headers");
           log.warn(MULTIPLE_MATCHING_USERS, userPropertyName, value);
           return Future.succeededFuture(okapiHeaders.getTenant());
         } else {
+          log.debug("Single matching user-tenant, continue with the related tenant");
           String tenantId = userTenantsObject.getJsonArray(USER_TENANTS).getJsonObject(0).getString(TENANT_ID);
           if (StringUtils.isBlank(tenantId)) {
             String errorMassage = String.format(USER_TENANT_DOES_NOT_HAVE_A_TENANT_ID_ERROR, userTenantsObject, value);
