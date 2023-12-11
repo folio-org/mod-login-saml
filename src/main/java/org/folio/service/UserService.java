@@ -122,7 +122,7 @@ public class UserService {
       .map(HttpResponse::bodyAsJsonObject)
       .recover(e -> {
         String message = String.format(USER_TENANT_GET_ERROR, userPropertyName, value, e.getMessage());
-        log.info("{}", message, e);
+        log.error("{}", message, e);
         return Future.failedFuture(message);
       });
   }
