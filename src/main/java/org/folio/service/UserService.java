@@ -51,8 +51,7 @@ public class UserService {
   public Future<JsonObject> getUser(WebClient webClient, SamlConfiguration configuration,
                                     VertxWebContext webContext, SAML2Client client, SessionStore sessionStore,
                                     OkapiHeaders parsedHeaders) {
-    String userPropertyName =
-      configuration.getUserProperty() == null ? EXTERNAL_SYSTEM_ID : configuration.getUserProperty();
+    String userPropertyName = StringUtils.defaultIfBlank(configuration.getUserProperty(), EXTERNAL_SYSTEM_ID);
     var credentialsOptional = client.getCredentials(webContext, sessionStore);
     var credentials =
       (SAML2Credentials) credentialsOptional.orElseThrow(() -> new NullPointerException("Saml credentials was null"));
