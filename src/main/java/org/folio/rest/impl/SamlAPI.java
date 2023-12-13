@@ -1,6 +1,7 @@
 package org.folio.rest.impl;
 
 import static io.vertx.core.http.HttpHeaders.*;
+import static org.folio.util.UserFields.*;
 import static org.pac4j.saml.state.SAML2StateGenerator.SAML_RELAY_STATE_ATTRIBUTE;
 import static org.folio.rest.impl.ApiInitializer.MAX_FORM_ATTRIBUTE_SIZE;
 
@@ -24,14 +25,12 @@ import io.vertx.core.http.Cookie;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.PRNG;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.Session;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.WebClient;
-import io.vertx.ext.web.client.predicate.ResponsePredicate;
 import io.vertx.ext.web.impl.Utils;
 import io.vertx.ext.web.sstore.impl.SharedDataSessionImpl;
 import org.apache.commons.io.IOUtils;
@@ -52,6 +51,7 @@ import org.folio.rest.jaxrs.model.SamlRegenerateResponse;
 import org.folio.rest.jaxrs.model.SamlValidateGetType;
 import org.folio.rest.jaxrs.model.SamlValidateResponse;
 import org.folio.rest.jaxrs.resource.Saml;
+import org.folio.service.UserService;
 import org.folio.session.NoopSession;
 import org.folio.util.Base64Util;
 import org.folio.util.ConfigEntryUtil;
@@ -59,7 +59,6 @@ import org.folio.util.DumpUtil;
 import org.folio.util.DummySessionStore;
 import org.folio.util.HttpActionMapper;
 import org.folio.util.OkapiHelper;
-import org.folio.util.StringUtil;
 import org.folio.util.UrlUtil;
 import org.folio.util.WebClientFactory;
 import org.folio.util.model.OkapiHeaders;
@@ -68,10 +67,8 @@ import org.pac4j.core.context.session.SessionStore;
 import org.pac4j.core.exception.http.HttpAction;
 import org.pac4j.core.exception.http.OkAction;
 import org.pac4j.core.exception.http.RedirectionAction;
-import org.pac4j.core.profile.UserProfile;
 import org.pac4j.saml.client.SAML2Client;
 import org.pac4j.saml.config.SAML2Configuration;
-import org.pac4j.saml.credentials.SAML2Credentials;
 import org.pac4j.vertx.VertxWebContext;
 
 
@@ -96,11 +93,7 @@ public class SamlAPI implements Saml {
   public static final String REFRESH_TOKEN_EXPIRATION = "refreshTokenExpiration";
   public static final String ACCESS_TOKEN_EXPIRATION = "accessTokenExpiration";
 
-  public static class UserErrorException extends RuntimeException {
-    public UserErrorException(String message) {
-      super(message);
-    }
-  }
+  private final UserService userService = new UserService();
 
   public static class ForbiddenException extends RuntimeException {
     public ForbiddenException(String message) {
@@ -110,12 +103,6 @@ public class SamlAPI implements Saml {
 
   public static class FetchTokenException extends RuntimeException {
     public FetchTokenException(String message) {
-      super(message);
-    }
-  }
-
-  public static class UserFetchException extends RuntimeException {
-    public UserFetchException(String message) {
       super(message);
     }
   }
@@ -254,14 +241,14 @@ public class SamlAPI implements Saml {
         OkapiHeaders parsedHeaders = OkapiHelper.okapiHeaders(okapiHeaders);
         WebClient webClient = WebClientFactory.getWebClient(vertxContext.owner());
 
-        return getUsersResponse(webClient, configuration, webContext, client, sessionStore, parsedHeaders)
+        return userService.getUser(webClient, configuration, webContext, client, sessionStore, parsedHeaders)
             .compose(userObject -> {
-          String userId = userObject.getString("id");
+          String userId = userObject.getString(ID);
           if (Boolean.FALSE.equals(userObject.getBoolean("active", false))) {
             throw new ForbiddenException("Inactive user account!");
           }
           JsonObject payload = new JsonObject().put("payload",
-            new JsonObject().put("sub", userObject.getString("username")).put("user_id", userId));
+            new JsonObject().put("sub", userObject.getString(USERNAME)).put("user_id", userId));
 
           return fetchToken(webClient, payload, parsedHeaders, tokenSignEndpoint).map(jsonResponse -> {
             if (isLegacyResponse(tokenSignEndpoint)) {
@@ -279,42 +266,11 @@ public class SamlAPI implements Saml {
       });
   }
 
-  private Future<JsonObject> getUsersResponse(WebClient webClient, SamlConfiguration configuration,
-                                              VertxWebContext webContext, SAML2Client client, SessionStore sessionStore,
-                                              OkapiHeaders parsedHeaders) {
-    final String userPropertyName =
-      configuration.getUserProperty() == null ? "externalSystemId" : configuration.getUserProperty();
-    var credentialsOptional = client.getCredentials(webContext, sessionStore);
-    var credentials =
-      (SAML2Credentials) credentialsOptional.orElseThrow(() -> new NullPointerException("Saml credentials was null"));
-
-    final String samlAttributeValue =
-      getSamlAttributeValue(configuration.getSamlAttribute(), credentials.getUserProfile());
-    final String usersCql = getCqlUserQuery(userPropertyName, samlAttributeValue);
-    final String userQuery = UriBuilder.fromPath("/users").queryParam("query", usersCql).build().toString();
-
-    return webClient.getAbs(parsedHeaders.getUrl() + userQuery)
-      .putHeader(XOkapiHeaders.TOKEN, parsedHeaders.getToken())
-      .putHeader(XOkapiHeaders.URL, parsedHeaders.getUrl())
-      .putHeader(XOkapiHeaders.TENANT, parsedHeaders.getTenant())
-      .expect(ResponsePredicate.SC_OK)
-      .expect(ResponsePredicate.JSON)
-      .send()
-      .map(res -> {
-        JsonArray users = res.bodyAsJsonObject().getJsonArray("users");
-        if (users.isEmpty()) {
-          String message = "No user found by " + userPropertyName + " == " + samlAttributeValue;
-          throw new UserErrorException(message);
-        }
-        return users.getJsonObject(0);
-      });
-  }
-
   private PostSamlCallbackResponse failCallbackResponse(Throwable cause, RoutingContext routingContext) {
     PostSamlCallbackResponse response;
     if (cause instanceof ForbiddenException) {
       response = PostSamlCallbackResponse.respond403WithTextPlain(cause.getMessage());
-    } else if (cause instanceof UserErrorException) {
+    } else if (cause instanceof UserService.UserErrorException) {
       response = PostSamlCallbackResponse.respond400WithTextPlain(cause.getMessage());
     } else {
       removeSaml2Client(routingContext);
@@ -428,30 +384,6 @@ public class SamlAPI implements Saml {
     log.debug("accessToken cookie: {}", atCookie);
 
     return atCookie;
-  }
-
-  /**
-   * Get the user id from the first samlAttribute of userProfile.
-   *
-   * @param samlAttribute attribute name, or null for "UserID"
-   */
-  static String getSamlAttributeValue(String samlAttribute, UserProfile userProfile) {
-    String samlAttributeName = samlAttribute == null ? "UserID" : samlAttribute;
-    List<?> samlAttributeList = getList(userProfile.getAttribute(samlAttributeName));
-    if (samlAttributeList.isEmpty()) {
-      throw new UserErrorException("SAML attribute doesn't exist: " + samlAttributeName);
-    }
-    return samlAttributeList.get(0).toString();
-  }
-
-  private static List<?> getList(Object o) {
-    if (o == null) {
-      return Collections.emptyList();
-    }
-    if (o instanceof List) {
-      return (List<?>) o;
-    }
-    return List.of(o);
   }
 
   @Override
@@ -748,14 +680,4 @@ public class SamlAPI implements Saml {
   private boolean isInvalidOrigin(String origin) {
     return origin == null || origin.isBlank() || origin.trim().contentEquals("*");
   }
-
-  static String getCqlUserQuery(String userPropertyName, String value) {
-    // very sad that RMB does not have an option to reject fields with no index
-    List<String> supported = List.of("barcode", "externalSystemId", "id", "username", "personal.email");
-    if (!supported.contains(userPropertyName)) {
-      throw new UserFetchException("Unsupported user property: " + userPropertyName);
-    }
-    return userPropertyName + "==" + StringUtil.cqlEncode(value);
-  }
-
 }
