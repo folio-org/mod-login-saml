@@ -1,3 +1,7 @@
+## 2.7.2 - 2023-12-15
+
+* [MODLOGSAML-182](https://issues.folio.org/browse/MODLOGSAML-182) xmlsec 2.3.4 fixing private key in debug level log CVE-2023-44483
+
 ## 2.7.1 - 2023-12-07
 
 * [MODLOGSAML-180](https://issues.folio.org/browse/MODLOGSAML-180) Make callback-with-expiry not the default
