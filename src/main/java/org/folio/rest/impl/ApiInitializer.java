@@ -14,22 +14,22 @@ import java.security.GeneralSecurityException;
 import java.security.cert.X509Certificate;
 
 public class ApiInitializer implements InitAPI {
-    
+
   private final Logger log = LogManager.getLogger(ApiInitializer.class);
 
   public static final int MAX_FORM_ATTRIBUTE_SIZE = 64 * 1024;
-    
+
   @Override
   public void init(Vertx vertx, Context context, Handler<AsyncResult<Boolean>> handler) {
     String tacEnv = System.getenv("TRUST_ALL_CERTIFICATES");
-    
+
     if ("true".equals(tacEnv)) {
       trustAllCertificates();
     }
-    
+
     String disableResolver = System.getProperty("vertx.disableDnsResolver");
     log.info("vertx.disableDnsResolver (netty workaround): " + disableResolver);
-    
+
     // https://issues.folio.org/browse/RMB-856
     RestVerticle.getHttpServerOptions().setMaxFormAttributeSize(MAX_FORM_ATTRIBUTE_SIZE);
 
