@@ -11,6 +11,8 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.folio.config.ConfigurationObjectMapper;
+import org.folio.config.model.SamlConfiguration;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -34,6 +36,23 @@ public class MockJson extends AbstractVerticle {
     }
   }
 
+  public SamlConfiguration getMockPartialContent() {
+    final String partialUrlConstant = "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%29";
+    final String receivedDataConstant = "receivedData";
+    final String configsConstant = "configs";
+    for (int i = 0; i < mocks.size(); i++) {
+      JsonObject entry = mocks.getJsonObject(i);
+      Object receivedData = null;
+      if (entry.getString("url").contains(partialUrlConstant) ) {
+        receivedData = entry.getValue(receivedDataConstant);
+        if (receivedData instanceof JsonObject) {
+          return ConfigurationObjectMapper.mapWithoutFuture(((JsonObject)receivedData).getJsonArray(configsConstant), SamlConfiguration.class);
+        }
+      }
+    }
+    return (null);
+  }
+
   public void setMockContent(String resource) {
     setMockContent(resource, s -> s);
   }
@@ -44,12 +63,12 @@ public class MockJson extends AbstractVerticle {
     String method = request.method().name();
     String uri = request.uri();
     log.info("Used in mock={} method={} uri={}", resource, method, uri);/////
-    
+
     for (int i = 0; i < mocks.size(); i++) {
       JsonObject entry = mocks.getJsonObject(i);
       if ((method.equalsIgnoreCase(entry.getString("method", "get"))
           || method.equalsIgnoreCase(entry.getString("method", "delete")))
-        && uri.equals(entry.getString("url"))) {
+          && uri.equals(entry.getString("url"))) {
         //log.info("Used in mock={} method={} uri={}", resource, method, uri);/////
         response.setStatusCode(entry.getInteger("status", 200));
         JsonArray headers = entry.getJsonArray("headers");
@@ -71,6 +90,10 @@ public class MockJson extends AbstractVerticle {
         }
         response.end(responseData.toString());
         return;
+      }
+      else if (method.equalsIgnoreCase(entry.getString("method", "put"))
+        && uri.equals(entry.getString("url"))) {
+        log.info("Used in mock={} method={} uri={}", resource, method, uri);/////
       }
     }
     log.info("Not found in mock={} method={} uri={}", resource, method, uri);

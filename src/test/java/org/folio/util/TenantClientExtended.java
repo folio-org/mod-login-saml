@@ -28,7 +28,7 @@ public class TenantClientExtended extends TenantClient {
 
   /**
    * Service endpoint "/_/tenant"+queryParams.toString()
-   * 
+   *
    */
   public Future<HttpResponse<Buffer>> postTenant(org.folio.rest.jaxrs.model.TenantAttributes TenantAttributes) {
     StringBuilder queryParams = new StringBuilder("?");
@@ -51,5 +51,5 @@ public class TenantClientExtended extends TenantClient {
       request.putHeader("X-Okapi-UrlTo", okapiUrlToLocal);
     }
     return request.sendBuffer(buffer);
-  } 
+  }
 }

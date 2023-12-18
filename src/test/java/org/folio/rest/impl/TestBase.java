@@ -19,9 +19,8 @@ import org.folio.rest.tools.utils.TenantInit;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
-
-import java.util.concurrent.TimeUnit;
-import io.vertx.core.VertxOptions;
+import java.util.concurrent.TimeUnit;//
+import io.vertx.core.VertxOptions;//
 
 public class TestBase {
   //Compare https://github.com/folio-org/mod-configuration/blob/master/mod-configuration-server/src/test/java/org/folio/rest/TestBase.java
@@ -33,16 +32,16 @@ public class TestBase {
   public static final String TENANT = "diku";
   public static final String SCHEMA = TENANT + "_mod_login_saml";
   public String localClassName = null;
-  
+
   @BeforeClass
   public static void beforeAll(TestContext context) {
     PostgresClient.setPostgresTester(new PostgresTesterContainer());
-    vertx = Vertx.vertx();
-    /*vertx = Vertx.vertx(new VertxOptions().setBlockedThreadCheckInterval(TimeUnit.MILLISECONDS.convert(150L, TimeUnit.MINUTES))
-      .setMaxEventLoopExecuteTime(TimeUnit.NANOSECONDS.convert(200L, TimeUnit.MINUTES)));*/
+    //vertx = Vertx.vertx();
+    vertx = Vertx.vertx(new VertxOptions().setBlockedThreadCheckInterval(TimeUnit.MILLISECONDS.convert(150L, TimeUnit.MINUTES))
+      .setMaxEventLoopExecuteTime(TimeUnit.NANOSECONDS.convert(200L, TimeUnit.MINUTES)));
     MODULE_PORT = NetworkUtils.nextFreePort();//setPreferredPort(9231);
     MODULE_URL = "http://localhost:" + MODULE_PORT;
-      
+
     WebClientOptions webClientOptions = new WebClientOptions().setDefaultPort(MODULE_PORT);
     webClient = WebClient.create(vertx, webClientOptions);
 
@@ -55,7 +54,7 @@ public class TestBase {
     vertx.deployVerticle(new RestVerticle(), moduleOptions)
        .onComplete(context.asyncAssertSuccess());
   }
-  
+
   @AfterClass
   public static void afterAll(TestContext context) {
     dropSchema(SCHEMA)
@@ -71,7 +70,7 @@ public class TestBase {
     return PostgresClient.getInstance(vertx, TENANT)
       .execute("DELETE FROM " + SCHEMA + "." + table);
   }
-     
+
   public static Future<Void> dropSchema(String schema) {
     PostgresClient postgresClient = PostgresClient.getInstance(vertx);
     return postgresClient.execute("DROP SCHEMA IF EXISTS " + schema + " CASCADE")

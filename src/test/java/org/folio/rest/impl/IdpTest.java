@@ -75,7 +75,7 @@ public class IdpTest extends TestBase{
     RestAssured.port = MODULE_PORT;
     RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
     VERTX = Vertx.vertx();
-    
+
     if (DEBUG) {
       IDP.followOutput(new Slf4jLogConsumer(logger).withSeparateOutputStreams());
     }
@@ -153,7 +153,7 @@ public class IdpTest extends TestBase{
 
     var matcher = Pattern.compile("name=\"SAMLResponse\" value=\"([^\"]+)").matcher(body);
     assertThat(matcher.find(), is(true));
-    
+
     SamlTestHelper.testCookieResponse(cookie, relayState, TEST_PATH, CookieSameSite.LAX.toString(),
       matcher.group(1), TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
   }
@@ -163,7 +163,7 @@ public class IdpTest extends TestBase{
     setIdpBinding("Redirect");
     setOkapi("mock_idptest_redirect.json");
     dataMigrationHelper.dataMigrationCompleted(VERTX, context, false);
-    
+
     for (int i = 0; i < 2; i++) {
       redirect0();
     }
@@ -234,11 +234,11 @@ public class IdpTest extends TestBase{
       throw new RuntimeException(e);
     }
   }
-  
+
   private void setOkapi(String resource) {
     OKAPI.setMockContent(resource, s -> s.replace("http://localhost:8888/simplesaml/", IDP_BASE_URL));
   }
-  
+
   private String jsonEncode(String key, String value) {
     return new JsonObject().put(key, value).encode();
   }

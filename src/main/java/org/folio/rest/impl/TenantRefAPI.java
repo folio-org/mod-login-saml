@@ -24,5 +24,5 @@ public class TenantRefAPI extends TenantAPI {
 
     return super.loadData(attributes, tenantId, headers, vertxContext)
       .compose(res -> new ConfigurationsDaoImpl().dataMigrationLoadData(vertxContext.owner(), OkapiHelper.okapiHeaders(headers), true));
-  }   
+  }
 }

@@ -6,8 +6,8 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.predicate.ResponsePredicate;
-import org.apache.commons.lang3.StringUtils;
 import org.folio.config.model.SamlConfiguration;
+import org.folio.dao.ConfigurationsDao;
 import org.folio.okapi.common.GenericCompositeFuture;
 import org.folio.okapi.common.WebClientFactory;
 import org.folio.okapi.common.XOkapiHeaders;
@@ -15,7 +15,6 @@ import org.folio.util.PercentCodec;
 import org.folio.util.model.OkapiHeaders;
 import org.springframework.util.Assert;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -38,34 +37,21 @@ public class ConfigurationsClient {
   private static final String MODULE_QUERY_CONSTANT = "(module==";
   private static final String CONFIG_NAME_QUERY_CONSTANT = " AND configName==";
   private static final String QUERY_END_CONSTANT = ")";
+  private static final String QUERY_CONSTANT = MODULE_QUERY_CONSTANT + MODULE_NAME + CONFIG_NAME_QUERY_CONSTANT + CONFIG_NAME;
 
   private ConfigurationsClient() {
 
   }
 
-  protected static void verifyOkapiHeaders(OkapiHeaders okapiHeaders) throws MissingHeaderException {
-    if (StringUtils.isBlank(okapiHeaders.getUrl())) {
-      throw new MissingHeaderException(MISSING_OKAPI_URL);
-    }
-    if (StringUtils.isBlank(okapiHeaders.getTenant())) {
-      throw new MissingHeaderException(MISSING_TENANT);
-    }
-    if (StringUtils.isBlank(okapiHeaders.getToken())) {
-      throw new MissingHeaderException(MISSING_TOKEN);
-    }
-  }
-
   public static Future<SamlConfiguration> getConfiguration(Vertx vertx, OkapiHeaders okapiHeaders) {
-    String query = MODULE_QUERY_CONSTANT + MODULE_NAME + CONFIG_NAME_QUERY_CONSTANT + CONFIG_NAME + QUERY_END_CONSTANT;
 
-    return checkConfig(vertx, okapiHeaders, query)
+    return checkConfig(vertx, okapiHeaders, QUERY_CONSTANT + QUERY_END_CONSTANT)
       .compose(configs -> ConfigurationObjectMapper.map(configs, SamlConfiguration.class));
   }
 
   public static Future<SamlConfiguration> getConfigurationWithIds(Vertx vertx, OkapiHeaders okapiHeaders) {
-    String query = MODULE_QUERY_CONSTANT + MODULE_NAME + CONFIG_NAME_QUERY_CONSTANT + CONFIG_NAME + QUERY_END_CONSTANT;
-    
-    return checkConfig(vertx, okapiHeaders, query)
+
+    return checkConfig(vertx, okapiHeaders, QUERY_CONSTANT + QUERY_END_CONSTANT)
       .compose(configs -> ConfigurationObjectMapperWithList.map(configs,
           ConfigurationObjectMapper.mapWithoutFuture(configs, SamlConfiguration.class)));
   }
@@ -113,7 +99,7 @@ public class ConfigurationsClient {
   }
 
   public static Future<JsonArray> checkConfig(Vertx vertx, OkapiHeaders okapiHeaders, String query) {
-    verifyOkapiHeaders(okapiHeaders);
+    ConfigurationsDao.verifyOkapiHeaders(okapiHeaders);
     CharSequence encodedQuery = PercentCodec.encode(query);
 
     return WebClientFactory.getWebClient(vertx)
@@ -126,39 +112,32 @@ public class ConfigurationsClient {
       .send()
       .map(res -> res.bodyAsJsonObject().getJsonArray("configs"));
   }
-          
+
   /**
    * Complete future with found config entry id, or null, if not found
    */
   public static Future<String> checkEntry(Vertx vertx, OkapiHeaders okapiHeaders, String code) {
-    String query = MODULE_QUERY_CONSTANT + MODULE_NAME + CONFIG_NAME_QUERY_CONSTANT + CONFIG_NAME + " AND code==" + code + QUERY_END_CONSTANT;
+    String query = QUERY_CONSTANT + " AND code==" + code + QUERY_END_CONSTANT;
     return checkConfig(vertx, okapiHeaders, query)
       .map(configs -> configs.isEmpty() ? null : configs.getJsonObject(0).getString("id"));
   }
 
-  public static class MissingHeaderException extends RuntimeException {
-    private static final long serialVersionUID = 7340537453740028325L;
+  public static Future<SamlConfiguration> deleteConfigurationEntries(Vertx vertx, OkapiHeaders okapiHeaders, SamlConfiguration samlConfiguration) {
+    Objects.requireNonNull(okapiHeaders);
+    Objects.requireNonNull(samlConfiguration.getIdsList());
+    ConfigurationsDao.verifyOkapiHeaders(okapiHeaders);
 
-    public MissingHeaderException(String message) {
-      super(message);
-    }
-  }
-
-  public static Future<SamlConfiguration> deleteConfigurationEntries(Vertx vertx, OkapiHeaders headers, SamlConfiguration samlConfiguration) {
-      
     List<String> entries = samlConfiguration.getIdsList();
-    Objects.requireNonNull(headers);
-    Objects.requireNonNull(entries);
 
     List<Future<Void>> futures = entries.stream()
-      .map(entry -> ConfigurationsClient.deleteConfigurationEntry(vertx, headers, entry))
+      .map(entry -> ConfigurationsClient.deleteConfigurationEntry(vertx, okapiHeaders, entry))
       .collect(Collectors.toList());
-    
+
     return GenericCompositeFuture.all(futures)
-      .compose(compositeEvent -> ConfigurationsClient.getConfiguration(vertx, headers)
+      .compose(compositeEvent -> ConfigurationsClient.getConfiguration(vertx, okapiHeaders)
     );
   }
-  
+
   public static Future<Void> deleteConfigurationEntry(Vertx vertx, OkapiHeaders okapiHeaders, String configId) {
     Assert.hasText(configId, "config entry ID is mandatory");
 
@@ -176,32 +155,5 @@ public class ConfigurationsClient {
       .expect(ResponsePredicate.status(201, 205))
       .sendJsonObject(requestBody)
       .mapEmpty();
-  }
-
-  public static Map<String, String> samlConfiguration2Map(SamlConfiguration samlConfiguration) {
-    Map<String, String> localMap = new HashMap<>();
-
-    if(samlConfiguration.getKeystore() != null)
-      localMap.put(SamlConfiguration.KEYSTORE_FILE_CODE, samlConfiguration.getKeystore());
-    if(samlConfiguration.getKeystorePassword() != null)
-      localMap.put(SamlConfiguration.KEYSTORE_PASSWORD_CODE, samlConfiguration.getKeystorePassword());
-    if(samlConfiguration.getPrivateKeyPassword() != null)
-      localMap.put(SamlConfiguration.KEYSTORE_PRIVATEKEY_PASSWORD_CODE, samlConfiguration.getPrivateKeyPassword());
-    if(samlConfiguration.getIdpUrl() != null)
-      localMap.put(SamlConfiguration.IDP_URL_CODE, samlConfiguration.getIdpUrl());
-    if(samlConfiguration.getSamlBinding() != null)
-      localMap.put(SamlConfiguration.SAML_BINDING_CODE, samlConfiguration.getSamlBinding());
-    if(samlConfiguration.getSamlAttribute() != null)
-      localMap.put(SamlConfiguration.SAML_ATTRIBUTE_CODE, samlConfiguration.getSamlAttribute());
-    if(samlConfiguration.getIdpMetadata() != null)
-      localMap.put(SamlConfiguration.IDP_METADATA_CODE, samlConfiguration.getIdpMetadata());
-    if(samlConfiguration.getUserProperty() != null)
-      localMap.put(SamlConfiguration.USER_PROPERTY_CODE, samlConfiguration.getUserProperty());
-    if(samlConfiguration.getMetadataInvalidated() != null)
-      localMap.put(SamlConfiguration.METADATA_INVALIDATED_CODE, samlConfiguration.getMetadataInvalidated());
-    if(samlConfiguration.getOkapiUrl() != null)
-      localMap.put(SamlConfiguration.OKAPI_URL, samlConfiguration.getOkapiUrl());
-    
-    return localMap;
   }
 }

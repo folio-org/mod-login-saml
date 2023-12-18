@@ -25,17 +25,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.Optional;
-
 import org.folio.config.SamlClientLoader;
 import org.folio.config.SamlConfigHolder;
 import org.folio.rest.impl.SamlAPI.UserErrorException;
 import org.folio.rest.jaxrs.model.SamlConfigRequest;
 import org.folio.rest.tools.utils.NetworkUtils;
-        /*import org.folio.util.DataMigrationHelper;
-import org.folio.util.IdpMock;
-import org.folio.util.MockJson;
-import org.folio.util.PercentCodec;
-import org.folio.util.TestingClasspathResolver;*/
 import org.folio.util.*;
 import org.junit.After;
 import org.junit.Before;
@@ -89,7 +83,7 @@ public class SamlAPITest extends TestBase {
 
   private static final MockJson mock = new MockJson();
   private DataMigrationHelper dataMigrationHelper = new DataMigrationHelper(TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
-  
+
   @Rule
   public TestName testName = new TestName();
   public final String LOCALHOST_ORIGIN = "http://localhost";
@@ -101,7 +95,7 @@ public class SamlAPITest extends TestBase {
 
     DeploymentOptions idpOptions = new DeploymentOptions()
       .setConfig(new JsonObject().put("http.port", IDP_MOCK_PORT));
-    
+
     DeploymentOptions okapiOptions = new DeploymentOptions()
       .setConfig(new JsonObject().put("http.port", JSON_MOCK_PORT));
 
@@ -119,13 +113,13 @@ public class SamlAPITest extends TestBase {
     dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
   }
 
- @After
+  @After
   public void tearDown() {
     // Need to clear singleton to maintain test order independence
     SamlConfigHolder.getInstance().removeClient(TENANT);
     //deleteAllConfigurationRecords(vertx);
-  } 
-   
+  }
+
   @Test
   public void checkEndpointTests() {
     // bad
@@ -227,11 +221,11 @@ public class SamlAPITest extends TestBase {
 
     // configure a wrong redirection action: TemporaryRedirectAction
     RedirectionActionBuilder redirectionActionBuilder = new RedirectionActionBuilder() {
-      @Override
-      public Optional<RedirectionAction> getRedirectionAction(WebContext context, SessionStore sessionStore) {
-        return Optional.of(new TemporaryRedirectAction());
-      }
-    };
+        @Override
+        public Optional<RedirectionAction> getRedirectionAction(WebContext context, SessionStore sessionStore) {
+          return Optional.of(new TemporaryRedirectAction());
+        }
+      };
     saml2client = SamlConfigHolder.getInstance().findClient(TENANT).getClient();
     saml2client.setRedirectionActionBuilder(redirectionActionBuilder);
 
@@ -307,12 +301,12 @@ public class SamlAPITest extends TestBase {
       .statusLine(containsString("Invalid origin header"));
   }
 
-  public void callbackIdpMetadataTest_LegacyDB(TestContext context) {//former method: void  callbackIdpMetadataTest_Legac() 
+  public void callbackIdpMetadataTest_LegacyDB(TestContext context) {//former method: void  callbackIdpMetadataTest_Legac()
     String origin = "http://localhost";
     log.info("=== Test Callback with right metadata - POST /saml/callback - success ===");
 
     mock.setMockContent("mock_content_with_metadata_legacy.json");
-    dataMigrationHelper.dataMigrationCompleted(vertx, context, false); 
+    dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
 
     given()
       .header(new Header(HttpHeaders.ORIGIN.toString(), origin))
@@ -334,7 +328,7 @@ public class SamlAPITest extends TestBase {
     log.info("=== Test Callback with right metadata - POST /saml/callback-with-expiry - success ===");
 
     mock.setMockContent("mock_content_with_metadata.json");
-    dataMigrationHelper.dataMigrationCompleted(vertx, context, false); 
+    dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
 
     given()
       .header(new Header(HttpHeaders.ORIGIN.toString(), origin))
@@ -353,7 +347,7 @@ public class SamlAPITest extends TestBase {
   public void callbackIdpMetadataHttp2Test_Legacy(TestContext context) {
     mock.setMockContent("mock_content_with_metadata_legacy.json");
     dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
-    
+
     WebClient.create(vertx)
     .post(MODULE_PORT, "localhost", "/saml/callback")
     .putHeader("X-Okapi-Token", TENANT)
@@ -371,7 +365,7 @@ public class SamlAPITest extends TestBase {
   public void callbackIdpMetadataHttp2Test(TestContext context) {
     mock.setMockContent("mock_content_with_metadata.json");
     dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
-    
+
     WebClient.create(vertx)
       .post(MODULE_PORT, "localhost", "/saml/callback-with-expiry")
       .putHeader("X-Okapi-Token", TENANT)
@@ -403,7 +397,7 @@ public class SamlAPITest extends TestBase {
       .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN.toString(), equalTo(origin))
       .header(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS.toString(), equalTo("true"));
   }
-  
+
   @Test
   public void callbackCorsTests() {
     String origin = "http://localhost";
@@ -440,12 +434,12 @@ public class SamlAPITest extends TestBase {
     assertThrows(UserErrorException.class, () -> SamlAPI.getSamlAttributeValue("ohoh", userProfile));
     assertThrows(UserErrorException.class, () -> SamlAPI.getSamlAttributeValue("ohohlist", userProfile));
   }
- 
+
   @Test
   public void testPutSamlConfigurationDB(TestContext context) { //former method: void testPutSamlConfiguration()
     mock.setMockContent("mock_nokeystore.json");
-    dataMigrationHelper.dataMigrationCompleted(vertx, context, false); 
-    
+    dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
+
     SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
       .withIdpUrl(URI.create("http://localhost:" + IDP_MOCK_PORT + "/xml"))
       .withSamlAttribute("UserID")
@@ -522,7 +516,7 @@ public class SamlAPITest extends TestBase {
   }
 
   @Test
-  public void callbackEndpointTests_LegacyDB(TestContext context) {//former method: void callbackEndpointTests_Legacy() 
+  public void callbackEndpointTests_LegacyDB(TestContext context) {//former method: void callbackEndpointTests_Legacy()
     mock.setMockContent("mock_content_legacy.json");
     dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
     final String testPath = "/test/path";
@@ -783,13 +777,13 @@ public class SamlAPITest extends TestBase {
   @Test
   public void reloadBogusMetadataDB(TestContext context) { //former method: void reloadBogusMetadata()
     mock.setMockContent("mock_metadata_bogus.json", s -> s.replace(":8888", ":" + JSON_MOCK_PORT));
-    dataMigrationHelper.dataMigrationCompleted(vertx, context, false); 
+    dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
     postSamlLogin(500);
 
     // Check that the bogus IdP metadata is not cached after internal server error
     // https://issues.folio.org/browse/MODLOGSAML-107
     mock.setMockContent("mock_content.json");
-    dataMigrationHelper.dataMigrationCompleted(vertx, context, false); 
+    dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
     postSamlLogin(200);
   }
 
@@ -804,18 +798,18 @@ public class SamlAPITest extends TestBase {
       .get("/saml/configuration")
       .then()
       .statusCode(200)
-	  
+
       .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"))
       .body("idpUrl", equalTo("https://idp.ssocircle.com"))
       .body("samlBinding", equalTo("POST"))
       .body("metadataInvalidated", equalTo(Boolean.FALSE));
   }
 
-  
+
   @Test
   public void getConfigurationEndpointLegacy(TestContext context) {
     mock.setMockContent("mock_content_legacy.json");
-    dataMigrationHelper.dataMigrationCompleted(vertx, context, false); 
+    dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
     given()
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
@@ -878,7 +872,7 @@ public class SamlAPITest extends TestBase {
       .then()
       .statusCode(200)
       .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"));
-  }  
+  }
 
   @Test
   public void putConfiguration_Legacy() {
@@ -957,10 +951,10 @@ public class SamlAPITest extends TestBase {
   @Test
   public void testWithConfigurationNoUser(TestContext context) { //former method: void testPutSamlConfiguration() with mock_400.json
     // GET                                                       //compare in Class configurationsDaoImplTest: DataMigrationWithoutData
-    
+
     mock.setMockContent("mock_nouser_db.json"); //a user without login has noc access to the db.
     dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
-    
+
     given()
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
@@ -970,13 +964,13 @@ public class SamlAPITest extends TestBase {
       .statusCode(500)
       .contentType(ContentType.TEXT)
       .body(containsString("Cannot get configuration"));
-  } 
+  }
 
   @Test
   public void regenerateEndpointNoIdPDB(TestContext context) { //former method: void regenerateEndpointNoIdP()
     mock.setMockContent("mock_noidp.json");
-    dataMigrationHelper.dataMigrationCompleted(vertx, context, false); 
-    
+    dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
+
     given()
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
@@ -991,8 +985,8 @@ public class SamlAPITest extends TestBase {
   @Test
   public void regenerateEndpointNoKeystoreDB(TestContext context) { //former method: void regenerateEndpointNoKeystore()
     mock.setMockContent("mock_nokeystore.json");
-    dataMigrationHelper.dataMigrationCompleted(vertx, context, false); 
-    
+    dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
+
     given()
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
@@ -1085,6 +1079,7 @@ public class SamlAPITest extends TestBase {
   }
 
   class TemporaryRedirectAction extends RedirectionAction {
+    private static final long serialVersionUID = 7340537453740028328L;
 
     TemporaryRedirectAction() {
       super(302);

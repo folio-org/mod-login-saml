@@ -13,7 +13,7 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SamlConfiguration {
 
-  public static final String ID_CODE = "id";   
+  public static final String ID_CODE = "id";
   public static final String KEYSTORE_FILE_CODE = "keystore.file";
   public static final String KEYSTORE_PASSWORD_CODE = "keystore.password"; // NOSONAR
   public static final String KEYSTORE_PRIVATEKEY_PASSWORD_CODE = "keystore.privatekey.password"; // NOSONAR
@@ -27,7 +27,7 @@ public class SamlConfiguration {
   public static final String SAML_CALLBACK = "saml.callback";
 
   @JsonProperty(ID_CODE)
-  private String id; 
+  private String id;
   @JsonProperty(IDP_URL_CODE)
   private String idpUrl;
   @JsonProperty(KEYSTORE_FILE_CODE)
@@ -51,7 +51,7 @@ public class SamlConfiguration {
   @JsonProperty(SAML_CALLBACK)
   private String callback;
   private List<String> idsList;
-  
+
   public SamlConfiguration(){
     idsList = new ArrayList<>(0);
   }
@@ -68,11 +68,11 @@ public class SamlConfiguration {
     this.callback = callback;
   }
 
-  public String getId() {   
+  public String getId() {
     return id;
   }
 
-  public void setId(String id) { 
+  public void setId(String id) {
     this.id = id;
   }
 
@@ -87,7 +87,7 @@ public class SamlConfiguration {
   public void setIdsList(List<String> externalList) {
     this.idsList = externalList;
   }
-  
+
   public String getIdpMetadata() {
     return idpMetadata;
   }
@@ -95,7 +95,7 @@ public class SamlConfiguration {
   public void setIdpMetadata(String idpMetadata) {
     this.idpMetadata = idpMetadata;
   }
-  
+
   public String getIdpUrl() {
     return idpUrl;
   }
@@ -135,7 +135,7 @@ public class SamlConfiguration {
   public void setOkapiUrl(String okapiUrl) {
     this.okapiUrl = okapiUrl;
   }
-  
+
   public String getPrivateKeyPassword() {
     return privateKeyPassword;
   }

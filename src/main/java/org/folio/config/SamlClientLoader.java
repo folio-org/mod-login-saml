@@ -44,12 +44,16 @@ public class SamlClientLoader {
   private static final Logger log = LogManager.getLogger(SamlClientLoader.class);
 
   public static class SamlIdpUrlFormationException extends RuntimeException {
+    private static final long serialVersionUID = 7340537453740028326L;
+
     public SamlIdpUrlFormationException(String message) {
       super(message);
     }
   }
 
   public static class InvalidCallbackUrlException extends RuntimeException {
+    private static final long serialVersionUID = 7340537453740028327L;
+
     public InvalidCallbackUrlException(String message) {
       super(message);
     }
@@ -63,7 +67,7 @@ public class SamlClientLoader {
     final String tenantId = okapiHeaders.getTenant();
     ConfigurationsDao configurationsDao = new ConfigurationsDaoImpl();
     Vertx vertx = vertxContext.owner();
-    
+
     return configurationsDao.getConfiguration(vertx, okapiHeaders, false)
       .compose(samlConfiguration -> {
         final String idpUrl = samlConfiguration.getIdpUrl();
@@ -162,7 +166,7 @@ public class SamlClientLoader {
         .compose(res -> vertx.fileSystem().delete(keystoreFileName))
         .map(x -> Buffer.buffer(rawBytes));
       });
-  }  
+  }
 
   protected static SAML2Configuration getSaml2ConfigurationForByteArrayResource(ByteArrayResource keystoreResource,
                                                                               String keystorePassword,

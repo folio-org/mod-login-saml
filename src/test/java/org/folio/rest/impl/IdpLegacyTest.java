@@ -23,7 +23,6 @@ import java.nio.file.Path;
 import java.util.regex.Pattern;
 import org.folio.config.SamlConfigHolder;
 import org.folio.util.DataMigrationHelper;
-import org.folio.rest.RestVerticle;
 import org.folio.util.MockJson;
 import org.folio.util.StringUtil;
 import org.junit.After;
@@ -64,7 +63,7 @@ public class IdpLegacyTest extends TestBase{
 
   private static Vertx VERTX;
   private DataMigrationHelper dataMigrationHelper = new DataMigrationHelper(TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
-  
+
   @ClassRule
   public static final GenericContainer<?> IDP = new GenericContainer<>(simplesamlphp)
       .withExposedPorts(8080)
@@ -175,7 +174,7 @@ public class IdpLegacyTest extends TestBase{
     setIdpBinding("Redirect");
     setOkapi("mock_idptest_redirect_legacy.json");
     dataMigrationHelper.dataMigrationCompleted(VERTX, context, false);
-    
+
     for (int i = 0; i < 2; i++) {
       redirect0();
     }

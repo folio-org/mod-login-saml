@@ -45,7 +45,7 @@ public class TenantRefAPITest extends TestBase {
   //private final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", "http://localhost:" + JSON_MOCK_PORT);
 
   private static MockJson mock = new MockJson();
-  
+
   @Rule
   public TestName testName = new TestName();
   public final String LOCALHOST_ORIGIN = "http://localhost";
@@ -55,10 +55,10 @@ public class TenantRefAPITest extends TestBase {
     log.info("Running {}", testName.getMethodName());
     RestAssured.port = TestBase.MODULE_PORT;
     RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
-    
+
     DeploymentOptions okapiOptions = new DeploymentOptions()
       .setConfig(new JsonObject().put("http.port", jsonMockPort));
-    
+
     mock.setMockContent("mock_content_with_delete.json");
     vertx.deployVerticle(mock, okapiOptions)
       .onComplete(context.asyncAssertSuccess());
@@ -69,12 +69,12 @@ public class TenantRefAPITest extends TestBase {
     // Need to clear singleton to maintain test order independence
     SamlConfigHolder.getInstance().removeClient(TENANT);
     //deleteAllConfigurationRecords(vertx);
-  } 
-  
+  }
+
   @Test
   public void loadDataWithMock(TestContext context) {
     postTenantExtendedWithTokenCompleted(context);
-    
+
     given()
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
@@ -83,7 +83,7 @@ public class TenantRefAPITest extends TestBase {
       .get("/saml/configuration")
       .then()
       .statusCode(200)
-	  
+
       .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"))
       .body("idpUrl", equalTo("https://idp.ssocircle.com"))
       .body("samlBinding", equalTo("POST"))
@@ -94,7 +94,7 @@ public class TenantRefAPITest extends TestBase {
     Async asyncDataMigration = context.async();
     postTenantExtendedWithToken()
       .onComplete(result -> asyncDataMigration.complete());
-    asyncDataMigration.awaitSuccess();  
+    asyncDataMigration.awaitSuccess();
   }
 
   private Future<Void> postTenantExtendedWithToken() {
