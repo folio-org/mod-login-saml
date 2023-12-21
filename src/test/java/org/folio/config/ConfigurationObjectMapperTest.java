@@ -1,11 +1,13 @@
 package org.folio.config;
 
-import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.folio.config.model.SamlConfiguration;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import java.lang.IllegalArgumentException;
 
 public class ConfigurationObjectMapperTest {
 
@@ -15,6 +17,9 @@ public class ConfigurationObjectMapperTest {
   private static final String PRIVATEKEY_PASSWORD_VALUE = "p455word";
   private static final String METADATA_VALUE = "some";
   private static final String ANOTHER_METADATA_VALUE = "some1";
+
+  @Rule
+  public ExpectedException exception = ExpectedException.none();
 
   @Test
   public void map() {
@@ -27,26 +32,22 @@ public class ConfigurationObjectMapperTest {
       .add(new JsonObject().put("code", "idp.metadata").put("value", METADATA_VALUE))
       .add(new JsonObject().put("code", "unknownCode").put("value", "unknownValue"));
 
-    Future<SamlConfiguration> pojoFuture = ConfigurationObjectMapper.map(jsonArray, SamlConfiguration.class);
-    Assert.assertTrue(pojoFuture.isComplete());
-    Assert.assertTrue(pojoFuture.succeeded());
-    SamlConfiguration pojo = pojoFuture.result();
-    Assert.assertNotNull(pojoFuture.result());
+    SamlConfiguration pojoSimple = ConfigurationObjectMapper.map(jsonArray, SamlConfiguration.class);
+    Assert.assertNotNull(pojoSimple);
 
-    Assert.assertEquals(IDP_URL_VALUE, pojo.getIdpUrl());
-    Assert.assertEquals(METADATA_VALUE, pojo.getIdpMetadata());
-    Assert.assertEquals(KEYSTORE_FILE_VALUE, pojo.getKeystore());
-    Assert.assertEquals(KEYSTORE_PASSWORD_VALUE, pojo.getKeystorePassword());
-    Assert.assertEquals(PRIVATEKEY_PASSWORD_VALUE, pojo.getPrivateKeyPassword());
+    Assert.assertEquals(IDP_URL_VALUE, pojoSimple.getIdpUrl());
+    Assert.assertEquals(METADATA_VALUE, pojoSimple.getIdpMetadata());
+    Assert.assertEquals(KEYSTORE_FILE_VALUE, pojoSimple.getKeystore());
+    Assert.assertEquals(KEYSTORE_PASSWORD_VALUE, pojoSimple.getKeystorePassword());
+    Assert.assertEquals(PRIVATEKEY_PASSWORD_VALUE, pojoSimple.getPrivateKeyPassword());
 
-    pojo.setIdpMetadata(ANOTHER_METADATA_VALUE);
-    Assert.assertEquals(ANOTHER_METADATA_VALUE, pojo.getIdpMetadata());
+    pojoSimple.setIdpMetadata(ANOTHER_METADATA_VALUE);
+    Assert.assertEquals(ANOTHER_METADATA_VALUE, pojoSimple.getIdpMetadata());
   }
 
   @Test
   public void map1Fail() {
-    Future<SamlConfiguration> samlConfigurationFuture = ConfigurationObjectMapper.map(null, SamlConfiguration.class);
-    Assert.assertTrue(samlConfigurationFuture.isComplete());
-    Assert.assertTrue(samlConfigurationFuture.failed());
+    exception.expect(IllegalArgumentException.class);
+    ConfigurationObjectMapper.map(null, SamlConfiguration.class);
   }
 }

@@ -1,6 +1,5 @@
 package org.folio.config;
 
-import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.folio.config.model.SamlConfiguration;
@@ -14,12 +13,12 @@ public class ConfigurationObjectMapperWithList {
   private ConfigurationObjectMapperWithList() {
   }
 
-  public static Future<SamlConfiguration> map(JsonArray array, SamlConfiguration samlConfiguration) {
+  public static SamlConfiguration map(JsonArray array, SamlConfiguration samlConfiguration) {
     try {
       samlConfiguration.setIdsList(mapInternal(array));
-      return Future.succeededFuture(samlConfiguration);
+      return samlConfiguration;
     } catch (Exception ex) {
-      return Future.failedFuture(ex);
+      throw new IllegalArgumentException(ex);
     }
   }
 
@@ -36,9 +35,11 @@ public class ConfigurationObjectMapperWithList {
     return Collector.of(
       ArrayList<String>::new,
       (resultSupplier, entry) -> resultSupplier.add(entry.getString("id")),
-      (result, resultSupplier) -> {result.addAll(resultSupplier); return result;}
+      (result, resultSupplier) -> {
+        result.addAll(resultSupplier);
+        return result;
+      }
     );
-
   }
 }
 

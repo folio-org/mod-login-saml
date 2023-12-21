@@ -46,7 +46,8 @@ public class MockJson extends AbstractVerticle {
       if (entry.getString("url").contains(partialUrlConstant) ) {
         receivedData = entry.getValue(receivedDataConstant);
         if (receivedData instanceof JsonObject) {
-          return ConfigurationObjectMapper.mapWithoutFuture(((JsonObject)receivedData).getJsonArray(configsConstant), SamlConfiguration.class);
+          return ConfigurationObjectMapper
+            .map(((JsonObject)receivedData).getJsonArray(configsConstant),SamlConfiguration.class);
         }
       }
     }

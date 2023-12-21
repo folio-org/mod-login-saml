@@ -269,13 +269,14 @@ public class SamlAPI implements Saml {
             JsonObject payload = new JsonObject().put("payload",
               new JsonObject().put("sub", userObject.getString("username")).put("user_id", userId));
 
-            return fetchToken(webClient, payload, parsedHeaders, tokenSignEndpoint).map(jsonResponse -> {
-              if (isLegacyResponse(tokenSignEndpoint)) {
-                return redirectResponseLegacy(jsonResponse, stripesBaseUrl, originalUrl);
-              } else {
-                return redirectResponse(jsonResponse, stripesBaseUrl, originalUrl);
-              }
-            });
+            return fetchToken(webClient, payload, parsedHeaders, tokenSignEndpoint)
+              .map(jsonResponse -> {
+                if (isLegacyResponse(tokenSignEndpoint)) {
+                  return redirectResponseLegacy(jsonResponse, stripesBaseUrl, originalUrl);
+                } else {
+                  return redirectResponse(jsonResponse, stripesBaseUrl, originalUrl);
+                }
+              });
           });
       })
       .onSuccess(response -> asyncResultHandler.handle(Future.succeededFuture(response)))
@@ -340,13 +341,13 @@ public class SamlAPI implements Saml {
       .putHeader(XOkapiHeaders.TOKEN, parsedHeaders.getToken())
       .putHeader(XOkapiHeaders.URL, parsedHeaders.getUrl());
 
-    return request.sendJson(payload).map(response -> {
-      if (response.statusCode() != 201) {
-        throw new FetchTokenException("Got response " + response.statusCode() + " fetching token");
-      }
-
-      return response.bodyAsJsonObject();
-    });
+    return request.sendJson(payload)
+      .map(response -> {
+        if (response.statusCode() != 201) {
+          throw new FetchTokenException("Got response " + response.statusCode() + " fetching token");
+        }
+        return response.bodyAsJsonObject();
+      });
   }
 
   private Response redirectResponseLegacy(JsonObject jsonObject, URI stripesBaseUrl, URI originalUrl) {

@@ -41,7 +41,8 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
       return Future.succeededFuture(results.getResults().get(0));
     }
     if(localLength > 1) {
-      String errorMessage = String.format("Migration: Number of records are not unique. Instead the number is : %s", Integer.toString(localLength));
+      String errorMessage = String.format("Migration: Number of records are not unique. Instead the number is : %s",
+        Integer.toString(localLength));
       LOGGER.error(ERROR_MESSAGE_STRING, errorMessage);
       return Future.failedFuture(new IllegalArgumentException(errorMessage));
     }

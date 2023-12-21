@@ -6,6 +6,8 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.predicate.ResponsePredicate;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.folio.config.model.SamlConfiguration;
 import org.folio.dao.ConfigurationsDao;
 import org.folio.okapi.common.GenericCompositeFuture;
@@ -15,6 +17,7 @@ import org.folio.util.PercentCodec;
 import org.folio.util.model.OkapiHeaders;
 import org.springframework.util.Assert;
 
+import java.lang.IllegalArgumentException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -22,10 +25,14 @@ import java.util.stream.Collectors;
 
 /**
  * Connect to mod-configuration via Okapi
+
  *
  * @author rsass
  */
 public class ConfigurationsClient {
+  public static final String GET_CONFIGURATION_WARN_MESSAGE = "There is a wrong config from mod-configuration";
+  private static final Logger LOGGER = LogManager.getLogger(ConfigurationsClient.class);
+
   public static final String CONFIGURATIONS_ENTRIES_ENDPOINT_URL = "/configurations/entries";
   public static final String MODULE_NAME = "LOGIN-SAML";
   public static final String CONFIG_NAME = "saml";
@@ -39,21 +46,42 @@ public class ConfigurationsClient {
   private static final String QUERY_END_CONSTANT = ")";
   private static final String QUERY_CONSTANT = MODULE_QUERY_CONSTANT + MODULE_NAME + CONFIG_NAME_QUERY_CONSTANT + CONFIG_NAME;
 
-  private ConfigurationsClient() {
+  public static class ConfigurationsMappingException extends RuntimeException {
+    private static final long serialVersionUID = 7340537453740028324L;
 
+    public ConfigurationsMappingException(String message) {
+      super(message);
+    }
+  }
+
+  private ConfigurationsClient() {
   }
 
   public static Future<SamlConfiguration> getConfiguration(Vertx vertx, OkapiHeaders okapiHeaders) {
 
     return checkConfig(vertx, okapiHeaders, QUERY_CONSTANT + QUERY_END_CONSTANT)
-      .compose(configs -> ConfigurationObjectMapper.map(configs, SamlConfiguration.class));
+      .map(configs -> {
+        try {
+          return ConfigurationObjectMapper.map(configs, SamlConfiguration.class);
+        } catch (IllegalArgumentException iArgEx) {
+          LOGGER.warn(GET_CONFIGURATION_WARN_MESSAGE, iArgEx);
+          throw new ConfigurationsMappingException(iArgEx.getMessage());
+        }
+      });
   }
 
   public static Future<SamlConfiguration> getConfigurationWithIds(Vertx vertx, OkapiHeaders okapiHeaders) {
 
     return checkConfig(vertx, okapiHeaders, QUERY_CONSTANT + QUERY_END_CONSTANT)
-      .compose(configs -> ConfigurationObjectMapperWithList.map(configs,
-          ConfigurationObjectMapper.mapWithoutFuture(configs, SamlConfiguration.class)));
+      .map(configs -> {
+        try {
+          return ConfigurationObjectMapperWithList
+            .map(configs, ConfigurationObjectMapper.map(configs, SamlConfiguration.class));
+        } catch (IllegalArgumentException iArgEx) {
+          LOGGER.warn(GET_CONFIGURATION_WARN_MESSAGE, iArgEx);
+          throw new ConfigurationsMappingException(iArgEx.getMessage());
+        }
+      });
   }
 
   public static Future<SamlConfiguration> storeEntries(Vertx vertx, OkapiHeaders headers, Map<String, String> entries) {
