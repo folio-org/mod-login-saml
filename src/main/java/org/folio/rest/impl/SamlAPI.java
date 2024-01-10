@@ -774,8 +774,7 @@ public class SamlAPI implements Saml {
     });
 
     result.setCallback(config.getCallback());
-    ConfigEntryUtil.valueChanged(config.getCallback(), updatedConfig.getCallback(),
-      callback -> result.setCallback(callback));
+    ConfigEntryUtil.valueChanged(config.getCallback(), updatedConfig.getCallback(), result::setCallback);
 
     result.setKeystore(config.getKeystore());
     result.setKeystorePassword(config.getKeystorePassword());

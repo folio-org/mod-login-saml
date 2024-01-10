@@ -98,16 +98,7 @@
       "status": 204
     },
     {
-      "url": "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%20AND%20code%3D%3D%20saml.attribute%29",
-      "method": "get",
-      "status": 200,
-      "receivedData": {
-        "totalRecords": 0,
-        "configs": []
-      }
-    },
-    {
-      "url": "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%20AND%20code%3D%3D%20idp.metadata%29",
+      "url": "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%20AND%20code%3D%3D%idp.metadata%29",
       "method": "get",
       "status": 200,
       "receivedData": {
@@ -159,6 +150,15 @@
     },
     {
       "url": "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%20AND%20code%3D%3Duser.property%29",
+      "method": "get",
+      "status": 200,
+      "receivedData": {
+        "totalRecords": 0,
+        "configs": []
+      }
+    },
+    {
+      "url": "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%20AND%20code%3D%3Dsaml.attribute%29",
       "method": "get",
       "status": 200,
       "receivedData": {

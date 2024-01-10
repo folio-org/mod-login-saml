@@ -3,7 +3,6 @@ package org.folio.config;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
-import java.lang.IllegalArgumentException;
 import java.util.stream.Collector;
 
 /**
@@ -16,9 +15,10 @@ public class ConfigurationObjectMapper {
   private ConfigurationObjectMapper() {
   }
 
-  public static <T> T map(JsonArray array, Class<T> clazz) {
+  public static <T> T map(JsonArray array, Class<T> clazz) throws IllegalArgumentException {
     try {
-      return mapInternal(array, clazz);
+      T mappedValue = mapInternal(array, clazz);
+      return mappedValue;
     } catch (Exception ex) {
       throw new IllegalArgumentException(ex);
     }

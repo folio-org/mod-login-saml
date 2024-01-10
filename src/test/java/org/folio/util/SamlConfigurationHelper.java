@@ -38,7 +38,11 @@ public final class SamlConfigurationHelper {
     Map<String, String> entries = new HashMap<>();
     entries.put(SamlConfiguration.IDP_URL_CODE, samlConfiguration.getIdpUrl());
     entries.put(SamlConfiguration.IDP_METADATA_CODE, samlConfiguration.getIdpMetadata());
-    entries.put(SamlConfiguration.METADATA_INVALIDATED_CODE, "true");
+    entries.put(SamlConfiguration.KEYSTORE_FILE_CODE, samlConfiguration.getKeystore());
+    entries.put(SamlConfiguration.KEYSTORE_PASSWORD_CODE, samlConfiguration.getKeystorePassword());
+    entries.put(SamlConfiguration.KEYSTORE_PRIVATEKEY_PASSWORD_CODE, samlConfiguration.getPrivateKeyPassword());
+    //entries.put(SamlConfiguration.METADATA_INVALIDATED_CODE, "true");
+    entries.put(SamlConfiguration.METADATA_INVALIDATED_CODE, samlConfiguration.getMetadataInvalidated());
     entries.put(SamlConfiguration.OKAPI_URL, samlConfiguration.getOkapiUrl());
     entries.put(SamlConfiguration.SAML_ATTRIBUTE_CODE, samlConfiguration.getSamlAttribute());
     entries.put(SamlConfiguration.SAML_BINDING_CODE, samlConfiguration.getSamlBinding());

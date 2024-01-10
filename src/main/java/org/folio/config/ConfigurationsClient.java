@@ -17,7 +17,6 @@ import org.folio.util.PercentCodec;
 import org.folio.util.model.OkapiHeaders;
 import org.springframework.util.Assert;
 
-import java.lang.IllegalArgumentException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -46,26 +45,19 @@ public class ConfigurationsClient {
   private static final String QUERY_END_CONSTANT = ")";
   private static final String QUERY_CONSTANT = MODULE_QUERY_CONSTANT + MODULE_NAME + CONFIG_NAME_QUERY_CONSTANT + CONFIG_NAME;
 
-  public static class ConfigurationsMappingException extends RuntimeException {
-    private static final long serialVersionUID = 7340537453740028324L;
-
-    public ConfigurationsMappingException(String message) {
-      super(message);
-    }
-  }
-
   private ConfigurationsClient() {
   }
 
   public static Future<SamlConfiguration> getConfiguration(Vertx vertx, OkapiHeaders okapiHeaders) {
 
     return checkConfig(vertx, okapiHeaders, QUERY_CONSTANT + QUERY_END_CONSTANT)
+      .onFailure(cause -> LOGGER.error("There aren't any data received from mod-configuration: {}", cause.getMessage()))
       .map(configs -> {
         try {
           return ConfigurationObjectMapper.map(configs, SamlConfiguration.class);
         } catch (IllegalArgumentException iArgEx) {
           LOGGER.warn(GET_CONFIGURATION_WARN_MESSAGE, iArgEx);
-          throw new ConfigurationsMappingException(iArgEx.getMessage());
+          throw new IllegalArgumentException(iArgEx.getMessage());
         }
       });
   }
@@ -73,13 +65,13 @@ public class ConfigurationsClient {
   public static Future<SamlConfiguration> getConfigurationWithIds(Vertx vertx, OkapiHeaders okapiHeaders) {
 
     return checkConfig(vertx, okapiHeaders, QUERY_CONSTANT + QUERY_END_CONSTANT)
+      .onFailure(cause -> LOGGER.error("There are no data from mod-configuration received: {}", cause.getMessage()))
       .map(configs -> {
         try {
-          return ConfigurationObjectMapperWithList
-            .map(configs, ConfigurationObjectMapper.map(configs, SamlConfiguration.class));
+          return ConfigurationObjectMapperWithList.map(configs, ConfigurationObjectMapper.map(configs, SamlConfiguration.class));
         } catch (IllegalArgumentException iArgEx) {
           LOGGER.warn(GET_CONFIGURATION_WARN_MESSAGE, iArgEx);
-          throw new ConfigurationsMappingException(iArgEx.getMessage());
+          throw new IllegalArgumentException(iArgEx.getMessage());
         }
       });
   }
@@ -91,7 +83,7 @@ public class ConfigurationsClient {
 
     List<Future<Void>> futures = entries.entrySet().stream()
       .map(entry -> ConfigurationsClient.storeEntry(vertx, headers, entry.getKey(), entry.getValue()))
-      .collect(Collectors.toList());
+      .toList();
 
     return GenericCompositeFuture.all(futures)
       .compose(compositeEvent -> ConfigurationsClient.getConfiguration(vertx, headers)
