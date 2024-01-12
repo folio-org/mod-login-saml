@@ -15,6 +15,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
@@ -110,11 +111,14 @@ public class ConfigurationClientTest extends TestBase {
 
   @Test
   public void testGetConfigurationWithIds(TestContext context) {
-    mock.setMockContent("mock_content_with_delete.json");
+    mock.setMockContent("mock_example_entries.json");
     SamlConfiguration samlConfiguration = mock.getMockPartialContent();
     ConfigurationsClient.getConfigurationWithIds(vertx, dataMigrationHelper.getOkapiHeaders())
       .onComplete(context.asyncAssertSuccess(result -> {
          assertTrue(createDiffResult(result, samlConfiguration).getDiffs().isEmpty());
+         assertEquals(result.getIdsList().get(0), "60eead4f-de97-437c-9cb7-09966ce50e49");
+         assertEquals(result.getIdsList().get(1), "6dc15218-ed83-49e0-85ab-bb891e3f42c9");
+         assertEquals(result.getIdsList().get(2), "2dd0d26d-3be4-4e80-a631-f7bda5311719");
       }));
   }
 

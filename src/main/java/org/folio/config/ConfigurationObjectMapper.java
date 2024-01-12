@@ -17,8 +17,7 @@ public class ConfigurationObjectMapper {
 
   public static <T> T map(JsonArray array, Class<T> clazz) throws IllegalArgumentException {
     try {
-      T mappedValue = mapInternal(array, clazz);
-      return mappedValue;
+      return mapInternal(array, clazz);
     } catch (Exception ex) {
       throw new IllegalArgumentException(ex);
     }

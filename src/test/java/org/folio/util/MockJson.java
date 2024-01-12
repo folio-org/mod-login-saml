@@ -37,6 +37,29 @@ public class MockJson extends AbstractVerticle {
     }
   }
 
+  public JsonArray getMocks() {
+    return mocks;
+  }
+
+  public JsonArray getMockConfigs() {
+    final String partialUrlConstant = "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%29";
+    final String receivedDataConstant = "receivedData";
+    final String configsConstant = "configs";
+    for (int i = 0; i < mocks.size(); i++) {
+      JsonObject entry = mocks.getJsonObject(i);
+      Object receivedData = null;
+      if (entry.containsKey("url")) {
+        if (entry.getString("url").contains(partialUrlConstant) ) {
+          receivedData = entry.getValue(receivedDataConstant);
+          if (receivedData instanceof JsonObject) {
+            return ((JsonObject)receivedData).getJsonArray(configsConstant);
+          }
+        }
+      }
+    }
+    return (null);
+  }
+
   public SamlConfiguration getMockPartialContent() {
     final String partialUrlConstant = "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%29";
     final String receivedDataConstant = "receivedData";
