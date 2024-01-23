@@ -16,6 +16,8 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
@@ -29,7 +31,9 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 
 import java.net.MalformedURLException;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RunWith(VertxUnitRunner.class)
@@ -110,16 +114,35 @@ public class ConfigurationClientTest extends TestBase {
   }
 
   @Test
+  public void testGetConfigurationNullStatus200Null(TestContext context) {
+    mock.setMockContent("mock_200_null.json");
+    ConfigurationsClient.getConfiguration(vertx, dataMigrationHelper.getOkapiHeaders())
+      .onComplete(context.asyncAssertFailure(cause ->
+        assertThat(cause.getMessage(), startsWith("java.lang.NullPointerException: Cannot invoke"))));
+  }
+
+  @Test
   public void testGetConfigurationWithIds(TestContext context) {
     mock.setMockContent("mock_example_entries.json");
+    List<String> expectedList = new ArrayList<>(0);
+    expectedList.add("60eead4f-de97-437c-9cb7-09966ce50e49");
+    expectedList.add("6dc15218-ed83-49e0-85ab-bb891e3f42c9");
+    expectedList.add("2dd0d26d-3be4-4e80-a631-f7bda5311719");
+    boolean expectedBoolean = true;
     SamlConfiguration samlConfiguration = mock.getMockPartialContent();
     ConfigurationsClient.getConfigurationWithIds(vertx, dataMigrationHelper.getOkapiHeaders())
       .onComplete(context.asyncAssertSuccess(result -> {
-         assertTrue(createDiffResult(result, samlConfiguration).getDiffs().isEmpty());
-         assertEquals(result.getIdsList().get(0), "60eead4f-de97-437c-9cb7-09966ce50e49");
-         assertEquals(result.getIdsList().get(1), "6dc15218-ed83-49e0-85ab-bb891e3f42c9");
-         assertEquals(result.getIdsList().get(2), "2dd0d26d-3be4-4e80-a631-f7bda5311719");
+        assertTrue(createDiffResult(result, samlConfiguration).getDiffs().isEmpty());
+        assertEquals(expectedBoolean, result.getIdsList().equals(expectedList));
       }));
+  }
+
+  @Test
+  public void testGetConfigurationWithIdsStatus200Null(TestContext context) {
+    mock.setMockContent("mock_200_null.json");
+    ConfigurationsClient.getConfigurationWithIds(vertx, dataMigrationHelper.getOkapiHeaders())
+      .onComplete(context.asyncAssertFailure(cause ->
+        assertThat(cause.getMessage(), startsWith("java.lang.NullPointerException: Cannot invoke"))));
   }
 
   private static DiffResult<SamlConfiguration> createDiffResult(SamlConfiguration result, SamlConfiguration samlConfiguration) {

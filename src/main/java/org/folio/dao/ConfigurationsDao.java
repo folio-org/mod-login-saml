@@ -11,9 +11,6 @@ import org.folio.util.model.OkapiHeaders;
  */
 public interface ConfigurationsDao {
 
-  public static final String MODULE_NAME = "LOGIN-SAML";
-  public static final String CONFIG_NAME = "saml";
-
   public static final String MISSING_OKAPI_URL = "Missing Okapi URL";
   public static final String MISSING_TENANT = "Missing Tenant";
   public static final String MISSING_TOKEN = "Missing Token";

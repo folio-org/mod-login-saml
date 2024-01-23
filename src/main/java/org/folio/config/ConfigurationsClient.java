@@ -20,7 +20,6 @@ import org.springframework.util.Assert;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * Connect to mod-configuration via Okapi
@@ -35,10 +34,6 @@ public class ConfigurationsClient {
   public static final String CONFIGURATIONS_ENTRIES_ENDPOINT_URL = "/configurations/entries";
   public static final String MODULE_NAME = "LOGIN-SAML";
   public static final String CONFIG_NAME = "saml";
-
-  public static final String MISSING_OKAPI_URL = "Missing Okapi URL";
-  public static final String MISSING_TENANT = "Missing Tenant";
-  public static final String MISSING_TOKEN = "Missing Token";
 
   private static final String MODULE_QUERY_CONSTANT = "(module==";
   private static final String CONFIG_NAME_QUERY_CONSTANT = " AND configName==";
@@ -56,7 +51,9 @@ public class ConfigurationsClient {
         try {
           return ConfigurationObjectMapper.map(configs, SamlConfiguration.class);
         } catch (IllegalArgumentException iArgEx) {
-          LOGGER.warn(GET_CONFIGURATION_WARN_MESSAGE, iArgEx);
+          String errorMessage = String.format(GET_CONFIGURATION_WARN_MESSAGE + ": %s",
+            iArgEx.getMessage());
+          LOGGER.error(errorMessage, iArgEx);
           throw new IllegalArgumentException(iArgEx.getMessage());
         }
       });
@@ -150,8 +147,7 @@ public class ConfigurationsClient {
     List<String> entries = samlConfiguration.getIdsList();
 
     List<Future<Void>> futures = entries.stream()
-      .map(entry -> ConfigurationsClient.deleteConfigurationEntry(vertx, okapiHeaders, entry))
-      .collect(Collectors.toList());
+      .map(entry -> ConfigurationsClient.deleteConfigurationEntry(vertx, okapiHeaders, entry)).toList();
 
     return GenericCompositeFuture.all(futures)
       .compose(compositeEvent -> ConfigurationsClient.getConfiguration(vertx, okapiHeaders)
