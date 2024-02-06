@@ -9,7 +9,9 @@ import org.folio.config.model.SamlConfiguration;
 import org.folio.rest.impl.TestBase;
 import org.folio.rest.jaxrs.model.SamlConfigRequest;
 import org.folio.rest.tools.utils.NetworkUtils;
-import org.folio.util.*;
+import org.folio.util.DataMigrationHelper;
+import org.folio.util.MockJsonExtended;
+import org.folio.util.SamlConfigurationHelper;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -46,7 +48,7 @@ public class ConfigurationClientTest extends TestBase {
   private static final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", "http://localhost:" + JSON_MOCK_PORT);
   public static final int IDP_MOCK_PORT = NetworkUtils.nextFreePort();
 
-  private static final MockJson mock = new MockJson();
+  private static final MockJsonExtended mock = new MockJsonExtended();
   private DataMigrationHelper dataMigrationHelper = new DataMigrationHelper(TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
 
   @Rule
@@ -69,6 +71,8 @@ public class ConfigurationClientTest extends TestBase {
   @Before
   public void setUp() {
     log.info("Running {}", testName.getMethodName());
+    mock.resetReceivedData();
+    mock.resetRequestedUrlList();
   }
 
   @After
@@ -83,7 +87,7 @@ public class ConfigurationClientTest extends TestBase {
     SamlConfiguration samlConfiguration = mock.getMockPartialContent();
     ConfigurationsClient.getConfiguration(vertx, dataMigrationHelper.getOkapiHeaders())
       .onComplete(context.asyncAssertSuccess(result -> {
-        assertTrue(createDiffResult(result, samlConfiguration).getDiffs().isEmpty());
+        assertTrue(SamlConfigurationHelper.createDiffResult(result, samlConfiguration).getDiffs().isEmpty());
       }));
   }
 
@@ -109,7 +113,7 @@ public class ConfigurationClientTest extends TestBase {
     SamlConfiguration samlConfiguration = mock.getMockPartialContent();
     ConfigurationsClient.getConfiguration(vertx, dataMigrationHelper.getOkapiHeaders())
       .onComplete(context.asyncAssertSuccess(result -> {
-        assertTrue(createDiffResult(result, samlConfiguration).getDiffs().isEmpty());
+        assertTrue(SamlConfigurationHelper.createDiffResult(result, samlConfiguration).getDiffs().isEmpty());
       }));
   }
 
@@ -132,7 +136,7 @@ public class ConfigurationClientTest extends TestBase {
     SamlConfiguration samlConfiguration = mock.getMockPartialContent();
     ConfigurationsClient.getConfigurationWithIds(vertx, dataMigrationHelper.getOkapiHeaders())
       .onComplete(context.asyncAssertSuccess(result -> {
-        assertTrue(createDiffResult(result, samlConfiguration).getDiffs().isEmpty());
+        assertTrue(SamlConfigurationHelper.createDiffResult(result, samlConfiguration).getDiffs().isEmpty());
         assertEquals(expectedBoolean, result.getIdsList().equals(expectedList));
       }));
   }
@@ -143,13 +147,6 @@ public class ConfigurationClientTest extends TestBase {
     ConfigurationsClient.getConfigurationWithIds(vertx, dataMigrationHelper.getOkapiHeaders())
       .onComplete(context.asyncAssertFailure(cause ->
         assertThat(cause.getMessage(), startsWith("java.lang.NullPointerException: Cannot invoke"))));
-  }
-
-  private static DiffResult<SamlConfiguration> createDiffResult(SamlConfiguration result, SamlConfiguration samlConfiguration) {
-    DiffResult<SamlConfiguration> diffResult = SamlConfigurationHelper.compareSamlConfigurations(samlConfiguration, result);
-    log.info("result = " + SamlConfigurationHelper.printPojo(result));
-    log.info("numberOfDiffs = " + diffResult.getNumberOfDiffs());
-    return diffResult;
   }
 
   @Test
@@ -167,7 +164,7 @@ public class ConfigurationClientTest extends TestBase {
       ConfigurationsClient.storeEntries(vertx, dataMigrationHelper.getOkapiHeaders(), entries)
         .onComplete(context.asyncAssertSuccess(result -> {
           SamlConfiguration samlConfigurationReceivedbyMock = mock.getReceivedData();
-          assertTrue(createDiffResult(samlConfigurationByDataSentToMock, samlConfigurationReceivedbyMock).getDiffs().isEmpty());
+          assertTrue(SamlConfigurationHelper.createDiffResult(samlConfigurationByDataSentToMock, samlConfigurationReceivedbyMock).getDiffs().isEmpty());
           mock.resetReceivedData();
         }));
     }
@@ -185,9 +182,39 @@ public class ConfigurationClientTest extends TestBase {
       ConfigurationsClient.storeEntries(vertx, dataMigrationHelper.getOkapiHeaders(), entries)
         .onComplete(context.asyncAssertSuccess(result -> {
           SamlConfiguration samlConfigurationReceivedbyMock = mock.getReceivedData();
-          assertTrue(createDiffResult(samlConfigurationByDataSentToMock, samlConfigurationReceivedbyMock).getDiffs().isEmpty());
+          assertTrue(SamlConfigurationHelper.createDiffResult(samlConfigurationByDataSentToMock, samlConfigurationReceivedbyMock).getDiffs().isEmpty());
           mock.resetReceivedData();
         }));
     }
+  }
+
+  @Test
+  public void testdeleteConfigurationEntries(TestContext context) {
+    mock.setMockContent("mock_content_with_delete.json");
+    List<String> expectedList = new ArrayList<>(7);
+    expectedList.add("60eead4f-de97-437c-9cb7-09966ce50e49");
+    expectedList.add("022d8342-fa51-44d1-8b2b-27da36e11f07");
+    expectedList.add("6dc15218-ed83-49e0-85ab-bb891e3f42c9");
+    expectedList.add("b5662280-81cc-462e-bb84-726e47cb58e4");
+    expectedList.add("2dd0d26d-3be4-4e80-a631-f7bda5311719");
+    expectedList.add("717bf1d1-a5a3-460f-a0de-29e6b70a0027");
+    expectedList.add("cb20fa86-affb-4488-8b37-2e8c597fff66");
+    boolean expectedBoolean = true;
+    SamlConfiguration samlConfiguration = mock.getMockPartialContent();
+    ConfigurationsClient.getConfigurationWithIds(vertx, dataMigrationHelper.getOkapiHeaders())
+      .onComplete(context.asyncAssertSuccess(result -> {
+        assertTrue(SamlConfigurationHelper.createDiffResult(result, samlConfiguration).getDiffs().isEmpty());
+        assertEquals(expectedBoolean, result.getIdsList().equals(expectedList));
+        mock.resetReceivedData();
+      }))
+      .onComplete(context.asyncAssertSuccess(result -> {
+        ConfigurationsClient.deleteConfigurationEntries(vertx, dataMigrationHelper.getOkapiHeaders(), result)
+          .onComplete(context.asyncAssertSuccess(newResult -> {
+            assertEquals(expectedBoolean, mock.getRequestedUrlList().containsAll(expectedList));
+            mock.resetRequestedUrlList();
+          }));
+     }));
+
+
   }
 }

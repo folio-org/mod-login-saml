@@ -159,17 +159,13 @@ public class ConfigurationsClient {
 
     HttpMethod httpMethod = HttpMethod.DELETE;
     String endpoint = CONFIGURATIONS_ENTRIES_ENDPOINT_URL + "/" + configId;
-    JsonObject requestBody = new JsonObject();
-    requestBody
-      .put("module", MODULE_NAME)
-      .put("configName", CONFIG_NAME);
     return WebClientFactory.getWebClient(vertx)
       .requestAbs(httpMethod, okapiHeaders.getUrl() + endpoint)
       .putHeader(XOkapiHeaders.TOKEN, okapiHeaders.getToken())
       .putHeader(XOkapiHeaders.URL, okapiHeaders.getUrl())
       .putHeader(XOkapiHeaders.TENANT, okapiHeaders.getTenant())
-      .expect(ResponsePredicate.status(201, 205))
-      .sendJsonObject(requestBody)
+      .expect(ResponsePredicate.SC_NO_CONTENT) //204 No Content
+      .send()
       .mapEmpty();
   }
 }

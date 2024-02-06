@@ -11,8 +11,6 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.folio.config.ConfigurationObjectMapper;
-import org.folio.config.model.SamlConfiguration;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -24,7 +22,6 @@ public class MockJson extends AbstractVerticle {
 
   JsonArray mocks;
   String resource;
-  JsonArray receivedData = new JsonArray();
 
   public void setMockContent(String resource, Function<String,String> function) {
     try {
@@ -37,74 +34,20 @@ public class MockJson extends AbstractVerticle {
     }
   }
 
-  public JsonArray getMocks() {
-    return mocks;
-  }
-
-  public JsonArray getMockConfigs() {
-    final String partialUrlConstant = "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%29";
-    final String receivedDataConstant = "receivedData";
-    final String configsConstant = "configs";
-    for (int i = 0; i < mocks.size(); i++) {
-      JsonObject entry = mocks.getJsonObject(i);
-      Object receivedData = null;
-      if (entry.containsKey("url")) {
-        if (entry.getString("url").contains(partialUrlConstant) ) {
-          receivedData = entry.getValue(receivedDataConstant);
-          if (receivedData instanceof JsonObject) {
-            return ((JsonObject)receivedData).getJsonArray(configsConstant);
-          }
-        }
-      }
-    }
-    return (null);
-  }
-
-  public SamlConfiguration getMockPartialContent() {
-    final String partialUrlConstant = "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%29";
-    final String receivedDataConstant = "receivedData";
-    final String configsConstant = "configs";
-    for (int i = 0; i < mocks.size(); i++) {
-      JsonObject entry = mocks.getJsonObject(i);
-      Object receivedData = null;
-      if (entry.containsKey("url")) {
-        if (entry.getString("url").contains(partialUrlConstant) ) {
-          receivedData = entry.getValue(receivedDataConstant);
-          if (receivedData instanceof JsonObject) {
-            return ConfigurationObjectMapper
-              .map(((JsonObject)receivedData).getJsonArray(configsConstant), SamlConfiguration.class);
-          }
-        }
-      }
-    }
-    return (null);
-  }
-
   public void setMockContent(String resource) {
     setMockContent(resource, s -> s);
   }
 
-  private void handle(RoutingContext context) {
+  protected void handle(RoutingContext context) {
     HttpServerRequest request = context.request();
     HttpServerResponse response = context.response();
     String method = request.method().name();
     String uri = request.uri();
-    log.info("Before: Used in mock={} method={} uri={}", resource, method, uri);
-    if (method.equalsIgnoreCase("put") || method.equalsIgnoreCase("post")) {
-      log.info("Put: Used in mock={} method={} uri={}", resource, method, uri);
-      request.bodyHandler(buff -> {
-        JsonObject localJsonObject = buff.toJsonObject();
-        if (localJsonObject!= null)
-          receivedData.add(localJsonObject);
-      });
-    }
 
     for (int i = 0; i < mocks.size(); i++) {
       JsonObject entry = mocks.getJsonObject(i);
-      if ((method.equalsIgnoreCase(entry.getString("method", "get"))
-          || method.equalsIgnoreCase(entry.getString("method", "delete")))
-          && uri.equals(entry.getString("url"))) {
-        //log.info("Used in mock={} method={} uri={}", resource, method, uri);/////
+      if (method.equalsIgnoreCase(entry.getString("method", "get"))
+        && uri.equals(entry.getString("url"))) {
         response.setStatusCode(entry.getInteger("status", 200));
         JsonArray headers = entry.getJsonArray("headers");
         if (headers != null) {
@@ -126,23 +69,11 @@ public class MockJson extends AbstractVerticle {
         response.end(responseData.toString());
         return;
       }
-      else if (method.equalsIgnoreCase(entry.getString("method", "put"))
-        && uri.equals(entry.getString("url"))) {
-        log.info("Used in mock={} method={} uri={}", resource, method, uri);/////
-      }
     }
     log.info("Not found in mock={} method={} uri={}", resource, method, uri);
     response.setStatusCode(404);
     response.putHeader("Content-Type", "text/plain");
     response.end("Not found in mock");
-  }
-
-  public SamlConfiguration getReceivedData() {
-    return ConfigurationObjectMapper.map(receivedData, SamlConfiguration.class);
-  }
-
-  public void resetReceivedData() {
-    receivedData = new JsonArray();
   }
 
   public void start(Promise<Void> promise) {
