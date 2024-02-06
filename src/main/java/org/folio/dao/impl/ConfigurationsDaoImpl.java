@@ -2,6 +2,9 @@ package org.folio.dao.impl;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import org.apache.commons.lang3.builder.ReflectionDiffBuilder;
+import org.apache.commons.lang3.builder.DiffResult;
+import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 import org.folio.config.ConfigurationsClient;
@@ -13,8 +16,9 @@ import org.folio.rest.persist.PostgresClient;
 import org.folio.util.model.OkapiHeaders;
 
 import java.util.HashMap;
-import java.util.Objects;
 import java.util.Map;
+import java.util.Objects;
+
 /**
  * @author barbaraloehle
  */
@@ -47,14 +51,31 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
       return Future.failedFuture(new IllegalArgumentException(errorMessage));
     }
     return ConfigurationsClient.getConfigurationWithIds(vertx, okapiHeaders)
-      .compose(result -> storeEntry(vertx, okapiHeaders, result))
-      .onSuccess(result -> {
-        if (withDelete)
-          ConfigurationsClient.deleteConfigurationEntries(vertx, okapiHeaders, result);
+      .compose(result -> storeSamlConfiguration(vertx, okapiHeaders, result))
+      .compose(result -> {
+        if (withDelete) {
+          return ConfigurationsClient.deleteConfigurationEntries(vertx, okapiHeaders, result)
+            .compose(this::localCompareObjects)
+            .onFailure(cause -> {
+              String warnMessage = "The data of mod-configuration are not correctly deleted:" + " " + cause.getMessage();
+              LOGGER.warn(warnMessage);
+              Future.failedFuture(warnMessage);
+            });
+        }
         else
-          Future.succeededFuture(result);
+          return Future.succeededFuture(result);
       })
-      .onFailure(cause -> LOGGER.warn("There is an empty local DB : %s", cause.getMessage()));
+      .onFailure(cause -> LOGGER.warn("There is an empty local DB : {}", cause.getMessage()));
+  }
+
+  private Future<SamlConfiguration> localCompareObjects(SamlConfiguration samlConfiguration) {
+    if(compareEquality(samlConfiguration, emptySamlConfiguration))
+      return Future.succeededFuture(samlConfiguration);
+    else {
+      String warnMessage = "After deletion of the data of mod-configuration the compared Objects are different";
+      LOGGER.warn(warnMessage);
+      return Future.failedFuture(warnMessage);
+    }
   }
 
   @Override
@@ -121,7 +142,6 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
         return Future.failedFuture(new IllegalArgumentException(errorMessage));
       }
   }
-
 
   @Override
   public Future<SamlConfiguration> storeSamlConfiguration(Vertx vertx, OkapiHeaders okapiHeaders, SamlConfiguration samlConfiguration) {
@@ -221,4 +241,14 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
     return localMap;
   }
 
+  private static DiffResult<SamlConfiguration> compare(SamlConfiguration samlConfigFirst, SamlConfiguration samlConfigSecond) {
+    return new ReflectionDiffBuilder<>(samlConfigFirst, samlConfigSecond, ToStringStyle.SHORT_PREFIX_STYLE).build();
+  }
+
+  private static boolean compareEquality(SamlConfiguration samlConfigFirst, SamlConfiguration samlConfigSecond) {
+    boolean bool = false;
+    if(compare(samlConfigFirst, samlConfigSecond).getNumberOfDiffs() == 0)
+      bool = true;
+    return bool;
+  }
 }

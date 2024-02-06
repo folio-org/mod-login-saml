@@ -3,6 +3,8 @@ package org.folio.util;
 import org.apache.commons.lang3.builder.DiffBuilder;
 import org.apache.commons.lang3.builder.DiffResult;
 import org.apache.commons.lang3.builder.ToStringStyle;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.folio.config.model.SamlConfiguration;
 import java.lang.IllegalAccessException;
 import java.lang.reflect.Field;
@@ -13,9 +15,10 @@ import java.util.Map;
  * @author barbaraloehle
  */
 public final class SamlConfigurationHelper {
-
+  private static final Logger log = LogManager.getLogger(SamlConfigurationHelper.class);
   public SamlConfigurationHelper() {}
 
+  //Evaluating the difference of two objects of the class SamlConfiguration without taking into acoount the field: id.
   public static DiffResult<SamlConfiguration> compareSamlConfigurations(SamlConfiguration samlConfigFirst, SamlConfiguration samlConfigSecond) {
     DiffBuilder<SamlConfiguration> diffBuilder = new DiffBuilder<SamlConfiguration>(samlConfigFirst, samlConfigSecond,
       ToStringStyle.DEFAULT_STYLE)
@@ -36,18 +39,29 @@ public final class SamlConfigurationHelper {
 
   public static Map<String, String> samlConfigurationToMap(SamlConfiguration samlConfiguration) {
     Map<String, String> entries = new HashMap<>();
-    entries.put(SamlConfiguration.IDP_URL_CODE, samlConfiguration.getIdpUrl());
-    entries.put(SamlConfiguration.IDP_METADATA_CODE, samlConfiguration.getIdpMetadata());
-    entries.put(SamlConfiguration.KEYSTORE_FILE_CODE, samlConfiguration.getKeystore());
-    entries.put(SamlConfiguration.KEYSTORE_PASSWORD_CODE, samlConfiguration.getKeystorePassword());
-    entries.put(SamlConfiguration.KEYSTORE_PRIVATEKEY_PASSWORD_CODE, samlConfiguration.getPrivateKeyPassword());
+    if (samlConfiguration.getIdpUrl() != null)
+      entries.put(SamlConfiguration.IDP_URL_CODE, samlConfiguration.getIdpUrl());
+    if (samlConfiguration.getIdpMetadata() != null)
+      entries.put(SamlConfiguration.IDP_METADATA_CODE, samlConfiguration.getIdpMetadata());
+    if (samlConfiguration.getKeystore() != null)
+      entries.put(SamlConfiguration.KEYSTORE_FILE_CODE, samlConfiguration.getKeystore());
+    if (samlConfiguration.getKeystorePassword() != null)
+      entries.put(SamlConfiguration.KEYSTORE_PASSWORD_CODE, samlConfiguration.getKeystorePassword());
+    if (samlConfiguration.getPrivateKeyPassword() != null)
+      entries.put(SamlConfiguration.KEYSTORE_PRIVATEKEY_PASSWORD_CODE, samlConfiguration.getPrivateKeyPassword());
     //entries.put(SamlConfiguration.METADATA_INVALIDATED_CODE, "true");
-    entries.put(SamlConfiguration.METADATA_INVALIDATED_CODE, samlConfiguration.getMetadataInvalidated());
-    entries.put(SamlConfiguration.OKAPI_URL, samlConfiguration.getOkapiUrl());
-    entries.put(SamlConfiguration.SAML_ATTRIBUTE_CODE, samlConfiguration.getSamlAttribute());
-    entries.put(SamlConfiguration.SAML_BINDING_CODE, samlConfiguration.getSamlBinding());
-    entries.put(SamlConfiguration.SAML_CALLBACK, samlConfiguration.getCallback());
-    entries.put(SamlConfiguration.USER_PROPERTY_CODE, samlConfiguration.getUserProperty());
+    if (samlConfiguration.getMetadataInvalidated() != null)
+      entries.put(SamlConfiguration.METADATA_INVALIDATED_CODE, samlConfiguration.getMetadataInvalidated());
+    if (samlConfiguration.getOkapiUrl() != null)
+      entries.put(SamlConfiguration.OKAPI_URL, samlConfiguration.getOkapiUrl());
+    if (samlConfiguration.getSamlAttribute() != null)
+      entries.put(SamlConfiguration.SAML_ATTRIBUTE_CODE, samlConfiguration.getSamlAttribute());
+    if (samlConfiguration.getSamlBinding() != null)
+      entries.put(SamlConfiguration.SAML_BINDING_CODE, samlConfiguration.getSamlBinding());
+    if (samlConfiguration.getCallback() != null)
+      entries.put(SamlConfiguration.SAML_CALLBACK, samlConfiguration.getCallback());
+    if (samlConfiguration.getUserProperty() != null)
+      entries.put(SamlConfiguration.USER_PROPERTY_CODE, samlConfiguration.getUserProperty());
     return entries;
   }
 
@@ -72,5 +86,12 @@ public final class SamlConfigurationHelper {
     } catch (IllegalAccessException iEx) {
       return("IllegalAccessException: " + iEx.getMessage());
     }
+  }
+
+  public static DiffResult<SamlConfiguration> createDiffResult(SamlConfiguration result, SamlConfiguration samlConfiguration) {
+    DiffResult<SamlConfiguration> diffResult = SamlConfigurationHelper.compareSamlConfigurations(samlConfiguration, result);
+    log.info("result = " + SamlConfigurationHelper.printPojo(result));
+    log.info("numberOfDiffs = " + diffResult.getNumberOfDiffs());
+    return diffResult;
   }
 }

@@ -19,16 +19,27 @@ import org.folio.rest.tools.utils.TenantInit;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;//
 import io.vertx.core.VertxOptions;//
 
-public class TestBase {
+public class TestBase {//contained in "mock_content_with_delete.json"
   //Compare https://github.com/folio-org/mod-configuration/blob/master/mod-configuration-server/src/test/java/org/folio/rest/TestBase.java
+  public static final List<String> urlToDeleteList = new ArrayList<>(List.of("60eead4f-de97-437c-9cb7-09966ce50e49",
+    "022d8342-fa51-44d1-8b2b-27da36e11f07",
+    "6dc15218-ed83-49e0-85ab-bb891e3f42c9",
+    "b5662280-81cc-462e-bb84-726e47cb58e4",
+    "2dd0d26d-3be4-4e80-a631-f7bda5311719",
+    "717bf1d1-a5a3-460f-a0de-29e6b70a0027",
+    "cb20fa86-affb-4488-8b37-2e8c597fff66"));
+
   public static Vertx vertx;
   public static int MODULE_PORT;
   public static String MODULE_URL;
   public static WebClient webClient;
   public static TenantClient tenantClient;
+    //public static final String TENANT = "harvard";
   public static final String TENANT = "diku";
   public static final String SCHEMA = TENANT + "_mod_login_saml";
   public String localClassName = null;
@@ -48,11 +59,11 @@ public class TestBase {
     DeploymentOptions moduleOptions = new DeploymentOptions()
       .setConfig(new JsonObject().put("http.port", MODULE_PORT).put("mock", true));
 
-    dropSchema(SCHEMA)
-    .onComplete(context.asyncAssertSuccess());
+    //dropSchema(SCHEMA)
+    //  .onComplete(context.asyncAssertSuccess());
 
     vertx.deployVerticle(new RestVerticle(), moduleOptions)
-       .onComplete(context.asyncAssertSuccess());
+      .onComplete(context.asyncAssertSuccess());
   }
 
   @AfterClass
@@ -72,7 +83,7 @@ public class TestBase {
   }
 
   public static Future<Void> dropSchema(String schema) {
-    PostgresClient postgresClient = PostgresClient.getInstance(vertx);
+      PostgresClient postgresClient = PostgresClient.getInstance(vertx);
     return postgresClient.execute("DROP SCHEMA IF EXISTS " + schema + " CASCADE")
       .compose(x -> postgresClient.execute("DROP ROLE IF EXISTS " + schema))
       .mapEmpty();
@@ -84,6 +95,18 @@ public class TestBase {
       ta.setModuleTo("mod-login-saml-2.0");
       TenantClient tenantClient = new TenantClient("http://localhost:" + MODULE_PORT, TENANT, TENANT, webClient);
       return TenantInit.exec(tenantClient, ta, 6000);
+    } catch (Exception e) {
+      e.printStackTrace(System.err);
+      return Future.failedFuture(e);
+    }
+  }
+
+  public static Future<Void> postTenant() {
+    try {
+      TenantAttributes ta = new TenantAttributes();
+      ta.setModuleTo("mod-login-saml-2.0");
+      TenantClient tenantClient = new TenantClient("http://localhost:" + MODULE_PORT, TENANT, null, webClient);
+      return TenantInit.exec(tenantClient, ta, 60000);
     } catch (Exception e) {
       e.printStackTrace(System.err);
       return Future.failedFuture(e);

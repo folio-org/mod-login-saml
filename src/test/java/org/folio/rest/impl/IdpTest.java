@@ -68,7 +68,7 @@ public class IdpTest extends TestBase{
       .withExposedPorts(8080)
       .withEnv("SIMPLESAMLPHP_SP_ENTITY_ID", OKAPI_URL + "/_/invoke/tenant/diku/saml/callback-with-expiry")
       .withEnv("SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE",
-               OKAPI_URL + "/_/invoke/tenant/diku/saml/callback-with-expiry");
+         OKAPI_URL + "/_/invoke/tenant/diku/saml/callback-with-expiry");
 
   @BeforeClass
   public static void setupOnce(TestContext context) throws Exception {

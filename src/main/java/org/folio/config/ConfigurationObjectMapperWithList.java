@@ -13,7 +13,8 @@ public class ConfigurationObjectMapperWithList {
   private ConfigurationObjectMapperWithList() {
   }
 
-  public static SamlConfiguration map(JsonArray array, SamlConfiguration samlConfiguration) {
+  public static SamlConfiguration map(JsonArray array,
+    SamlConfiguration samlConfiguration) {
     try {
       samlConfiguration.setIdsList(mapInternal(array));
       return samlConfiguration;
