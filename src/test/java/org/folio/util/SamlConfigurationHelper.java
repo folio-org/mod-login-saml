@@ -3,6 +3,8 @@ package org.folio.util;
 import org.apache.commons.lang3.builder.DiffBuilder;
 import org.apache.commons.lang3.builder.DiffResult;
 import org.apache.commons.lang3.builder.ToStringStyle;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.folio.config.model.SamlConfiguration;
 import java.lang.IllegalAccessException;
 import java.lang.reflect.Field;
@@ -13,7 +15,7 @@ import java.util.Map;
  * @author barbaraloehle
  */
 public final class SamlConfigurationHelper {
-
+  private static final Logger log = LogManager.getLogger(SamlConfigurationHelper.class);
   public SamlConfigurationHelper() {}
 
   public static DiffResult<SamlConfiguration> compareSamlConfigurations(SamlConfiguration samlConfigFirst, SamlConfiguration samlConfigSecond) {
@@ -72,5 +74,12 @@ public final class SamlConfigurationHelper {
     } catch (IllegalAccessException iEx) {
       return("IllegalAccessException: " + iEx.getMessage());
     }
+  }
+
+  public static DiffResult<SamlConfiguration> createDiffResult(SamlConfiguration result, SamlConfiguration samlConfiguration) {
+    DiffResult<SamlConfiguration> diffResult = SamlConfigurationHelper.compareSamlConfigurations(samlConfiguration, result);
+    log.info("result = " + SamlConfigurationHelper.printPojo(result));
+    log.info("numberOfDiffs = " + diffResult.getNumberOfDiffs());
+    return diffResult;
   }
 }
