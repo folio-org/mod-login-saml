@@ -92,7 +92,8 @@
         "accessToken": "saml-access-token",
         "refreshToken": "saml-refresh-token",
         "accessTokenExpiration": "2050-10-05T20:19:33Z",
-        "refreshTokenExpiration": "2050-10-05T20:19:33Z"
+        "refreshTokenExpiration": "2050-10-05T20:19:33Z",
+        "tenantId": "diku"
       }
     },
     {
