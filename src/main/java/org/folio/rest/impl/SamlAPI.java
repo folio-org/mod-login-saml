@@ -95,6 +95,8 @@ public class SamlAPI implements Saml {
   public static final String FOLIO_REFRESH_TOKEN = "folioRefreshToken";
   public static final String REFRESH_TOKEN_EXPIRATION = "refreshTokenExpiration";
   public static final String ACCESS_TOKEN_EXPIRATION = "accessTokenExpiration";
+  public static final String TOKEN = "token";
+  public static final String TENANT_ID = "tenantId";
 
   public static class UserErrorException extends RuntimeException {
     public UserErrorException(String message) {
@@ -346,12 +348,14 @@ public class SamlAPI implements Saml {
   }
 
   private Response redirectResponseLegacy(JsonObject jsonObject, URI stripesBaseUrl, URI originalUrl) {
-    String authToken = jsonObject.getString("token");
+    String authToken = jsonObject.getString(TOKEN);
+    String tenantId = jsonObject.getString(TENANT_ID);
 
     final String location = UriBuilder.fromUri(stripesBaseUrl)
       .path("sso-landing")
       .queryParam("ssoToken", authToken)
       .queryParam("fwd", originalUrl.getPath())
+      .queryParam(TENANT_ID, tenantId)
       .build()
       .toString();
 
@@ -366,10 +370,12 @@ public class SamlAPI implements Saml {
     String refreshToken = jsonObject.getString(REFRESH_TOKEN);
     String accessTokenExpiration = jsonObject.getString(ACCESS_TOKEN_EXPIRATION);
     String refreshTokenExpiration = jsonObject.getString(REFRESH_TOKEN_EXPIRATION);
+    String tenantId = jsonObject.getString(TENANT_ID);
 
     final String location = UriBuilder.fromUri(stripesBaseUrl)
       .path("sso-landing")
       .queryParam("fwd", originalUrl.getPath())
+      .queryParam(TENANT_ID, tenantId)
       .queryParam(ACCESS_TOKEN_EXPIRATION, accessTokenExpiration, StandardCharsets.UTF_8)
       .queryParam(REFRESH_TOKEN_EXPIRATION, refreshTokenExpiration, StandardCharsets.UTF_8)
       .build()
