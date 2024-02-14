@@ -92,7 +92,6 @@ public class SamlAPI implements Saml {
   public static final String FOLIO_REFRESH_TOKEN = "folioRefreshToken";
   public static final String REFRESH_TOKEN_EXPIRATION = "refreshTokenExpiration";
   public static final String ACCESS_TOKEN_EXPIRATION = "accessTokenExpiration";
-  public static final String TOKEN = "token";
   public static final String TENANT_ID = "tenantId";
 
   private final UserService userService = new UserService();
@@ -304,14 +303,12 @@ public class SamlAPI implements Saml {
   }
 
   private Response redirectResponseLegacy(JsonObject jsonObject, URI stripesBaseUrl, URI originalUrl) {
-    String authToken = jsonObject.getString(TOKEN);
-    String tenantId = jsonObject.getString(TENANT_ID);
+    String authToken = jsonObject.getString("token");
 
     final String location = UriBuilder.fromUri(stripesBaseUrl)
       .path("sso-landing")
       .queryParam("ssoToken", authToken)
       .queryParam("fwd", originalUrl.getPath())
-      .queryParam(TENANT_ID, tenantId)
       .build()
       .toString();
 
