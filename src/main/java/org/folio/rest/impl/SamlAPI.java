@@ -199,7 +199,7 @@ public class SamlAPI implements Saml {
   @Override
   public void postSamlCallback(String body, RoutingContext routingContext, Map<String, String> okapiHeaders,
                                Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    doPostSamlCallback(body, routingContext, okapiHeaders, asyncResultHandler, vertxContext, TOKEN_SIGN_ENDPOINT_LEGACY);
+    doPostSamlCallback(body, routingContext, okapiHeaders, asyncResultHandler, vertxContext, TOKEN_SIGN_ENDPOINT);
   }
 
   @Override
