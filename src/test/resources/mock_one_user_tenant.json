@@ -11,7 +11,7 @@
             "module": "LOGIN-SAML",
             "configName": "saml",
             "code": "idp.url",
-            "value": "http://localhost:8888/simplesaml/saml2/idp/metadata.php"
+            "value": "https://idp.ssocircle.com"
           },
           {
             "id": "022d8342-fa51-44d1-8b2b-27da36e11f07",
@@ -39,7 +39,7 @@
             "module": "LOGIN-SAML",
             "configName": "saml",
             "code": "saml.binding",
-            "value": "REDIRECT"
+            "value": "POST"
           },
           {
             "id": "717bf1d1-a5a3-460f-a0de-29e6b70a0027",
@@ -47,21 +47,14 @@
             "configName": "saml",
             "code": "metadata.invalidated",
             "value": "false"
-          },
-          {
+          },{
             "id": "cb20fa86-affb-4488-8b37-2e8c597fff66",
             "module": "LOGIN-SAML",
             "configName": "saml",
             "code": "okapi.url",
-            "value": "http://localhost:9230"
-          },
-          {
-            "id": "81816efc-63b1-11ee-8c99-0242ac120002",
-            "module": "LOGIN-SAML",
-            "configName": "saml",
-            "code": "saml.callback",
-            "value": "callback-with-expiry"
+            "value": "http://localhost:9130"
           }
+
         ],
         "totalRecords": 6
       },
@@ -81,9 +74,15 @@
             "active": true
           }
         ]
-      },
-      "receivedPath": "",
-      "sendData": {}
+      }
+    },
+    {
+      "url": "/token",
+      "method": "post",
+      "status": 201,
+      "receivedData": {
+        "token": "new-saml-token"
+      }
     },
     {
       "url": "/token/sign",
@@ -102,8 +101,17 @@
       "method": "get",
       "status": 200,
       "receivedData": {
-        "totalRecords": 0,
-        "userTenants": []
+        "totalRecords": 1,
+        "userTenants": [
+          {
+            "id": "e7c7d8ae-0272-4071-8d8a-61b3492b6931",
+            "userId": "8091ec80-290a-4d61-a08f-0d8fa576c097",
+            "username": "samluser",
+            "tenantId": "new-saml-tenant",
+            "centralTenantId": "saml-test",
+            "consortiumId": "4c88c2d9-7614-4901-8920-a31408a15de1"
+          }
+        ]
       }
     }
   ]
