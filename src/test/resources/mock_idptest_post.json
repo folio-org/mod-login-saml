@@ -53,13 +53,6 @@
             "configName": "saml",
             "code": "okapi.url",
             "value": "http://localhost:9230"
-          },
-          {
-            "id": "81816efc-63b1-11ee-8c99-0242ac120002",
-            "module": "LOGIN-SAML",
-            "configName": "saml",
-            "code": "saml.callback",
-            "value": "callback-with-expiry"
           }
         ],
         "totalRecords": 6
