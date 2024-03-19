@@ -37,13 +37,13 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-    <raml-module-builder-version>35.1.0</raml-module-builder-version>
+    <raml-module-builder-version>35.2.0</raml-module-builder-version>
     <generate_routing_context>/saml/callback,/saml/callback-with-expiry,/saml/regenerate,/saml/login,/saml/check,/saml/configuration
     </generate_routing_context>
 
-    <aspectj.version>1.9.20.1</aspectj.version>
-    <pac4j.version>5.7.1</pac4j.version>
-    <vertx-pac4j.version>6.0.1</vertx-pac4j.version>
+    <aspectj.version>1.9.21.2</aspectj.version>
+    <pac4j.version>5.7.3</pac4j.version>
+    <vertx-pac4j.version>6.0.2</vertx-pac4j.version>
 
     <ramlfiles_path>${basedir}/ramls</ramlfiles_path>
 
@@ -55,7 +55,7 @@
       <dependency>
         <groupId>org.apache.logging.log4j</groupId>
         <artifactId>log4j-bom</artifactId>
-        <version>2.20.0</version>
+        <version>2.23.1</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -63,7 +63,7 @@
       <dependency>
         <groupId>io.rest-assured</groupId>
         <artifactId>rest-assured-bom</artifactId>
-        <version>5.3.2</version>
+        <version>5.4.0</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -71,7 +71,7 @@
       <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-stack-depchain</artifactId>
-        <version>4.4.5</version>
+        <version>4.5.5</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -79,7 +79,7 @@
       <dependency>
         <groupId>org.testcontainers</groupId>
         <artifactId>testcontainers-bom</artifactId>
-        <version>1.19.1</version>
+        <version>1.19.7</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -186,14 +186,14 @@
     <dependency>
       <groupId>org.folio.okapi</groupId>
       <artifactId>okapi-testing</artifactId>
-      <version>5.1.1</version>
+      <version>6.0.0</version>
       <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <version>5.6.0</version>
+      <version>5.11.0</version>
       <scope>test</scope>
     </dependency>
 
@@ -233,7 +233,7 @@
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.11.0</version>
+        <version>3.12.1</version>
         <configuration>
           <release>17</release>
           <encoding>UTF-8</encoding>
@@ -259,13 +259,13 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.1.2</version>
+        <version>3.2.5</version>
       </plugin>
 
       <plugin>
         <groupId>dev.aspectj</groupId>
         <artifactId>aspectj-maven-plugin</artifactId>
-        <version>1.13.1</version>
+        <version>1.14</version>
         <configuration>
           <verbose>true</verbose>
           <showWeaveInfo>false</showWeaveInfo>
@@ -348,7 +348,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
-        <version>3.4.0</version>
+        <version>3.5.0</version>
         <executions>
           <execution>
             <id>add-raml-jaxrs-source</id>
@@ -395,7 +395,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
-        <version>3.5.1</version>
+        <version>3.5.2</version>
         <executions>
           <execution>
             <phase>package</phase>
