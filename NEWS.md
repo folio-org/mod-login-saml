@@ -1,3 +1,9 @@
+## 2.8.0 - 2024-03-20
+
+* [MODLOGSAML-170](https://folio-org.atlassian.net/browse/MODLOGSAML-170) Add support of SSO login in consortium mode
+* Callback is now callback-with-expiry as the default
+* [MODLOGSAML-190](https://folio-org.atlassian.net/browse/MODLOGSAML-190) Upgrade deps for Q: RMB 35.2.0, Vertx 4.5.5, vertx-pac4j 6.0.2, pac4j 5.7.3, …
+
 ## 2.7.2 - 2023-12-15
 
 * [MODLOGSAML-182](https://issues.folio.org/browse/MODLOGSAML-182) xmlsec 2.3.4 fixing private key in debug level log CVE-2023-44483
