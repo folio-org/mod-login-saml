@@ -26,5 +26,5 @@ public class SamlConfigurationTest {
    SamlConfiguration samlConfiguration = new SamlConfiguration();
    samlConfiguration.addToIdsList(idpNameExpected);
    assertEquals(expectedBoolean, samlConfiguration.getIdsList().equals(expectedList2));
- }
+   }
 }

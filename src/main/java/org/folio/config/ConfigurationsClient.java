@@ -44,6 +44,7 @@ public class ConfigurationsClient {
   }
 
   public static Future<SamlConfiguration> getConfiguration(Vertx vertx, OkapiHeaders okapiHeaders) {
+    Objects.requireNonNull(okapiHeaders);
 
     return checkConfig(vertx, okapiHeaders, QUERY_CONSTANT + QUERY_END_CONSTANT)
       .onFailure(cause -> LOGGER.error("There aren't any data received from mod-configuration: {}", cause.getMessage()))
@@ -60,6 +61,7 @@ public class ConfigurationsClient {
   }
 
   public static Future<SamlConfiguration> getConfigurationWithIds(Vertx vertx, OkapiHeaders okapiHeaders) {
+    Objects.requireNonNull(okapiHeaders);
 
     return checkConfig(vertx, okapiHeaders, QUERY_CONSTANT + QUERY_END_CONSTANT)
       .onFailure(cause -> LOGGER.error("There are no data from mod-configuration received: {}", cause.getMessage()))
@@ -139,9 +141,12 @@ public class ConfigurationsClient {
       .map(configs -> configs.isEmpty() ? null : configs.getJsonObject(0).getString("id"));
   }
 
-  public static Future<SamlConfiguration> deleteConfigurationEntries(Vertx vertx, OkapiHeaders okapiHeaders, SamlConfiguration samlConfiguration) {
+  public static Future<SamlConfiguration> deleteConfigurationEntries(Vertx vertx, OkapiHeaders okapiHeaders,
+    SamlConfiguration samlConfiguration) {
     Objects.requireNonNull(okapiHeaders);
+    Objects.requireNonNull(samlConfiguration);
     Objects.requireNonNull(samlConfiguration.getIdsList());
+
     ConfigurationsDao.verifyOkapiHeaders(okapiHeaders);
 
     List<String> entries = samlConfiguration.getIdsList();
@@ -159,6 +164,7 @@ public class ConfigurationsClient {
 
     HttpMethod httpMethod = HttpMethod.DELETE;
     String endpoint = CONFIGURATIONS_ENTRIES_ENDPOINT_URL + "/" + configId;
+
     return WebClientFactory.getWebClient(vertx)
       .requestAbs(httpMethod, okapiHeaders.getUrl() + endpoint)
       .putHeader(XOkapiHeaders.TOKEN, okapiHeaders.getToken())
@@ -166,6 +172,12 @@ public class ConfigurationsClient {
       .putHeader(XOkapiHeaders.TENANT, okapiHeaders.getTenant())
       .expect(ResponsePredicate.SC_NO_CONTENT) //204 No Content
       .send()
-      .mapEmpty();
+      .otherwise(ex -> {
+         String error = "To delete" + " " + configId + " " + ex.getMessage();
+         LOGGER.error(error, ex);
+         throw new IllegalArgumentException(error);
+      })
+     .mapEmpty();
   }
+
 }

@@ -14,6 +14,7 @@ public interface ConfigurationsDao {
   public static final String MISSING_OKAPI_URL = "Missing Okapi URL";
   public static final String MISSING_TENANT = "Missing Tenant";
   public static final String MISSING_TOKEN = "Missing Token";
+  public static final SamlConfiguration emptySamlConfiguration = new SamlConfiguration();
 
   public static void verifyOkapiHeaders(OkapiHeaders okapiHeaders) throws MissingHeaderException {
     if (StringUtils.isBlank(okapiHeaders.getUrl())) {

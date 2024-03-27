@@ -2,7 +2,6 @@ package org.folio.config;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.startsWith;
-import org.apache.commons.lang3.builder.DiffResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.config.model.SamlConfiguration;
@@ -18,8 +17,6 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
@@ -172,7 +169,6 @@ public class ConfigurationClientTest extends TestBase {
 
   @Test
   public void testStoreEntriesPost(TestContext context) throws MalformedURLException {
-
     mock.setMockContent("mock_content_with_delete.json");
     Map<String, String> entries = new HashMap<>(10);
     SamlConfiguration samlConfigurationByDataSentToMock = new SamlConfiguration();
@@ -189,16 +185,9 @@ public class ConfigurationClientTest extends TestBase {
   }
 
   @Test
-  public void testdeleteConfigurationEntries(TestContext context) {
+  public void testDeleteConfigurationEntries(TestContext context) {
     mock.setMockContent("mock_content_with_delete.json");
-    List<String> expectedList = new ArrayList<>(7);
-    expectedList.add("60eead4f-de97-437c-9cb7-09966ce50e49");
-    expectedList.add("022d8342-fa51-44d1-8b2b-27da36e11f07");
-    expectedList.add("6dc15218-ed83-49e0-85ab-bb891e3f42c9");
-    expectedList.add("b5662280-81cc-462e-bb84-726e47cb58e4");
-    expectedList.add("2dd0d26d-3be4-4e80-a631-f7bda5311719");
-    expectedList.add("717bf1d1-a5a3-460f-a0de-29e6b70a0027");
-    expectedList.add("cb20fa86-affb-4488-8b37-2e8c597fff66");
+    List<String> expectedList = urlToDeleteList;
     boolean expectedBoolean = true;
     SamlConfiguration samlConfiguration = mock.getMockPartialContent();
     ConfigurationsClient.getConfigurationWithIds(vertx, dataMigrationHelper.getOkapiHeaders())
@@ -214,7 +203,5 @@ public class ConfigurationClientTest extends TestBase {
             mock.resetRequestedUrlList();
           }));
      }));
-
-
   }
 }
