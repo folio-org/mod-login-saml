@@ -61,9 +61,9 @@ Refer to the user documentation [Guide](GUIDE.md).
 For upgrading see [NEWS](NEWS.md) or
 [Releases](https://github.com/folio-org/mod-login-saml/releases).
 
-This module is based on the [https://www.pac4j.org/](PAC4J) library
+This module is based on the [PAC4J](https://www.pac4j.org/) library
 and supports SAML Single Sign On (SSO) including federations like
-[https://edugain.org/](eduGAIN).
+[eduGAIN](https://edugain.org/).
 
 More mechanisms supported by PAC4J can be added to this module if needed:
 
