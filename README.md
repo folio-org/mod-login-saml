@@ -68,7 +68,7 @@ and supports SAML Single Sign On (SSO) including federations like
 More mechanisms supported by PAC4J can be added to this module if needed:
 
 Authentication mechanisms: OAuth (Facebook, Twitter, Google...) - CAS -
-OIDC/OpenID Connect (Apple, Azure Ad v2, Google, Keycloak) - HTTP - Google App Engine - LDAP - SQL - JWT - MongoDB -
+OpenID Connect (OIDC) (with Apple, Azure Ad v2, Google, Keycloak) - HTTP - Google App Engine - LDAP - SQL - JWT - MongoDB -
 CouchDB - IP address - Kerberos (SPNEGO) - REST API.
 
 Authorization mechanisms: Roles/permissions.
