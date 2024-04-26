@@ -3,6 +3,8 @@ package org.folio.config;
 import java.net.MalformedURLException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
 
 import io.vertx.core.Context;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -24,7 +26,6 @@ import org.pac4j.saml.state.SAML2StateGenerator;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.UrlResource;
 
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -152,17 +153,13 @@ public class SamlClientLoader {
       // base64 encode
       Buffer encodedBytes = Buffer.buffer(Base64.getEncoder().encode(rawBytes));
 
-      // store in mod-configuration with passwords, wait for all operations to finish
-      return CompositeFuture.all(
-        configurationsDao.storeEntry(vertx, okapiHeaders,
-          SamlConfiguration.KEYSTORE_FILE_CODE, encodedBytes.toString(StandardCharsets.UTF_8)),
-        configurationsDao.storeEntry(vertx, okapiHeaders,
-          SamlConfiguration.KEYSTORE_PASSWORD_CODE, keystorePassword),
-        configurationsDao.storeEntry(vertx, okapiHeaders,
-          SamlConfiguration.KEYSTORE_PRIVATEKEY_PASSWORD_CODE, privateKeyPassword),
-        configurationsDao.storeEntry(vertx, okapiHeaders,
-          SamlConfiguration.METADATA_INVALIDATED_CODE, "true") // if keystore modified, current metadata is invalid.
-        )
+      // store in local database with passwords
+      Map<String, String> map2Update = new HashMap<>();
+      map2Update.put(SamlConfiguration.KEYSTORE_FILE_CODE, encodedBytes.toString(StandardCharsets.UTF_8));
+      map2Update.put(SamlConfiguration.KEYSTORE_PASSWORD_CODE, keystorePassword);
+      map2Update.put(SamlConfiguration.KEYSTORE_PRIVATEKEY_PASSWORD_CODE, privateKeyPassword);
+      map2Update.put(SamlConfiguration.METADATA_INVALIDATED_CODE, "true"); // if keystore modified, current metadata is invalid.
+      return configurationsDao.storeEntry(vertx, okapiHeaders, map2Update)
         .compose(res -> vertx.fileSystem().delete(keystoreFileName))
         .map(x -> Buffer.buffer(rawBytes));
       });

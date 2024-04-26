@@ -94,9 +94,9 @@ public class IdpTest extends TestBase{
     OKAPI = new MockJson();
     DeploymentOptions okapiOptions = new DeploymentOptions()
       .setConfig(new JsonObject().put("http.port", OKAPI_PORT));
-
+    OKAPI.setMockContent("mock_content_with_delete.json");
     VERTX.deployVerticle(OKAPI, okapiOptions)
-      .compose(x -> postTenantWithToken())
+      .compose(x -> postTenant())
       .onComplete(context.asyncAssertSuccess());
   }
 

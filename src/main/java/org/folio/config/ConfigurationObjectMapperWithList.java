@@ -23,7 +23,7 @@ public class ConfigurationObjectMapperWithList {
     }
   }
 
-  private static ArrayList<String> mapInternal(JsonArray array) {
+  public static ArrayList<String> mapInternal(JsonArray array) {
 
     return array.stream()
       .filter(JsonObject.class::isInstance)

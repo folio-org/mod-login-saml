@@ -97,7 +97,7 @@ public class IdpLegacyTest extends TestBase{
         .setConfig(new JsonObject().put("http.port", OKAPI_PORT));
 
     VERTX.deployVerticle(OKAPI, okapiOptions)
-      .compose(x -> postTenantWithToken())
+      .compose(x -> postTenant())
       .onComplete(context.asyncAssertSuccess());
   }
 

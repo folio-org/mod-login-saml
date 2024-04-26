@@ -6,6 +6,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.folio.config.model.SamlConfiguration;
 import org.folio.util.model.OkapiHeaders;
 
+import java.util.Map;
 /**
  * @author barbaraloehle
  */
@@ -44,5 +45,5 @@ public interface ConfigurationsDao {
 
   public Future<SamlConfiguration> storeSamlConfiguration(Vertx vertx, OkapiHeaders okapiHeaders, SamlConfiguration samlConfiguration);
 
-  public Future<SamlConfiguration> storeEntry(Vertx vertx, OkapiHeaders okapiHeaders, String code, String value);
+  public Future<SamlConfiguration> storeEntry(Vertx vertx, OkapiHeaders okapiHeaders, Map<String, String> map2Update);
 }

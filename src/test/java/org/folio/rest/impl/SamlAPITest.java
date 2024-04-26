@@ -78,10 +78,10 @@ public class SamlAPITest extends TestBase {
   private static final String STRIPES_URL = "http://localhost:3000";
 
   public static final int IDP_MOCK_PORT = NetworkUtils.nextFreePort();
-  private static final int JSON_MOCK_PORT = NetworkUtils.nextFreePort();
-  private static final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", "http://localhost:" + JSON_MOCK_PORT);
+  private static final int MOCK_SERVER_PORT = NetworkUtils.nextFreePort();
+  private static final Header OKAPI_URL_HEADER= new Header("X-Okapi-Url", "http://localhost:" + MOCK_SERVER_PORT);
 
-  private static final MockJson mock = new MockJson();
+  private static final MockJsonExtended mock = new MockJsonExtended();
   private DataMigrationHelper dataMigrationHelper = new DataMigrationHelper(TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
 
   @Rule
@@ -97,12 +97,12 @@ public class SamlAPITest extends TestBase {
       .setConfig(new JsonObject().put("http.port", IDP_MOCK_PORT));
 
     DeploymentOptions okapiOptions = new DeploymentOptions()
-      .setConfig(new JsonObject().put("http.port", JSON_MOCK_PORT));
+      .setConfig(new JsonObject().put("http.port", MOCK_SERVER_PORT));
 
     mock.setMockContent("mock_content.json");
     vertx.deployVerticle(IdpMock.class.getName(), idpOptions)
       .compose(x -> vertx.deployVerticle(mock, okapiOptions))
-      .compose(x -> postTenantWithToken())
+      .compose(x -> postTenant())
       .onComplete(context.asyncAssertSuccess());
   }
 
@@ -352,7 +352,7 @@ public class SamlAPITest extends TestBase {
     .post(MODULE_PORT, "localhost", "/saml/callback")
     .putHeader("X-Okapi-Token", TENANT)
     .putHeader("X-Okapi-Tenant", TENANT)
-    .putHeader("X-Okapi-Url", "http://localhost:" + JSON_MOCK_PORT)
+    .putHeader("X-Okapi-Url", "http://localhost:" + MOCK_SERVER_PORT)
     .putHeader("Content-Type", "application/x-www-form-urlencoded")
     .putHeader("Cookie", SamlAPI.RELAY_STATE + "=" + readResourceToString("relay_state.txt").trim())
     .sendBuffer(Buffer.buffer(readResourceToString("saml_response.txt").trim()))
@@ -370,7 +370,7 @@ public class SamlAPITest extends TestBase {
       .post(MODULE_PORT, "localhost", "/saml/callback-with-expiry")
       .putHeader("X-Okapi-Token", TENANT)
       .putHeader("X-Okapi-Tenant", TENANT)
-      .putHeader("X-Okapi-Url", "http://localhost:" + JSON_MOCK_PORT)
+      .putHeader("X-Okapi-Url", "http://localhost:" + MOCK_SERVER_PORT)
       .putHeader("Content-Type", "application/x-www-form-urlencoded")
       .putHeader("Cookie", SamlAPI.RELAY_STATE + "=" + readResourceToString("relay_state.txt").trim())
       .sendBuffer(Buffer.buffer(readResourceToString("saml_response.txt").trim()))
@@ -776,7 +776,7 @@ public class SamlAPITest extends TestBase {
 
   @Test
   public void reloadBogusMetadataDB(TestContext context) { //former method: void reloadBogusMetadata()
-    mock.setMockContent("mock_metadata_bogus.json", s -> s.replace(":8888", ":" + JSON_MOCK_PORT));
+    mock.setMockContent("mock_metadata_bogus.json", s -> s.replace(":8888", ":" + MOCK_SERVER_PORT));
     dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
     postSamlLogin(500);
 
@@ -1068,7 +1068,7 @@ public class SamlAPITest extends TestBase {
       .header(TOKEN_HEADER)
       .header(OKAPI_URL_HEADER)
       .queryParam("type", "idpurl")
-      .queryParam("value",  "http://localhost:" + JSON_MOCK_PORT + "/xml")
+      .queryParam("value",  "http://localhost:" + MOCK_SERVER_PORT + "/xml")
       .get("/saml/validate")
       .then()
       .statusCode(200)

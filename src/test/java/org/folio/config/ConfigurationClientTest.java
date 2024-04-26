@@ -187,7 +187,7 @@ public class ConfigurationClientTest extends TestBase {
   @Test
   public void testDeleteConfigurationEntries(TestContext context) {
     mock.setMockContent("mock_content_with_delete.json");
-    List<String> expectedList = urlToDeleteList;
+    List<String> expectedList = mock.getMockPartialContentIds();
     boolean expectedBoolean = true;
     SamlConfiguration samlConfiguration = mock.getMockPartialContent();
     ConfigurationsClient.getConfigurationWithIds(vertx, dataMigrationHelper.getOkapiHeaders())

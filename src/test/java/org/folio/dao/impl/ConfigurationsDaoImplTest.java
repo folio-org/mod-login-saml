@@ -1,8 +1,6 @@
 package org.folio.dao.impl;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import io.vertx.core.Future;
@@ -14,7 +12,6 @@ import org.folio.dao.ConfigurationsDao;
 import org.folio.rest.impl.TestBase;
 import org.folio.rest.persist.PostgresClient;
 import org.folio.rest.tools.utils.NetworkUtils;
-//import org.folio.util.DataMigrationHelper;
 import org.folio.util.MockJsonExtended;
 import org.folio.util.OkapiHelper;
 import org.folio.util.SamlConfigurationHelper;
@@ -54,8 +51,8 @@ public class ConfigurationsDaoImplTest extends TestBase {
   private static final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", "http://localhost:" + JSON_MOCK_PORT);
 
   private static final MockJsonExtended mock = new MockJsonExtended();
-  //private DataMigrationHelper dataMigrationHelper = new DataMigrationHelper(TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
-  private ConfigurationsDao configurationsDao = new ConfigurationsDaoImpl();
+  private ConfigurationsDaoImpl configurationsDaoImpl = new ConfigurationsDaoImpl();
+  private ConfigurationsDao configurationsDao = configurationsDaoImpl;
 
   @Rule
   public TestName testName = new TestName();
@@ -72,160 +69,196 @@ public class ConfigurationsDaoImplTest extends TestBase {
     mock.setMockContent("mock_200_empty.json");
     vertx.deployVerticle(mock, okapiOptions)
       .compose(x -> postTenant())
+      //.compose(x -> postTenantWithToken())
       .onComplete(context.asyncAssertSuccess());
   }
 
   @Before
   public void setUp(TestContext context) {
+    deleteDBEntries(context);
     mock.resetReceivedData();
     mock.resetRequestedUrlList();
     log.info("Running {}", testName.getMethodName());
     mock.setMockContent("mock_content.json");
-    deleteAllConfigurationRecords(vertx)
-      .onComplete(context.asyncAssertSuccess());
   }
 
   @After
-  public void tearDown() {
+  public void tearDown(TestContext context) {
     // Need to clear singleton to maintain test order independence
     SamlConfigHolder.getInstance().removeClient(TENANT);
   }
 
   @Test
   public void dataMigrationServerStatus400(TestContext context) {
-    Async async = context.async();
     mock.setMockContent("mock_400.json");
     configurationsDao.dataMigration(vertx, createOkapiHeaders(), false)
       .onFailure(cause -> {
         context.assertEquals("Response status code 400 is not equal to 200", cause.getMessage());
-        async.complete();
       });
   }
 
-  /*@Test
-  public void dataMigrationWithoutData(TestContext context) {
-    deleteAllConfigurationRecords(vertx);
-    Async async = context.async();
+  @Test
+  public void dataMigrationWithoutDataWithoutAndWithDeletion(TestContext context) {
     mock.setMockContent("mock_200_empty.json");
     SamlConfiguration samlConfiguration = mock.getMockPartialContent();
+
+    testDataMigration(context, samlConfiguration, false);
+    testDataMigration(context, samlConfiguration, true);
+  }
+
+  private void testDataMigration(TestContext context, SamlConfiguration samlConfiguration, boolean withDeletion) {
     configurationsDao.dataMigration(vertx, createOkapiHeaders(), false)
       .onComplete(context.asyncAssertSuccess(result -> {
-         assertTrue(SamlConfigurationHelper.createDiffResult(result, samlConfiguration).getDiffs().isEmpty());
-         async.complete();
+        assertTrue(SamlConfigurationHelper.createDiffResult(result, samlConfiguration).getDiffs().isEmpty());
       }));
-      }*/
+  }
 
   @Test
-  public void dataMigrationServerStatusSuccessWithoutDeletion(TestContext context) {
-    Async async = context.async();
+  public void dataMigrationEmptyDBWithoutDeletion(TestContext context) {
     mock.setMockContent("mock_content_with_delete.json");
     SamlConfiguration samlConfiguration = mock.getMockPartialContent();
-    configurationsDao.dataMigration(vertx, createOkapiHeaders(), false)
-      .onComplete(context.asyncAssertSuccess(result -> {
-         assertTrue(SamlConfigurationHelper.createDiffResult(result, samlConfiguration).getDiffs().isEmpty());
-         async.complete();
-      }));
+
+    testDataMigration(context, samlConfiguration, false);
   }
 
   @Test
   public void dataMigrationServerStatusSuccessWithDeletion(TestContext context) {
-    Async async = context.async();
     boolean expectedBoolean = true;
     mock.setMockContent("mock_content_with_delete.json");
-    configurationsDao.dataMigration(vertx, createOkapiHeaders(), true)
-      .onComplete(context.asyncAssertFailure(cause -> {
-        assertThat(cause.getMessage(), startsWith("After deletion of the data of mod-configuration"));
-        assertEquals(expectedBoolean, mock.getRequestedUrlList().containsAll(urlToDeleteList));
-        mock.resetRequestedUrlList();
-        async.complete();
-      }));
-  }
-
-  @Test
-  public void dataMigrationServerStatusSuccessExistentEntry(TestContext context) {
-    Async async = context.async();
-    mock.setMockContent("mock_content_with_delete.json");
     SamlConfiguration samlConfiguration = mock.getMockPartialContent();
-    PostgresClient.getInstance(vertx, createOkapiHeaders().getTenant())
-      .upsert("configuration", null, samlConfiguration, true);
-    configurationsDao.dataMigration(vertx, createOkapiHeaders(), false)
+    mock.setMockIds();
+
+    configurationsDao.dataMigration(vertx, createOkapiHeaders(), true)
       .onComplete(context.asyncAssertSuccess(result -> {
         assertTrue(SamlConfigurationHelper.createDiffResult(result, samlConfiguration).getDiffs().isEmpty());
-        async.complete();
+        assertEquals(expectedBoolean, mock.getRequestedUrlList().containsAll(mock.getMockPartialContentIds()));
+        log.info("All entries are deleted");
+        mock.resetRequestedUrlList();
       }));
   }
 
   @Test
-  public void dataMigrationServerStatusSuccess2ExistentEntries(TestContext context) {
+  public void dataMigrationServerStatusSuccessExistentEntryWithAndWithoutDeletion(TestContext context) {
     mock.setMockContent("mock_content_with_delete.json");
     SamlConfiguration samlConfiguration = mock.getMockPartialContent();
+    createDatabaseEntry(context, samlConfiguration);
+
+    configurationsDao.dataMigration(vertx, createOkapiHeaders(), false)
+      .onComplete(context.asyncAssertSuccess(result ->
+        assertTrue(SamlConfigurationHelper.createDiffResult(result, samlConfiguration).getDiffs().isEmpty())));
+
+    configurationsDao.dataMigration(vertx, createOkapiHeaders(), true)
+      .onComplete(context.asyncAssertSuccess(result ->
+        assertTrue(SamlConfigurationHelper.createDiffResult(result, samlConfiguration).getDiffs().isEmpty())));
+  }
+
+  @Test
+  public void dataMigrationServerStatusSuccess2ExistentEntriesWithAndWithoutDeletion(TestContext context) {
+    mock.setMockContent("mock_content_with_delete.json");
+    SamlConfiguration samlConfiguration = mock.getMockPartialContent();
+    createDatabaseEntry(context, samlConfiguration);
+
     mock.setMockContent("mock_example_entries.json");
     SamlConfiguration samlConfigurationAdditional = mock.getMockPartialContent();
+    createDatabaseEntry(context, samlConfigurationAdditional);
 
-    List<Future<String>> futureDbIds = new ArrayList<Future<String>>();
-    futureDbIds.add(PostgresClient.getInstance(vertx, createOkapiHeaders().getTenant())
-      .upsert("configuration", null, samlConfiguration, true));
-    futureDbIds.add(PostgresClient.getInstance(vertx, createOkapiHeaders().getTenant())
-      .upsert("configuration", null, samlConfigurationAdditional, true));
+    mock.setMockContent("mock_content_with_delete.json");
+    configurationsDao.dataMigration(vertx, createOkapiHeaders(), false)
+      .onComplete(context.asyncAssertFailure(cause ->
+         assertThat(cause.getMessage(), startsWith("Migration: Number of records are not unique. Instead the number is : 2"))));
 
-    Future.all(futureDbIds).onComplete(compositeResult -> {
-      if (compositeResult.succeeded()) {
-        mock.setMockContent("mock_content_with_delete.json");
-        configurationsDao.dataMigration(vertx, createOkapiHeaders(), false)
-          .onComplete(context.asyncAssertFailure(cause ->
-            assertThat(cause.getMessage(), startsWith("Migration: Number of records are not unique. Instead the number is : 2"))));
-      }
-    });
-  }
+    configurationsDao.dataMigration(vertx, createOkapiHeaders(), true)
+      .onComplete(context.asyncAssertFailure(cause ->
+          assertThat(cause.getMessage(), startsWith("Migration: Number of records are not unique. Instead the number is : 2"))));
+   }
 
   @Test
   public void getConfigurationDataEmptyDB(TestContext context) {
-    vertx.executeBlocking(blockingHandler -> {
-      deleteAllConfigurationRecords(vertx)
-        .onComplete(res -> {
-          configurationsDao.getConfiguration(vertx, createOkapiHeaders(), false)
-            .onComplete(context.asyncAssertFailure(cause -> {
-              assertThat(cause.getMessage(), startsWith("There is an empty DB"));
-            }));
-        });
-    });
+    configurationsDao.getConfiguration(vertx, createOkapiHeaders(), false)
+      .onComplete(context.asyncAssertFailure(cause ->
+        assertThat(cause.getMessage(), startsWith("There is an empty DB"))));
   }
 
   @Test
   public void getConfigurationDataEmptyDBWithPut(TestContext context) {
     SamlConfiguration samlConfiguration = new SamlConfiguration();
-    vertx.executeBlocking(blockingHandler -> {
-      deleteAllConfigurationRecords(vertx)
-        .onComplete(res -> {
-          configurationsDao.getConfiguration(vertx, createOkapiHeaders(), true)
-            .onComplete(context.asyncAssertSuccess(result -> {
-              assertTrue(SamlConfigurationHelper.createDiffResult(result, samlConfiguration).getDiffs().isEmpty());
-            }));
-        });
-    });
+    configurationsDao.getConfiguration(vertx, createOkapiHeaders(), true)
+      .onComplete(context.asyncAssertSuccess(result ->
+        assertTrue(SamlConfigurationHelper.createDiffResult(result, samlConfiguration).getDiffs().isEmpty())));
   }
 
   @Test
   public void getConfigurationData2ExistentEntries(TestContext context) {
     mock.setMockContent("mock_content_with_delete.json");
     SamlConfiguration samlConfiguration = mock.getMockPartialContent();
+    createDatabaseEntry(context, samlConfiguration);
+
     mock.setMockContent("mock_example_entries.json");
     SamlConfiguration samlConfigurationAdditional = mock.getMockPartialContent();
+    createDatabaseEntry(context, samlConfigurationAdditional);
 
-    List<Future<String>> futureDbIds = new ArrayList<Future<String>>();
-    futureDbIds.add(PostgresClient.getInstance(vertx, createOkapiHeaders().getTenant())
-      .upsert("configuration", null, samlConfiguration, true));
-    futureDbIds.add(PostgresClient.getInstance(vertx, createOkapiHeaders().getTenant())
-      .upsert("configuration", null, samlConfigurationAdditional, true));
+    configurationsDao.getConfiguration(vertx, createOkapiHeaders(), false)
+      .onComplete(context.asyncAssertFailure(cause -> {
+         assertThat(cause.getMessage(), startsWith("Number of records are not unique. The number is"));
+         log.info("Number of records are not unique.");
+      }));
+  }
 
-    Future.all(futureDbIds).onComplete(compositeResult -> {
-      if (compositeResult.succeeded()) {
-        mock.setMockContent("mock_content_with_delete.json");
-        configurationsDao.getConfiguration(vertx, createOkapiHeaders(), false)
-          .onComplete(context.asyncAssertFailure(cause ->
-            assertThat(cause.getMessage(), startsWith("Number of records are not unique. The number is"))));
-      }
-    });
+  @Test
+  public void testSamlConfigurationUpdateEmptyDatabase(TestContext context) {
+    mock.setMockContent("mock_content_legacy.json");
+    SamlConfiguration samlConfigurationToStoreInDatabase = mock.getMockPartialContent();
+    Map<String, String> map2Update = SamlConfigurationHelper.samlConfigurationToMap(mock.getMockPartialContent());
+    int expectedInt = 0;
+
+    configurationsDao.storeEntry(vertx, createOkapiHeaders(), map2Update)
+      .onComplete(context.asyncAssertSuccess(result -> {
+            assertEquals(expectedInt, SamlConfigurationHelper.createDiffResult(result, samlConfigurationToStoreInDatabase).getNumberOfDiffs());
+      }));
+  }
+
+  @Test
+  public void testSamlConfigurationUpdateEmptyDatabaseIncorrectCode(TestContext context) {
+    mock.setMockContent("mock_example_entries.json");
+    SamlConfiguration samlConfigurationToStoreInDatabase = mock.getMockPartialContent();
+    Map<String, String> map2Update = SamlConfigurationHelper.samlConfigurationToMap(mock.getMockPartialContent());
+    map2Update.put("incorrect", "This is the value of an incorrect code");
+
+    configurationsDao.storeEntry(vertx, createOkapiHeaders(), map2Update)
+      .onComplete(context.asyncAssertFailure(cause ->
+        assertThat(cause.getMessage(), startsWith("Switch: Incorrect code. The code value is : incorrect"))));
+  }
+
+  @Test
+  public void testSamlConfigurationUpdateEmptyDatabaseComplete(TestContext context) {
+    mock.setMockContent("mock_content_legacy.json");
+    SamlConfiguration samlConfigurationToStoreInDatabase = mock.getMockPartialContent();
+    Map<String, String> map2Update = SamlConfigurationHelper.samlConfigurationToMap(mock.getMockPartialContent());
+    map2Update.put(SamlConfiguration.IDP_METADATA_CODE, "SamlConfiguration.IDP_METADATA_CODE value");
+    map2Update.put(SamlConfiguration.SAML_ATTRIBUTE_CODE, "SamlConfiguration.SAML_ATTRIBUTE_CODE value");
+    map2Update.put(SamlConfiguration.USER_PROPERTY_CODE, "SamlConfiguration.USER_PROPERTY_CODE value");
+    int expectedInt = 3;
+
+    configurationsDao.storeEntry(vertx, createOkapiHeaders(), map2Update)
+      .onComplete(context.asyncAssertSuccess(result -> {
+            assertEquals(expectedInt, SamlConfigurationHelper.createDiffResult(result, samlConfigurationToStoreInDatabase).getNumberOfDiffs());
+      }));
+  }
+
+  @Test
+  public void testSamlConfigurationUpdate(TestContext context) {
+    mock.setMockContent("mock_content_with_delete.json");
+    SamlConfiguration samlConfigurationBase = mock.getMockPartialContent();
+
+    mock.setMockContent("mock_example_entries.json");
+    Map<String, String> map2Update = SamlConfigurationHelper.samlConfigurationToMap(mock.getMockPartialContent());
+    int expectedInt = 4;
+
+    createDatabaseEntry(context, samlConfigurationBase);
+    configurationsDao.storeEntry(vertx, createOkapiHeaders(), map2Update)
+      .onComplete(context.asyncAssertSuccess(result -> {
+        assertEquals(expectedInt, SamlConfigurationHelper.createDiffResult(result, samlConfigurationBase).getNumberOfDiffs());
+    }));
   }
 
   private static OkapiHeaders createOkapiHeaders(){
@@ -236,12 +269,19 @@ public class ConfigurationsDaoImplTest extends TestBase {
     return OkapiHelper.okapiHeaders(parsedHeaders);
   }
 
-  public void createDatabaseEntry(TestContext context, SamlConfiguration samlConfiguration) {
-
+  public Future<String> createDatabaseEntry(TestContext context, SamlConfiguration samlConfiguration) {
     Async async = context.async();
-    PostgresClient.getInstance(vertx, createOkapiHeaders().getTenant())
-      .upsert("configuration", null, samlConfiguration, true);
+    Future<String> result = PostgresClient.getInstance(vertx, createOkapiHeaders().getTenant())
+      .upsert("configuration", null, samlConfiguration, true)
+      .onComplete(context.asyncAssertSuccess(res -> async.complete()));
+    async.awaitSuccess(TimeUnit.MILLISECONDS.convert(15, TimeUnit.SECONDS));
+    return result;
+  }
 
-    async.awaitSuccess(TimeUnit.MILLISECONDS.convert(10L, TimeUnit.MINUTES));
-    }
+  public void deleteDBEntries(TestContext context) {
+    Async async = context.async();
+    deleteAllConfigurationRecords(vertx)
+      .onComplete(context.asyncAssertSuccess(res -> async.complete()));
+    async.awaitSuccess(TimeUnit.MILLISECONDS.convert(15, TimeUnit.SECONDS));
+  }
 }

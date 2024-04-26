@@ -4,6 +4,7 @@ import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
@@ -11,6 +12,7 @@ import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
 import org.folio.postgres.testing.PostgresTesterContainer;
 import org.folio.rest.client.TenantClient;
+import org.folio.util.TenantClientExtended;
 import org.folio.rest.jaxrs.model.TenantAttributes;
 import org.folio.rest.persist.PostgresClient;
 import org.folio.rest.RestVerticle;
@@ -19,27 +21,20 @@ import org.folio.rest.tools.utils.TenantInit;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;//
-import io.vertx.core.VertxOptions;//
+//import java.util.ArrayList;
+//import java.util.List;
+import java.util.concurrent.TimeUnit;
+import io.vertx.core.VertxOptions;
 
 public class TestBase {//contained in "mock_content_with_delete.json"
   //Compare https://github.com/folio-org/mod-configuration/blob/master/mod-configuration-server/src/test/java/org/folio/rest/TestBase.java
-  public static final List<String> urlToDeleteList = new ArrayList<>(List.of("60eead4f-de97-437c-9cb7-09966ce50e49",
-    "022d8342-fa51-44d1-8b2b-27da36e11f07",
-    "6dc15218-ed83-49e0-85ab-bb891e3f42c9",
-    "b5662280-81cc-462e-bb84-726e47cb58e4",
-    "2dd0d26d-3be4-4e80-a631-f7bda5311719",
-    "717bf1d1-a5a3-460f-a0de-29e6b70a0027",
-    "cb20fa86-affb-4488-8b37-2e8c597fff66"));
 
   public static Vertx vertx;
   public static int MODULE_PORT;
   public static String MODULE_URL;
   public static WebClient webClient;
   public static TenantClient tenantClient;
-    //public static final String TENANT = "harvard";
+  //public static final String TENANT = "harvard";
   public static final String TENANT = "diku";
   public static final String SCHEMA = TENANT + "_mod_login_saml";
   public String localClassName = null;
@@ -50,6 +45,7 @@ public class TestBase {//contained in "mock_content_with_delete.json"
     vertx = Vertx.vertx();
     //vertx = Vertx.vertx(new VertxOptions().setBlockedThreadCheckInterval(TimeUnit.MILLISECONDS.convert(150L, TimeUnit.MINUTES))
     //  .setMaxEventLoopExecuteTime(TimeUnit.NANOSECONDS.convert(200L, TimeUnit.MINUTES)));
+
     MODULE_PORT = NetworkUtils.nextFreePort();//setPreferredPort(9231);
     MODULE_URL = "http://localhost:" + MODULE_PORT;
 
@@ -58,9 +54,6 @@ public class TestBase {//contained in "mock_content_with_delete.json"
 
     DeploymentOptions moduleOptions = new DeploymentOptions()
       .setConfig(new JsonObject().put("http.port", MODULE_PORT).put("mock", true));
-
-    //dropSchema(SCHEMA)
-    //  .onComplete(context.asyncAssertSuccess());
 
     vertx.deployVerticle(new RestVerticle(), moduleOptions)
       .onComplete(context.asyncAssertSuccess());
@@ -89,18 +82,6 @@ public class TestBase {//contained in "mock_content_with_delete.json"
       .mapEmpty();
   }
 
-  public static Future<Void> postTenantWithToken() {
-    try {
-      TenantAttributes ta = new TenantAttributes();
-      ta.setModuleTo("mod-login-saml-2.0");
-      TenantClient tenantClient = new TenantClient("http://localhost:" + MODULE_PORT, TENANT, TENANT, webClient);
-      return TenantInit.exec(tenantClient, ta, 6000);
-    } catch (Exception e) {
-      e.printStackTrace(System.err);
-      return Future.failedFuture(e);
-    }
-  }
-
   public static Future<Void> postTenant() {
     try {
       TenantAttributes ta = new TenantAttributes();
@@ -111,6 +92,40 @@ public class TestBase {//contained in "mock_content_with_delete.json"
       e.printStackTrace(System.err);
       return Future.failedFuture(e);
     }
+  }
+
+  public static Future<Void> postTenantWithToken() {
+    try {
+      TenantAttributes ta = new TenantAttributes();
+      ta.setModuleTo("mod-login-saml-2.0");
+      TenantClient tenantClient = new TenantClient("http://localhost:" + MODULE_PORT, TENANT, TENANT, webClient);
+      //TenantClient tenantClient = new TenantClient("http://localhost:" + MODULE_PORT, TENANT, TENANT, true, 1000, 10000); //deprecated
+      //TenantClient tenantClient = new TenantClient("http://localhost:" + MODULE_PORT, TENANT, TENANT, true); //deprecated
+      return TenantInit.exec(tenantClient, ta, 6000);
+    } catch (Exception e) {
+      e.printStackTrace(System.err);
+      return Future.failedFuture(e);
+    }
+  }
+
+  public static Future<Void> postTenantExtendedWithToken(String okapiUrlTo, String permissions) {
+    try {
+      TenantAttributes ta = new TenantAttributes();
+      ta.setModuleTo("mod-login-saml-2.0");
+      TenantClient tenantClient = new TenantClientExtended("http://localhost:" + MODULE_PORT, okapiUrlTo,
+        TENANT, TENANT, permissions, webClient);
+      return TenantInit.exec(tenantClient, ta, 60000);
+    } catch (Exception e) {
+      e.printStackTrace(System.err);
+      return Future.failedFuture(e);
+    }
+  }
+
+  public static void postTenantWithTokenCompleted(TestContext context) {
+    Async async = context.async();
+    postTenantWithToken()
+      .onComplete(context.asyncAssertSuccess(result -> async.complete()));
+    async.awaitSuccess(TimeUnit.MILLISECONDS.convert(120, TimeUnit.SECONDS));
   }
 
   public static int setPreferredPort(int port) {

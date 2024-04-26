@@ -8,6 +8,7 @@ package org.folio.util.model;
 public class OkapiHeaders {
 
   private String url;
+  private String urlTo;
   private String token;
   private String tenant;
   private String permissions;
@@ -18,6 +19,14 @@ public class OkapiHeaders {
 
   public void setUrl(String url) {
     this.url = url;
+  }
+
+  public String getUrlTo() {
+    return urlTo;
+  }
+
+  public void setUrlTo(String urlTo) {
+    this.urlTo = urlTo;
   }
 
   public String getToken() {

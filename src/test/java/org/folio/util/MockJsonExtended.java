@@ -9,6 +9,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.config.ConfigurationObjectMapper;
+import org.folio.config.ConfigurationObjectMapperWithList;
 import org.folio.config.model.SamlConfiguration;
 
 import java.util.ArrayList;
@@ -19,6 +20,7 @@ public class MockJsonExtended extends MockJson {
 
   JsonArray receivedData = new JsonArray();
   List<String> requestedUrlList = new ArrayList<String>();
+  List<String> mockIds = new ArrayList<String>();
 
   public JsonArray getMocks() {
     return mocks;
@@ -63,6 +65,31 @@ public class MockJsonExtended extends MockJson {
     return (null);
   }
 
+  public ArrayList<String> getMockPartialContentIds() {
+    final String partialUrlConstant = "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%29";
+    final String receivedDataConstant = "receivedData";
+    final String configsConstant = "configs";
+    for (int i = 0; i < mocks.size(); i++) {
+      JsonObject entry = mocks.getJsonObject(i);
+      Object receivedData = null;
+      if (entry.containsKey("url")) {
+        if (entry.getString("url").contains(partialUrlConstant) ) {
+          receivedData = entry.getValue(receivedDataConstant);
+          if (receivedData instanceof JsonObject) {
+            return ConfigurationObjectMapperWithList
+              .mapInternal(((JsonObject)receivedData).getJsonArray(configsConstant));
+          }
+        }
+      }
+    }
+    return (null);
+  }
+
+  public void setMockIds()
+  {
+    mockIds = getMockPartialContentIds();
+  }
+
   protected void handle(RoutingContext context) {
     HttpServerRequest request = context.request();
     HttpServerResponse response = context.response();
@@ -78,10 +105,17 @@ public class MockJsonExtended extends MockJson {
       });
     }
 
+    if((mockIds.size() > 0 && requestedUrlList.size() > 0 && requestedUrlList.containsAll(mockIds)))
+      {
+        super.setMockContent("mock_200_empty.json");
+        mockIds = new ArrayList<String>();
+      }
+
     for (int i = 0; i < mocks.size(); i++) {
       JsonObject entry = mocks.getJsonObject(i);
-      if (!method.equalsIgnoreCase("delete")
-        &&method.equalsIgnoreCase(entry.getString("method", "get"))
+      if (!(mockIds.size() > 0 && requestedUrlList.size() > 0 && requestedUrlList.containsAll(mockIds))
+        && !method.equalsIgnoreCase("delete")
+        && method.equalsIgnoreCase(entry.getString("method", "get"))
         && uri.equals(entry.getString("url"))) {
         //log.info("Used in mock={} method={} uri={}", resource, method, uri);/////
         response.setStatusCode(entry.getInteger("status", 200));
@@ -105,7 +139,8 @@ public class MockJsonExtended extends MockJson {
         response.end(responseData.toString());
         return;
       }
-      else if (method.equalsIgnoreCase(entry.getString("method", "delete"))
+      else if (!(mockIds.size() > 0 && requestedUrlList.size() > 0 && requestedUrlList.containsAll(mockIds))
+        && method.equalsIgnoreCase(entry.getString("method", "delete"))
         && uri.equals(entry.getString("url"))) {
         log.info("Used in method={} uri={} mock={}", method, uri, resource);/////
         requestedUrlList.add(StringUtils.substringAfterLast(uri, "/"));
@@ -113,6 +148,15 @@ public class MockJsonExtended extends MockJson {
         response.end();
         return;
       }
+      /*
+     else if ((mockIds.size() > 0 && requestedUrlList.size() > 0 && requestedUrlList.containsAll(mockIds))
+        && method.equalsIgnoreCase(entry.getString("method", "get"))
+        && uri.equals(entry.getString("url"))) {
+        log.info("Used in method={} uri={} mock={}", method, uri, resource);/////
+        response.setStatusCode(entry.getInteger("status", 200));
+        response.end();
+        return;
+        }*/
     }
     log.info("Not found in mock={} method={} uri={}", resource, method, uri);
     response.setStatusCode(404);
@@ -125,7 +169,12 @@ public class MockJsonExtended extends MockJson {
   }
 
   public ArrayList<String> getReceivedDataAsList() {
-    return new ArrayList<String>(receivedData.getList());
+    ArrayList<String> localList = new ArrayList<String>();
+    if (receivedData != null) {
+      for (int i = 0; i < receivedData.size(); i++)
+        localList.add(receivedData.getString(i));
+    }
+    return localList;
   }
 
   public void resetReceivedData() {

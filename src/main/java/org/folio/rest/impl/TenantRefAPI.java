@@ -22,11 +22,16 @@ public class TenantRefAPI extends TenantAPI {
   @Override
   Future<Integer> loadData(TenantAttributes attributes, String tenantId,
     Map<String, String> headers, Context vertxContext) {
-    log.info("postTenant");
+    log.info("TenantRefAPI::loadData");
     try {
-      ConfigurationsDao.verifyOkapiHeaders(OkapiHelper.okapiHeaders(headers));
+      ConfigurationsDao.verifyOkapiHeaders(OkapiHelper.okapiHeadersWithUrlTo(headers));
       return super.loadData(attributes, tenantId, headers, vertxContext)
-        .compose(res -> new ConfigurationsDaoImpl().dataMigrationLoadData(vertxContext.owner(), OkapiHelper.okapiHeaders(headers), true));
+        .compose(result ->
+          new ConfigurationsDaoImpl().dataMigrationLoadData(vertxContext.owner(), OkapiHelper.okapiHeadersWithUrlTo(headers), true)
+            .onFailure(cause -> {
+               log.warn(cause.getMessage());
+               Future.failedFuture(cause.getMessage());
+        }));
     } catch (MissingHeaderException misHeadEx) {
       StringBuilder builder = new StringBuilder("The Okapi headers are not complete. The data migration from mod-configuration is not possible")
         .append(" ").append(misHeadEx.getMessage());

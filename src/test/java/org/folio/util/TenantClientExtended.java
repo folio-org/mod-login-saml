@@ -15,20 +15,23 @@ public class TenantClientExtended extends TenantClient {
   private final String tokenLocal;
   private final String okapiUrlLocal;
   private final String okapiUrlToLocal;
+  private final String permissionsLocal;
   private final WebClient webClientLocal;
 
-  public TenantClientExtended(String okapiUrl, String okapiUrlTo, String tenantId, String token, WebClient webClient) {
+  public TenantClientExtended(String okapiUrl, String okapiUrlTo, String tenantId, String token, String permissions,
+    WebClient webClient) {
     super(okapiUrl, tenantId, token, webClient);
     this.okapiUrlLocal = okapiUrl;
     this.okapiUrlToLocal = okapiUrlTo;
     this.tenantIdLocal = tenantId;
     this.tokenLocal = token;
+    this.permissionsLocal = permissions;
     this.webClientLocal = webClient;
   }
 
   /**
    * Service endpoint "/_/tenant"+queryParams.toString()
-   *
+   * raml-module-builder/domain-models-runtime/target/generated-sources/raml-jaxrs/org/folio/rest/client/TenantClient.java
    */
   public Future<HttpResponse<Buffer>> postTenant(org.folio.rest.jaxrs.model.TenantAttributes TenantAttributes) {
     StringBuilder queryParams = new StringBuilder("?");
@@ -41,15 +44,20 @@ public class TenantClientExtended extends TenantClient {
     request.putHeader("Content-type", "application/json");
     request.putHeader("Accept", "application/json,text/plain");
     if (tenantIdLocal!= null) {
-      request.putHeader("X-Okapi-Token", tokenLocal);
-      request.putHeader("x-okapi-tenant", tenantIdLocal);
+      request.putHeader("X-Okapi-Tenant", tenantIdLocal);
     }
-    if (okapiUrlLocal!= null) {
+    if (tokenLocal != null) {
+      request.putHeader("X-Okapi-Token", tokenLocal);
+    }
+    if (okapiUrlLocal != null) {
       request.putHeader("X-Okapi-Url", okapiUrlLocal);
     }
-    if (okapiUrlToLocal!= null) {
-      request.putHeader("X-Okapi-UrlTo", okapiUrlToLocal);
+    if (okapiUrlToLocal != null) {
+      request.putHeader("X-Okapi-Url-to", okapiUrlToLocal);
     }
+    if (permissionsLocal != null)
+      request.putHeader("X-Okapi-Permissions", permissionsLocal);
+
     return request.sendBuffer(buffer);
   }
 }

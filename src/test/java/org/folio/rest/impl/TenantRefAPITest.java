@@ -1,14 +1,10 @@
 package org.folio.rest.impl;
 
-import static io.restassured.RestAssured.given;
-import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
-import static org.hamcrest.Matchers.equalTo;
+import java.util.List;
 
 import io.restassured.RestAssured;
 import io.restassured.http.Header;
-import io.vertx.ext.unit.Async;
 import io.vertx.core.DeploymentOptions;
-import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -16,15 +12,16 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.config.SamlConfigHolder;
-import org.folio.rest.client.TenantClient;
-import org.folio.rest.jaxrs.model.TenantAttributes;
-import org.folio.rest.tools.utils.TenantInit;
-import org.folio.util.TenantClientExtended;
-import org.folio.util.MockJson;
+import org.folio.dao.impl.ConfigurationsDaoImpl;
+import org.folio.rest.tools.utils.NetworkUtils;
+import org.folio.util.MockJsonExtended;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
 
@@ -35,16 +32,9 @@ import org.junit.runner.RunWith;
 public class TenantRefAPITest extends TestBase {
   private static final Logger log = LogManager.getLogger(TenantRefAPITest.class);
 
-  private static final Header TENANT_HEADER = new Header("X-Okapi-Tenant", TENANT);
-  private static final Header TOKEN_HEADER = new Header("X-Okapi-Token", TENANT);
-  private static final Header JSON_CONTENT_TYPE_HEADER = new Header("Content-Type", "application/json");
-
-  private final int jsonMockPort = TestBase.MODULE_PORT;
-  private final Header okapiUrlHeader = new Header("X-Okapi-Url", "http://localhost:" + jsonMockPort);
-  //private final int JSON_MOCK_PORT = TestBase.MODULE_PORT; //NetworkUtils.nextFreePort();
-  //private final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", "http://localhost:" + JSON_MOCK_PORT);
-
-  private static MockJson mock = new MockJson();
+  private static final String PERMISSIONS_HEADER = TENANT + "-permissons"; //for testing org.folio.util.model.OkapiHeaders.java
+  private static final int MOCK_SERVER_PORT = NetworkUtils.nextFreePort();
+  private static final MockJsonExtended mock = new MockJsonExtended();
 
   @Rule
   public TestName testName = new TestName();
@@ -57,57 +47,50 @@ public class TenantRefAPITest extends TestBase {
     RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
 
     DeploymentOptions okapiOptions = new DeploymentOptions()
-      .setConfig(new JsonObject().put("http.port", jsonMockPort));
+      .setConfig(new JsonObject().put("http.port", MOCK_SERVER_PORT));
 
-    mock.setMockContent("mock_content_with_delete.json");
     vertx.deployVerticle(mock, okapiOptions)
       .onComplete(context.asyncAssertSuccess());
+  }
+
+ @Before
+  public void setUp(TestContext context) {
+    mock.resetReceivedData();
+    mock.resetRequestedUrlList();
+    log.info("Running {}", testName.getMethodName());
   }
 
   @After
   public void tearDown() {
     // Need to clear singleton to maintain test order independence
     SamlConfigHolder.getInstance().removeClient(TENANT);
-    //deleteAllConfigurationRecords(vertx);
+    deleteAllConfigurationRecords(vertx);
   }
 
   @Test
-  public void loadDataWithMock(TestContext context) {
-    postTenantExtendedWithTokenCompleted(context);
-
-    given()
-      .header(TENANT_HEADER)
-      .header(TOKEN_HEADER)
-      .header(okapiUrlHeader)
-      .header(JSON_CONTENT_TYPE_HEADER)
-      .get("/saml/configuration")
-      .then()
-      .statusCode(200)
-
-      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"))
-      .body("idpUrl", equalTo("https://idp.ssocircle.com"))
-      .body("samlBinding", equalTo("POST"))
-      .body("metadataInvalidated", equalTo(Boolean.FALSE));
+  public void loadDataWithMockEmptyDatabaseWithDeletionFailure(TestContext context) {
+    mock.setMockContent("mock_content_with_delete.json");
+    boolean expectedBoolean = true;
+    List<String> expectedList = mock.getMockPartialContentIds();
+    String expectedText = "After deletion of the data of mod-configuration the compared Objects are different";
+    postTenantExtendedWithToken("http://localhost:" + MOCK_SERVER_PORT, PERMISSIONS_HEADER)
+      .onComplete(context.asyncAssertFailure(cause -> {
+        assertThat(cause.getMessage(), containsString(expectedText));
+        assertEquals(expectedBoolean, mock.getRequestedUrlList().containsAll(mock.getMockPartialContentIds()));
+        mock.resetRequestedUrlList();
+      }));
   }
 
-  private void postTenantExtendedWithTokenCompleted(TestContext context) {
-    Async asyncDataMigration = context.async();
-    postTenantExtendedWithToken()
-      .onComplete(result -> asyncDataMigration.complete());
-    asyncDataMigration.awaitSuccess();
+  @Test
+  public void loadDataWithMockEmptyDatabase(TestContext context) {
+    mock.setMockContent("mock_content_with_delete.json");
+    boolean expectedBoolean = true;
+    List<String> expectedList = mock.getMockPartialContentIds();
+    mock.setMockIds();
+    postTenantExtendedWithToken("http://localhost:" + MOCK_SERVER_PORT, PERMISSIONS_HEADER)
+      .onComplete(context.asyncAssertSuccess(res -> {
+        assertEquals(expectedBoolean, mock.getRequestedUrlList().containsAll(mock.getMockPartialContentIds()));
+        mock.resetRequestedUrlList();
+      }));
   }
-
-  private Future<Void> postTenantExtendedWithToken() {
-    try {
-      TenantAttributes ta = new TenantAttributes();
-      ta.setModuleTo("mod-login-saml-2.0");
-      TenantClient tenantClient = new TenantClientExtended("http://localhost:" + TestBase.MODULE_PORT,
-        "http://localhost:" + jsonMockPort, TENANT, TENANT, webClient);
-      return TenantInit.exec(tenantClient, ta, 6000);
-    } catch (Exception e) {
-      e.printStackTrace(System.err);
-      return Future.failedFuture(e);
-    }
-  }
-
 }

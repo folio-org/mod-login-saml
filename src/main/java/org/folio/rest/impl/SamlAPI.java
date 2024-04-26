@@ -471,7 +471,7 @@ public class SamlAPI implements Saml {
     regenerateSaml2Config(routingContext, vertxContext)
       .compose(metadata ->
         configurationsDao.storeEntry(vertxContext.owner(), OkapiHelper.okapiHeaders(okapiHeaders),
-          SamlConfiguration.METADATA_INVALIDATED_CODE, "false")
+          localCreateMap(SamlConfiguration.METADATA_INVALIDATED_CODE, "false"))
         .map(configurationEntryStoredEvent ->
           new SamlRegenerateResponse().withFileContent(Base64Util.encode(metadata))
         )
@@ -484,6 +484,12 @@ public class SamlAPI implements Saml {
         asyncResultHandler
           .handle(Future.succeededFuture(GetSamlRegenerateResponse.respond500WithTextPlain(cause.getMessage())));
       });
+  }
+
+  private static Map<String, String> localCreateMap(String code, String value) {
+    Map<String, String> map2Update = new HashMap<>();
+    map2Update.put(code, value);
+    return map2Update;
   }
 
   @Override
