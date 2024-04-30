@@ -28,6 +28,8 @@ import java.util.Optional;
 import org.folio.config.SamlClientLoader;
 import org.folio.config.SamlConfigHolder;
 import org.folio.rest.RestVerticle;
+///import org.folio.rest.impl.SamlAPI.UserErrorException;
+///import org.folio.rest.RestVerticle;//////
 import org.folio.rest.jaxrs.model.SamlConfigRequest;
 import org.folio.rest.tools.utils.NetworkUtils;
 import org.folio.service.UserService;
@@ -593,7 +595,22 @@ public class SamlAPITest extends TestBase {
       .statusCode(403)
       .body(is("CSRF attempt detected"));
 
-    mock.setMockContent("mock_nouser_db.json");
+    // not found ..
+    mock.setMockContent("mock_400.json");
+    dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .cookie(SamlAPI.RELAY_STATE, cookie)
+      .formParam("SAMLResponse", "saml-response")
+      .formParam("RelayState", relayState)
+      .post("/saml/callback")
+      .then()
+      .statusCode(500)
+      .body(is("Response status code 404 is not equal to 200"));
+
+    mock.setMockContent("mock_nouser.json");
     dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
     given()
       .header(TENANT_HEADER)
@@ -639,13 +656,13 @@ public class SamlAPITest extends TestBase {
   }
 
   @Test
-  public void callbackForConsortiumWithMultipleMatchingUserTenant() {
+  public void callbackForConsortiumWithMultipleMatchingUserTenant(TestContext context) {
     String origin = "http://localhost";
 
     log.info("=== Test Callback for enabled consortium with multiple matching userTenant - success ===");
 
     mock.setMockContent("mock_multiple_user_tenant.json");
-
+    dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
     given()
       .header(new Header(HttpHeaders.ORIGIN.toString(), origin))
       .header(TENANT_HEADER)
@@ -662,13 +679,13 @@ public class SamlAPITest extends TestBase {
   }
 
   @Test
-  public void callbackForConsortium() {
+  public void callbackForConsortium(TestContext context) {
     String origin = "http://localhost";
 
     log.info("=== Test Callback for enabled consortium - success ===");
 
     mock.setMockContent("mock_one_user_tenant.json");
-
+    dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
     given()
       .header(new Header(HttpHeaders.ORIGIN.toString(), origin))
       .header(TENANT_HEADER)
@@ -683,7 +700,7 @@ public class SamlAPITest extends TestBase {
   }
 
   @Test
-  public void callbackEndpointTests() {
+  public void callbackEndpointTests(TestContext context) {
     final String testPath = "/test/path";
 
     log.info("=== Setup - POST /saml/login - need relayState and cookie ===");
@@ -755,6 +772,7 @@ public class SamlAPITest extends TestBase {
 
     // not found ..
     mock.setMockContent("mock_400.json");
+    dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
     given()
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
@@ -768,6 +786,7 @@ public class SamlAPITest extends TestBase {
       .body(is("Response status code 404 is not equal to 200"));
 
     mock.setMockContent("mock_nouser.json");
+    dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
     given()
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
@@ -781,6 +800,7 @@ public class SamlAPITest extends TestBase {
       .body(is("No user found by externalSystemId == saml-user-id"));
 
     mock.setMockContent("mock_inactiveuser.json");
+    dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
     given()
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
@@ -794,6 +814,7 @@ public class SamlAPITest extends TestBase {
       .body(is("Inactive user account!"));
 
     mock.setMockContent("mock_tokenresponse.json");
+    dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
     given()
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)

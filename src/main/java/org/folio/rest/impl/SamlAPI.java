@@ -96,6 +96,7 @@ public class SamlAPI implements Saml {
   public static final String TENANT_ID = "tenantId";
 
   private final UserService userService = new UserService();
+  private ConfigurationsDao configurationsDao = new ConfigurationsDaoImpl();
 
   public static class ForbiddenException extends RuntimeException {
     private static final long serialVersionUID = 7340537453740028321L;
@@ -104,8 +105,6 @@ public class SamlAPI implements Saml {
       super(message);
     }
   }
-
-  private ConfigurationsDao configurationsDao = new ConfigurationsDaoImpl();
 
   public static class FetchTokenException extends RuntimeException {
     private static final long serialVersionUID = 7340537453740028322L;
@@ -254,23 +253,14 @@ public class SamlAPI implements Saml {
           JsonObject payload = new JsonObject().put("payload",
             new JsonObject().put("sub", userObject.getString(USERNAME)).put("user_id", userId));
 
-          return fetchToken(webClient, payload, parsedHeaders, tokenSignEndpoint).map(jsonResponse -> {
-            if (isLegacyResponse(tokenSignEndpoint)) {
-              return redirectResponseLegacy(jsonResponse, stripesBaseUrl, originalUrl);
-            } else {
-              return redirectResponse(jsonResponse, stripesBaseUrl, originalUrl);
-            }
-            JsonObject payload = new JsonObject().put("payload",
-              new JsonObject().put("sub", userObject.getString("username")).put("user_id", userId));
-
-            return fetchToken(webClient, payload, parsedHeaders, tokenSignEndpoint)
-              .map(jsonResponse -> {
-                if (isLegacyResponse(tokenSignEndpoint)) {
-                  return redirectResponseLegacy(jsonResponse, stripesBaseUrl, originalUrl);
-                } else {
-                  return redirectResponse(jsonResponse, stripesBaseUrl, originalUrl);
-                }
-              });
+          return fetchToken(webClient, payload, parsedHeaders, tokenSignEndpoint)
+            .map(jsonResponse -> {
+              if (isLegacyResponse(tokenSignEndpoint)) {
+                return redirectResponseLegacy(jsonResponse, stripesBaseUrl, originalUrl);
+              } else {
+                return redirectResponse(jsonResponse, stripesBaseUrl, originalUrl);
+              }
+            });
           });
       })
       .onSuccess(response -> asyncResultHandler.handle(Future.succeededFuture(response)))
@@ -279,6 +269,37 @@ public class SamlAPI implements Saml {
         asyncResultHandler.handle(Future.succeededFuture(response));
       });
   }
+
+    /*
+  private Future<JsonObject> getUsersResponse(WebClient webClient, SamlConfiguration configuration,
+    VertxWebContext webContext, SAML2Client client, SessionStore sessionStore, OkapiHeaders parsedHeaders) {
+    final String userPropertyName =
+      configuration.getUserProperty() == null ? "externalSystemId": configuration.getUserProperty();
+    var credentialsOptional = client.getCredentials(webContext, sessionStore);
+    var credentials =
+      (SAML2Credentials) credentialsOptional.orElseThrow(() -> new NullPointerException("Saml credentials was null"));
+
+    final String samlAttributeValue =
+      getSamlAttributeValue(configuration.getSamlAttribute(), credentials.getUserProfile());
+    final String usersCql = getCqlUserQuery(userPropertyName, samlAttributeValue);
+    final String userQuery = UriBuilder.fromPath("/users").queryParam("query", usersCql).build().toString();
+
+    return webClient.getAbs(parsedHeaders.getUrl() + userQuery)
+      .putHeader(XOkapiHeaders.TOKEN, parsedHeaders.getToken())
+      .putHeader(XOkapiHeaders.URL, parsedHeaders.getUrl())
+      .putHeader(XOkapiHeaders.TENANT, parsedHeaders.getTenant())
+      .expect(ResponsePredicate.SC_OK)
+      .expect(ResponsePredicate.JSON).send()
+      .map(res -> {
+        JsonArray users = res.bodyAsJsonObject().getJsonArray("users");
+        if (users.isEmpty()) {
+          String message = "No user found by " + userPropertyName + " == " + samlAttributeValue;
+          throw new UserErrorException(message);
+        }
+        return users.getJsonObject(0);
+      });
+  }
+    */
 
   private PostSamlCallbackResponse failCallbackResponse(Throwable cause, RoutingContext routingContext) {
     PostSamlCallbackResponse response;
@@ -680,5 +701,57 @@ public class SamlAPI implements Saml {
 
   private boolean isInvalidOrigin(String origin) {
     return origin == null || origin.isBlank() || origin.trim().contentEquals("*");
+  }
+
+    /*
+  static String getCqlUserQuery(String userPropertyName, String value) {
+    // very sad that RMB does not have an option to reject fields with no index
+    List<String> supported = List.of("barcode", "externalSystemId", "id", "username", "personal.email");
+    if (!supported.contains(userPropertyName)) {
+      throw new UserFetchException("Unsupported user property: " + userPropertyName);
+    }
+    return userPropertyName + "==" + StringUtil.cqlEncode(value);
+  }
+    */
+
+  private SamlConfiguration updateSamlConfiguration(SamlConfiguration config, SamlConfigRequest updatedConfig) {
+    SamlConfiguration result = new SamlConfiguration();
+
+    result.setId(config.getId());
+
+    result.setIdpUrl(config.getIdpUrl());
+    result.setMetadataInvalidated(config.getMetadataInvalidated());
+    ConfigEntryUtil.valueChanged(config.getIdpUrl(), updatedConfig.getIdpUrl().toString(), idpUrl -> {
+      result.setIdpUrl(idpUrl);
+      result.setMetadataInvalidated("true");
+    });
+
+    result.setSamlBinding(config.getSamlBinding());
+    ConfigEntryUtil.valueChanged(config.getSamlBinding(), updatedConfig.getSamlBinding().toString(),
+      result::setSamlBinding);
+
+    result.setSamlAttribute(config.getSamlAttribute());
+    ConfigEntryUtil.valueChanged(config.getSamlAttribute(), updatedConfig.getSamlAttribute(), result::setSamlAttribute);
+
+    result.setUserProperty(config.getUserProperty());
+    ConfigEntryUtil.valueChanged(config.getUserProperty(), updatedConfig.getUserProperty(), result::setUserProperty);
+
+    result.setIdpMetadata(config.getIdpMetadata());
+    ConfigEntryUtil.valueChanged(config.getSamlAttribute(), updatedConfig.getIdpMetadata(), result::setIdpMetadata);
+
+    result.setOkapiUrl(config.getOkapiUrl());
+    ConfigEntryUtil.valueChanged(config.getOkapiUrl(), updatedConfig.getOkapiUrl().toString(), okapiUrl -> {
+      result.setOkapiUrl(okapiUrl);
+      result.setMetadataInvalidated("true");
+    });
+
+    result.setCallback(config.getCallback());
+    ConfigEntryUtil.valueChanged(config.getCallback(), updatedConfig.getCallback(), result::setCallback);
+
+    result.setKeystore(config.getKeystore());
+    result.setKeystorePassword(config.getKeystorePassword());
+    result.setPrivateKeyPassword(config.getPrivateKeyPassword());
+
+    return result;
   }
 }
