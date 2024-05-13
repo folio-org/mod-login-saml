@@ -296,16 +296,26 @@
         ]
       }
     },
-    {
-      "url": "/token",
+     {
+      "url": "/token/sign",
       "method": "post",
+      "status": 201,
+      "receivedData": {
+        "accessToken": "saml-access-token",
+        "refreshToken": "saml-refresh-token",
+        "accessTokenExpiration": "2050-10-05T20:19:33Z",
+        "refreshTokenExpiration": "2050-10-05T20:19:33Z",
+        "tenantId": "diku"
+      }
+    },
+    {
+      "url": "/user-tenants?externalSystemId=saml-user-id",
+      "method": "get",
       "status": 200,
-      "headers": [
-        {
-          "name": "x-okapi-token",
-          "value": "saml-token"
-        }
-      ]
+      "receivedData": {
+        "totalRecords": 0,
+        "userTenants": []
+      }
     }
   ]
 }

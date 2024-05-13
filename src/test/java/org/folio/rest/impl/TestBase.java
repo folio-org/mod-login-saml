@@ -42,9 +42,9 @@ public class TestBase {//contained in "mock_content_with_delete.json"
   @BeforeClass
   public static void beforeAll(TestContext context) {
     PostgresClient.setPostgresTester(new PostgresTesterContainer());
-    vertx = Vertx.vertx();
-    //vertx = Vertx.vertx(new VertxOptions().setBlockedThreadCheckInterval(TimeUnit.MILLISECONDS.convert(150L, TimeUnit.MINUTES))
-    //  .setMaxEventLoopExecuteTime(TimeUnit.NANOSECONDS.convert(200L, TimeUnit.MINUTES)));
+    //vertx = Vertx.vertx();
+    vertx = Vertx.vertx(new VertxOptions().setBlockedThreadCheckInterval(TimeUnit.MILLISECONDS.convert(150L, TimeUnit.MINUTES))
+    .setMaxEventLoopExecuteTime(TimeUnit.NANOSECONDS.convert(200L, TimeUnit.MINUTES)));
 
     MODULE_PORT = NetworkUtils.nextFreePort();//setPreferredPort(9231);
     MODULE_URL = "http://localhost:" + MODULE_PORT;
@@ -87,7 +87,7 @@ public class TestBase {//contained in "mock_content_with_delete.json"
       TenantAttributes ta = new TenantAttributes();
       ta.setModuleTo("mod-login-saml-2.0");
       TenantClient tenantClient = new TenantClient("http://localhost:" + MODULE_PORT, TENANT, null, webClient);
-      return TenantInit.exec(tenantClient, ta, 60000);
+      return TenantInit.exec(tenantClient, ta, 600);
     } catch (Exception e) {
       e.printStackTrace(System.err);
       return Future.failedFuture(e);
@@ -101,7 +101,7 @@ public class TestBase {//contained in "mock_content_with_delete.json"
       TenantClient tenantClient = new TenantClient("http://localhost:" + MODULE_PORT, TENANT, TENANT, webClient);
       //TenantClient tenantClient = new TenantClient("http://localhost:" + MODULE_PORT, TENANT, TENANT, true, 1000, 10000); //deprecated
       //TenantClient tenantClient = new TenantClient("http://localhost:" + MODULE_PORT, TENANT, TENANT, true); //deprecated
-      return TenantInit.exec(tenantClient, ta, 6000);
+      return TenantInit.exec(tenantClient, ta, 600);
     } catch (Exception e) {
       e.printStackTrace(System.err);
       return Future.failedFuture(e);
@@ -114,7 +114,7 @@ public class TestBase {//contained in "mock_content_with_delete.json"
       ta.setModuleTo("mod-login-saml-2.0");
       TenantClient tenantClient = new TenantClientExtended("http://localhost:" + MODULE_PORT, okapiUrlTo,
         TENANT, TENANT, permissions, webClient);
-      return TenantInit.exec(tenantClient, ta, 60000);
+      return TenantInit.exec(tenantClient, ta, 600);
     } catch (Exception e) {
       e.printStackTrace(System.err);
       return Future.failedFuture(e);

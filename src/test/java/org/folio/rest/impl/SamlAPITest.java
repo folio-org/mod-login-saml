@@ -84,6 +84,7 @@ public class SamlAPITest extends TestBase {
   private static final int MOCK_SERVER_PORT = NetworkUtils.nextFreePort();
   private static final Header OKAPI_URL_HEADER= new Header("X-Okapi-Url", "http://localhost:" + MOCK_SERVER_PORT);
 
+  //private static final MockJson mock = new MockJson();
   private static final MockJsonExtended mock = new MockJsonExtended();
   private DataMigrationHelper dataMigrationHelper = new DataMigrationHelper(TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
 

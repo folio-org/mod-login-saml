@@ -270,37 +270,6 @@ public class SamlAPI implements Saml {
       });
   }
 
-    /*
-  private Future<JsonObject> getUsersResponse(WebClient webClient, SamlConfiguration configuration,
-    VertxWebContext webContext, SAML2Client client, SessionStore sessionStore, OkapiHeaders parsedHeaders) {
-    final String userPropertyName =
-      configuration.getUserProperty() == null ? "externalSystemId": configuration.getUserProperty();
-    var credentialsOptional = client.getCredentials(webContext, sessionStore);
-    var credentials =
-      (SAML2Credentials) credentialsOptional.orElseThrow(() -> new NullPointerException("Saml credentials was null"));
-
-    final String samlAttributeValue =
-      getSamlAttributeValue(configuration.getSamlAttribute(), credentials.getUserProfile());
-    final String usersCql = getCqlUserQuery(userPropertyName, samlAttributeValue);
-    final String userQuery = UriBuilder.fromPath("/users").queryParam("query", usersCql).build().toString();
-
-    return webClient.getAbs(parsedHeaders.getUrl() + userQuery)
-      .putHeader(XOkapiHeaders.TOKEN, parsedHeaders.getToken())
-      .putHeader(XOkapiHeaders.URL, parsedHeaders.getUrl())
-      .putHeader(XOkapiHeaders.TENANT, parsedHeaders.getTenant())
-      .expect(ResponsePredicate.SC_OK)
-      .expect(ResponsePredicate.JSON).send()
-      .map(res -> {
-        JsonArray users = res.bodyAsJsonObject().getJsonArray("users");
-        if (users.isEmpty()) {
-          String message = "No user found by " + userPropertyName + " == " + samlAttributeValue;
-          throw new UserErrorException(message);
-        }
-        return users.getJsonObject(0);
-      });
-  }
-    */
-
   private PostSamlCallbackResponse failCallbackResponse(Throwable cause, RoutingContext routingContext) {
     PostSamlCallbackResponse response;
     if (cause instanceof ForbiddenException) {
