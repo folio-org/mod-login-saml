@@ -47,7 +47,8 @@
             "configName": "saml",
             "code": "metadata.invalidated",
             "value": "false"
-          },{
+          },
+          {
             "id": "cb20fa86-affb-4488-8b37-2e8c597fff66",
             "module": "LOGIN-SAML",
             "configName": "saml",
@@ -90,6 +91,15 @@
       "status": 201,
       "receivedData": {
         "token": "saml-token"
+      }
+    },
+    {
+      "url": "/user-tenants?externalSystemId=saml-user-id",
+      "method": "get",
+      "status": 200,
+      "receivedData": {
+        "totalRecords": 0,
+        "userTenants": []
       }
     }
   ]

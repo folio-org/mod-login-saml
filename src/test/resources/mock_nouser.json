@@ -69,6 +69,15 @@
         "totalRecords": 0,
         "users": [ ]
       }
+    },
+    {
+      "url": "/user-tenants?externalSystemId=saml-user-id",
+      "method": "get",
+      "status": 200,
+      "receivedData": {
+        "totalRecords": 0,
+        "userTenants": []
+      }
     }
   ]
 }

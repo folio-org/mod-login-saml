@@ -27,9 +27,10 @@ import org.apache.logging.log4j.Logger;
 import java.util.Optional;
 import org.folio.config.SamlClientLoader;
 import org.folio.config.SamlConfigHolder;
-import org.folio.rest.impl.SamlAPI.UserErrorException;
+import org.folio.rest.RestVerticle;
 import org.folio.rest.jaxrs.model.SamlConfigRequest;
 import org.folio.rest.tools.utils.NetworkUtils;
+import org.folio.service.UserService;
 import org.folio.util.*;
 import org.junit.After;
 import org.junit.Before;
@@ -427,12 +428,12 @@ public class SamlAPITest extends TestBase {
     userProfile.addAttribute("ohoh", null);
     userProfile.addAttribute("ohohlist", List.of());
 
-    assertThat(SamlAPI.getSamlAttributeValue(null, userProfile), is("foo"));
-    assertThat(SamlAPI.getSamlAttributeValue("uid", userProfile), is("bar"));
-    assertThat(SamlAPI.getSamlAttributeValue("username", userProfile), is("baz"));
-    assertThat(SamlAPI.getSamlAttributeValue("name", userProfile), is("x"));
-    assertThrows(UserErrorException.class, () -> SamlAPI.getSamlAttributeValue("ohoh", userProfile));
-    assertThrows(UserErrorException.class, () -> SamlAPI.getSamlAttributeValue("ohohlist", userProfile));
+    assertThat(UserService.getSamlAttributeValue(null, userProfile), is("foo"));
+    assertThat(UserService.getSamlAttributeValue("uid", userProfile), is("bar"));
+    assertThat(UserService.getSamlAttributeValue("username", userProfile), is("baz"));
+    assertThat(UserService.getSamlAttributeValue("name", userProfile), is("x"));
+    assertThrows(UserService.UserErrorException.class, () -> UserService.getSamlAttributeValue("ohoh", userProfile));
+    assertThrows(UserService.UserErrorException.class, () -> UserService.getSamlAttributeValue("ohohlist", userProfile));
   }
 
   @Test
@@ -635,6 +636,50 @@ public class SamlAPITest extends TestBase {
       .header("Location", containsString(PercentCodec.encodeAsString(testPath)))
       .header("x-okapi-token", "saml-token")
       .cookie("ssoToken", "saml-token");
+  }
+
+  @Test
+  public void callbackForConsortiumWithMultipleMatchingUserTenant() {
+    String origin = "http://localhost";
+
+    log.info("=== Test Callback for enabled consortium with multiple matching userTenant - success ===");
+
+    mock.setMockContent("mock_multiple_user_tenant.json");
+
+    given()
+      .header(new Header(HttpHeaders.ORIGIN.toString(), origin))
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .contentType(ContentType.URLENC)
+      .cookie(SamlAPI.RELAY_STATE, readResourceToString("relay_state.txt"))
+      .body(readResourceToString("saml_response.txt"))
+      .post("/saml/callback")
+      .then()
+      .statusCode(302)
+      .header("x-okapi-token", "new-saml-token")
+      .cookie("ssoToken", "new-saml-token");
+  }
+
+  @Test
+  public void callbackForConsortium() {
+    String origin = "http://localhost";
+
+    log.info("=== Test Callback for enabled consortium - success ===");
+
+    mock.setMockContent("mock_one_user_tenant.json");
+
+    given()
+      .header(new Header(HttpHeaders.ORIGIN.toString(), origin))
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .contentType(ContentType.URLENC)
+      .cookie(SamlAPI.RELAY_STATE, readResourceToString("relay_state.txt"))
+      .body(readResourceToString("saml_response.txt"))
+      .post("/saml/callback-with-expiry")
+      .then()
+      .statusCode(302);
   }
 
   @Test
@@ -1089,17 +1134,17 @@ public class SamlAPITest extends TestBase {
   @Test
   public void getCqlUserQuery() {
     assertEquals("personal.email==\"user@saml.com\"",
-      SamlAPI.getCqlUserQuery("personal.email", "user@saml.com"));
+      UserService.getCqlUserQuery("personal.email", "user@saml.com"));
 
     assertEquals("externalSystemId==\"\\*\"",
-      SamlAPI.getCqlUserQuery("externalSystemId", "*"));
+      UserService.getCqlUserQuery("externalSystemId", "*"));
 
     assertEquals("Unsupported user property: email", assertThrows(RuntimeException.class, () ->
-      SamlAPI.getCqlUserQuery("email", "user@saml.com"))
+      UserService.getCqlUserQuery("email", "user@saml.com"))
       .getMessage());
 
     assertEquals("Unsupported user property: externalsystemid", assertThrows(RuntimeException.class, () ->
-      SamlAPI.getCqlUserQuery("externalsystemid", "user@saml.com"))
+      UserService.getCqlUserQuery("externalsystemid", "user@saml.com"))
       .getMessage());
   }
 

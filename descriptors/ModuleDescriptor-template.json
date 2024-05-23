@@ -27,7 +27,8 @@
           "modulePermissions": [
             "auth.signtoken",
             "configuration.entries.collection.get",
-            "users.collection.get"
+            "users.collection.get",
+            "user-tenants.collection.get"
           ]
         },
         {
@@ -40,7 +41,8 @@
           "modulePermissions": [
             "auth.signtoken",
             "configuration.entries.collection.get",
-            "users.collection.get"
+            "users.collection.get",
+            "user-tenants.collection.get"
           ]
         },
         {

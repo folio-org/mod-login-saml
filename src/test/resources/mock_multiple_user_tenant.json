@@ -11,7 +11,7 @@
             "module": "LOGIN-SAML",
             "configName": "saml",
             "code": "idp.url",
-            "value": "http://localhost:8888/simplesaml/saml2/idp/metadata.php"
+            "value": "https://idp.ssocircle.com"
           },
           {
             "id": "022d8342-fa51-44d1-8b2b-27da36e11f07",
@@ -47,21 +47,30 @@
             "configName": "saml",
             "code": "metadata.invalidated",
             "value": "false"
-          },{
+          },
+          {
             "id": "cb20fa86-affb-4488-8b37-2e8c597fff66",
             "module": "LOGIN-SAML",
             "configName": "saml",
             "code": "okapi.url",
-            "value": "http://localhost:9230"
+            "value": "http://localhost:9130"
+          },
+          {
+            "id": "cb20fa86-affb-4488-8b37-2e8c597fff66",
+            "module": "LOGIN-SAML",
+            "configName": "saml",
+            "code": "user.property",
+            "value": "username"
           }
+
         ],
-        "totalRecords": 7
+        "totalRecords": 6
       },
       "receivedPath": "",
       "sendData": {}
     },
     {
-      "url": "/users?query=externalSystemId%3D%3D%22saml-user-id%22",
+      "url": "/users?query=username%3D%3D%22saml-user-id%22",
       "method": "get",
       "status": 200,
       "receivedData": {
@@ -73,9 +82,15 @@
             "active": true
           }
         ]
-      },
-      "receivedPath": "",
-      "sendData": {}
+      }
+    },
+    {
+      "url": "/token",
+      "method": "post",
+      "status": 201,
+      "receivedData": {
+        "token": "new-saml-token"
+      }
     },
     {
       "url": "/token/sign",
@@ -90,12 +105,29 @@
       }
     },
     {
-      "url": "/user-tenants?externalSystemId=saml-user-id",
+      "url": "/user-tenants?username=saml-user-id",
       "method": "get",
       "status": 200,
       "receivedData": {
-        "totalRecords": 0,
-        "userTenants": []
+        "totalRecords": 2,
+        "userTenants": [
+          {
+            "id": "e7c7d8ae-0272-4071-8d8a-61b3492b6931",
+            "userId": "8091ec80-290a-4d61-a08f-0d8fa576c097",
+            "username": "samluser",
+            "tenantId": "new-saml-tenant",
+            "centralTenantId": "saml-test",
+            "consortiumId": "4c88c2d9-7614-4901-8920-a31408a15de1"
+          },
+          {
+            "id": "136070e9-6102-4d3a-bc89-f11ccd1825e0",
+            "userId": "8091ec80-290a-4d61-a08f-0d8fa576c097",
+            "username": "samluser",
+            "tenantId": "new-saml-tenant",
+            "centralTenantId": "saml-test",
+            "consortiumId": "4c88c2d9-7614-4901-8920-a31408a15de1"
+          }
+        ]
       }
     }
   ]
