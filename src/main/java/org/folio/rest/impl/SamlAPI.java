@@ -4,7 +4,6 @@ import static io.vertx.core.http.HttpHeaders.*;
 import static org.folio.util.UserFields.*;
 import static org.pac4j.saml.state.SAML2StateGenerator.SAML_RELAY_STATE_ATTRIBUTE;
 import static org.folio.rest.impl.ApiInitializer.MAX_FORM_ATTRIBUTE_SIZE;
-import static org.pac4j.saml.state.SAML2StateGenerator.SAML_RELAY_STATE_ATTRIBUTE;
 
 import java.io.InputStream;
 import java.net.URI;
@@ -245,7 +244,7 @@ public class SamlAPI implements Saml {
         WebClient webClient = WebClientFactory.getWebClient(vertxContext.owner());
 
         return userService.getUser(webClient, configuration, webContext, client, sessionStore, parsedHeaders)
-            .compose(userObject -> {
+          .compose(userObject -> {
           String userId = userObject.getString(ID);
           if (Boolean.FALSE.equals(userObject.getBoolean("active", false))) {
             throw new ForbiddenException("Inactive user account!");

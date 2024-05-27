@@ -27,7 +27,6 @@ import org.apache.logging.log4j.Logger;
 import java.util.Optional;
 import org.folio.config.SamlClientLoader;
 import org.folio.config.SamlConfigHolder;
-import org.folio.rest.RestVerticle;
 ///import org.folio.rest.impl.SamlAPI.UserErrorException;
 ///import org.folio.rest.RestVerticle;//////
 import org.folio.rest.jaxrs.model.SamlConfigRequest;

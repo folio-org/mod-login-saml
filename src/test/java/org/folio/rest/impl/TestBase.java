@@ -85,7 +85,7 @@ public class TestBase {//contained in "mock_content_with_delete.json"
   public static Future<Void> postTenant() {
     try {
       TenantAttributes ta = new TenantAttributes();
-      ta.setModuleTo("mod-login-saml-2.0");
+      ta.setModuleTo("mod-login-saml-2.1");
       TenantClient tenantClient = new TenantClient("http://localhost:" + MODULE_PORT, TENANT, null, webClient);
       return TenantInit.exec(tenantClient, ta, 600);
     } catch (Exception e) {
@@ -97,7 +97,7 @@ public class TestBase {//contained in "mock_content_with_delete.json"
   public static Future<Void> postTenantWithToken() {
     try {
       TenantAttributes ta = new TenantAttributes();
-      ta.setModuleTo("mod-login-saml-2.0");
+      ta.setModuleTo("mod-login-saml-2.1");
       TenantClient tenantClient = new TenantClient("http://localhost:" + MODULE_PORT, TENANT, TENANT, webClient);
       //TenantClient tenantClient = new TenantClient("http://localhost:" + MODULE_PORT, TENANT, TENANT, true, 1000, 10000); //deprecated
       //TenantClient tenantClient = new TenantClient("http://localhost:" + MODULE_PORT, TENANT, TENANT, true); //deprecated
@@ -111,7 +111,7 @@ public class TestBase {//contained in "mock_content_with_delete.json"
   public static Future<Void> postTenantExtendedWithToken(String okapiUrlTo, String permissions) {
     try {
       TenantAttributes ta = new TenantAttributes();
-      ta.setModuleTo("mod-login-saml-2.0");
+      ta.setModuleTo("mod-login-saml-2.1");
       TenantClient tenantClient = new TenantClientExtended("http://localhost:" + MODULE_PORT, okapiUrlTo,
         TENANT, TENANT, permissions, webClient);
       return TenantInit.exec(tenantClient, ta, 600);
