@@ -1,3 +1,7 @@
+## 2.8.1 - 2024-05-29
+
+* [MODLOGSAML-191](https://folio-org.atlassian.net/browse/MODLOGSAML-191) Vert.x 4.5.7 and RMB 35.2.2 fixing Netty CVE-2024-29025
+
 ## 2.8.0 - 2024-03-20
 
 * [MODLOGSAML-170](https://folio-org.atlassian.net/browse/MODLOGSAML-170) Add support of SSO login in consortium mode
