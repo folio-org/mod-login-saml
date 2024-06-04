@@ -168,7 +168,7 @@ public class ConfigurationClientTest extends TestBase {
   }
 
   @Test
-  public void testStoreEntriesPost(TestContext context) throws MalformedURLException {
+  public void testStoreEntriesPost(TestContext context) {
     mock.setMockContent("mock_content_with_delete.json");
     Map<String, String> entries = new HashMap<>(10);
     SamlConfiguration samlConfigurationByDataSentToMock = new SamlConfiguration();

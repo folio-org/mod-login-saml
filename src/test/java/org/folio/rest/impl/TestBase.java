@@ -20,9 +20,6 @@ import org.folio.rest.tools.utils.NetworkUtils;
 import org.folio.rest.tools.utils.TenantInit;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-
-//import java.util.ArrayList;
-//import java.util.List;
 import java.util.concurrent.TimeUnit;
 import io.vertx.core.VertxOptions;
 

@@ -6,7 +6,6 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.config.model.SamlConfiguration;
-import java.lang.IllegalAccessException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
@@ -49,7 +48,6 @@ public final class SamlConfigurationHelper {
       entries.put(SamlConfiguration.KEYSTORE_PASSWORD_CODE, samlConfiguration.getKeystorePassword());
     if (samlConfiguration.getPrivateKeyPassword() != null)
       entries.put(SamlConfiguration.KEYSTORE_PRIVATEKEY_PASSWORD_CODE, samlConfiguration.getPrivateKeyPassword());
-    //entries.put(SamlConfiguration.METADATA_INVALIDATED_CODE, "true");
     if (samlConfiguration.getMetadataInvalidated() != null)
       entries.put(SamlConfiguration.METADATA_INVALIDATED_CODE, samlConfiguration.getMetadataInvalidated());
     if (samlConfiguration.getOkapiUrl() != null)
@@ -90,8 +88,8 @@ public final class SamlConfigurationHelper {
 
   public static DiffResult<SamlConfiguration> createDiffResult(SamlConfiguration result, SamlConfiguration samlConfiguration) {
     DiffResult<SamlConfiguration> diffResult = SamlConfigurationHelper.compareSamlConfigurations(samlConfiguration, result);
-    log.info("result = " + SamlConfigurationHelper.printPojo(result));
-    log.info("numberOfDiffs = " + diffResult.getNumberOfDiffs());
+    log.info("result = {}", SamlConfigurationHelper.printPojo(result));
+    log.info("numberOfDiffs = {}", diffResult.getNumberOfDiffs());
     return diffResult;
   }
 }

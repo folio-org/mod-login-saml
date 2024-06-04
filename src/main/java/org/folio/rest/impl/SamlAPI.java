@@ -671,17 +671,6 @@ public class SamlAPI implements Saml {
     return origin == null || origin.isBlank() || origin.trim().contentEquals("*");
   }
 
-    /*
-  static String getCqlUserQuery(String userPropertyName, String value) {
-    // very sad that RMB does not have an option to reject fields with no index
-    List<String> supported = List.of("barcode", "externalSystemId", "id", "username", "personal.email");
-    if (!supported.contains(userPropertyName)) {
-      throw new UserFetchException("Unsupported user property: " + userPropertyName);
-    }
-    return userPropertyName + "==" + StringUtil.cqlEncode(value);
-  }
-    */
-
   private SamlConfiguration updateSamlConfiguration(SamlConfiguration config, SamlConfigRequest updatedConfig) {
     SamlConfiguration result = new SamlConfiguration();
 

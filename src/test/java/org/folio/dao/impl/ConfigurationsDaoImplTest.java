@@ -107,7 +107,7 @@ public class ConfigurationsDaoImplTest extends TestBase {
   }
 
   private void testDataMigration(TestContext context, SamlConfiguration samlConfiguration, boolean withDeletion) {
-    configurationsDao.dataMigration(vertx, createOkapiHeaders(), false)
+    configurationsDao.dataMigration(vertx, createOkapiHeaders(), withDeletion)
       .onComplete(context.asyncAssertSuccess(result -> {
         assertTrue(SamlConfigurationHelper.createDiffResult(result, samlConfiguration).getDiffs().isEmpty());
       }));
@@ -208,7 +208,7 @@ public class ConfigurationsDaoImplTest extends TestBase {
   public void testSamlConfigurationUpdateEmptyDatabase(TestContext context) {
     mock.setMockContent("mock_content_legacy.json");
     SamlConfiguration samlConfigurationToStoreInDatabase = mock.getMockPartialContent();
-    Map<String, String> map2Update = SamlConfigurationHelper.samlConfigurationToMap(mock.getMockPartialContent());
+    Map<String, String> map2Update = SamlConfigurationHelper.samlConfigurationToMap(samlConfigurationToStoreInDatabase);
     int expectedInt = 0;
 
     configurationsDao.storeEntry(vertx, createOkapiHeaders(), map2Update)
@@ -220,7 +220,6 @@ public class ConfigurationsDaoImplTest extends TestBase {
   @Test
   public void testSamlConfigurationUpdateEmptyDatabaseIncorrectCode(TestContext context) {
     mock.setMockContent("mock_example_entries.json");
-    SamlConfiguration samlConfigurationToStoreInDatabase = mock.getMockPartialContent();
     Map<String, String> map2Update = SamlConfigurationHelper.samlConfigurationToMap(mock.getMockPartialContent());
     map2Update.put("incorrect", "This is the value of an incorrect code");
 

@@ -49,7 +49,6 @@ public class IdpTest extends TestBase{
   private static final Header JSON_CONTENT_TYPE_HEADER = new Header("Content-Type", "application/json");
   private static final String STRIPES_URL = "http://localhost:3000";
 
-  //private static String MODULE_URL = "http://localhost:" + MODULE_PORT;
   private static final int OKAPI_PORT = TestBase.setPreferredPort(9230);
   private static final String OKAPI_URL = "http://localhost:" + OKAPI_PORT;
 

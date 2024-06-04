@@ -4,8 +4,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.folio.config.model.SamlConfiguration;
 
-import java.util.ArrayList;
-import java.util.stream.Collectors;
+import java.util.List;
 
 public class ConfigurationObjectMapperWithList {
 
@@ -23,13 +22,12 @@ public class ConfigurationObjectMapperWithList {
     }
   }
 
-  public static ArrayList<String> mapInternal(JsonArray array) {
-
+  public static List<String> mapInternal(JsonArray array) {
     return array.stream()
       .filter(JsonObject.class::isInstance)
       .map(JsonObject.class::cast)
       .map(entry -> entry.getString("id"))
-      .collect(Collectors.toCollection(ArrayList::new));
+      .toList();
   }
 }
 

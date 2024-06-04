@@ -27,8 +27,6 @@ import org.apache.logging.log4j.Logger;
 import java.util.Optional;
 import org.folio.config.SamlClientLoader;
 import org.folio.config.SamlConfigHolder;
-///import org.folio.rest.impl.SamlAPI.UserErrorException;
-///import org.folio.rest.RestVerticle;//////
 import org.folio.rest.jaxrs.model.SamlConfigRequest;
 import org.folio.rest.tools.utils.NetworkUtils;
 import org.folio.service.UserService;
@@ -83,8 +81,7 @@ public class SamlAPITest extends TestBase {
   private static final int MOCK_SERVER_PORT = NetworkUtils.nextFreePort();
   private static final Header OKAPI_URL_HEADER= new Header("X-Okapi-Url", "http://localhost:" + MOCK_SERVER_PORT);
 
-  //private static final MockJson mock = new MockJson();
-  private static final MockJsonExtended mock = new MockJsonExtended();
+  private static final MockJson mock = new MockJson();
   private DataMigrationHelper dataMigrationHelper = new DataMigrationHelper(TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
 
   @Rule
@@ -120,7 +117,7 @@ public class SamlAPITest extends TestBase {
   public void tearDown() {
     // Need to clear singleton to maintain test order independence
     SamlConfigHolder.getInstance().removeClient(TENANT);
-    //deleteAllConfigurationRecords(vertx);
+    deleteAllConfigurationRecords(vertx);
   }
 
   @Test

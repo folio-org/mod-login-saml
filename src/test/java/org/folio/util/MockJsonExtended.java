@@ -32,14 +32,12 @@ public class MockJsonExtended extends MockJson {
     final String configsConstant = "configs";
     for (int i = 0; i < mocks.size(); i++) {
       JsonObject entry = mocks.getJsonObject(i);
-      Object receivedData = null;
-      if (entry.containsKey("url")) {
-        if (entry.getString("url").contains(partialUrlConstant) ) {
-          receivedData = entry.getValue(receivedDataConstant);
-          if (receivedData instanceof JsonObject) {
-            return ((JsonObject)receivedData).getJsonArray(configsConstant);
+      Object localReceivedData = null;
+      if (entry.containsKey("url") && entry.getString("url").contains(partialUrlConstant)) {
+          localReceivedData = entry.getValue(receivedDataConstant);
+          if (localReceivedData instanceof JsonObject) {
+            return ((JsonObject)localReceivedData).getJsonArray(configsConstant);
           }
-        }
       }
     }
     return (null);
@@ -51,35 +49,31 @@ public class MockJsonExtended extends MockJson {
     final String configsConstant = "configs";
     for (int i = 0; i < mocks.size(); i++) {
       JsonObject entry = mocks.getJsonObject(i);
-      Object receivedData = null;
-      if (entry.containsKey("url")) {
-        if (entry.getString("url").contains(partialUrlConstant) ) {
-          receivedData = entry.getValue(receivedDataConstant);
-          if (receivedData instanceof JsonObject) {
+      Object localReceivedData = null;
+      if (entry.containsKey("url") && entry.getString("url").contains(partialUrlConstant)) {
+          localReceivedData = entry.getValue(receivedDataConstant);
+          if (localReceivedData instanceof JsonObject) {
             return ConfigurationObjectMapper
-              .map(((JsonObject)receivedData).getJsonArray(configsConstant), SamlConfiguration.class);
+              .map(((JsonObject)localReceivedData).getJsonArray(configsConstant), SamlConfiguration.class);
           }
-        }
       }
     }
     return (null);
   }
 
-  public ArrayList<String> getMockPartialContentIds() {
+  public List<String> getMockPartialContentIds() {
     final String partialUrlConstant = "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%29";
     final String receivedDataConstant = "receivedData";
     final String configsConstant = "configs";
     for (int i = 0; i < mocks.size(); i++) {
       JsonObject entry = mocks.getJsonObject(i);
-      Object receivedData = null;
-      if (entry.containsKey("url")) {
-        if (entry.getString("url").contains(partialUrlConstant) ) {
-          receivedData = entry.getValue(receivedDataConstant);
-          if (receivedData instanceof JsonObject) {
+      Object localReceivedData = null;
+      if (entry.containsKey("url") && entry.getString("url").contains(partialUrlConstant)) {
+          localReceivedData = entry.getValue(receivedDataConstant);
+          if (localReceivedData instanceof JsonObject) {
             return ConfigurationObjectMapperWithList
-              .mapInternal(((JsonObject)receivedData).getJsonArray(configsConstant));
+              .mapInternal(((JsonObject)localReceivedData).getJsonArray(configsConstant));
           }
-        }
       }
     }
     return (null);
@@ -117,7 +111,7 @@ public class MockJsonExtended extends MockJson {
         && !method.equalsIgnoreCase("delete")
         && method.equalsIgnoreCase(entry.getString("method", "get"))
         && uri.equals(entry.getString("url"))) {
-        //log.info("Used in mock={} method={} uri={}", resource, method, uri);/////
+        log.info("Used in mock={} method={} uri={}", resource, method, uri);
         response.setStatusCode(entry.getInteger("status", 200));
         JsonArray headers = entry.getJsonArray("headers");
         if (headers != null) {
@@ -148,15 +142,6 @@ public class MockJsonExtended extends MockJson {
         response.end();
         return;
       }
-      /*
-     else if ((mockIds.size() > 0 && requestedUrlList.size() > 0 && requestedUrlList.containsAll(mockIds))
-        && method.equalsIgnoreCase(entry.getString("method", "get"))
-        && uri.equals(entry.getString("url"))) {
-        log.info("Used in method={} uri={} mock={}", method, uri, resource);/////
-        response.setStatusCode(entry.getInteger("status", 200));
-        response.end();
-        return;
-        }*/
     }
     log.info("Not found in mock={} method={} uri={}", resource, method, uri);
     response.setStatusCode(404);

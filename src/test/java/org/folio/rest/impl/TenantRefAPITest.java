@@ -3,16 +3,13 @@ package org.folio.rest.impl;
 import java.util.List;
 
 import io.restassured.RestAssured;
-import io.restassured.http.Header;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.config.SamlConfigHolder;
-import org.folio.dao.impl.ConfigurationsDaoImpl;
 import org.folio.rest.tools.utils.NetworkUtils;
 import org.folio.util.MockJsonExtended;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -71,7 +68,6 @@ public class TenantRefAPITest extends TestBase {
   public void loadDataWithMockEmptyDatabaseWithDeletionFailure(TestContext context) {
     mock.setMockContent("mock_content_with_delete.json");
     boolean expectedBoolean = true;
-    List<String> expectedList = mock.getMockPartialContentIds();
     String expectedText = "After deletion of the data of mod-configuration the compared Objects are different";
     postTenantExtendedWithToken("http://localhost:" + MOCK_SERVER_PORT, PERMISSIONS_HEADER)
       .onComplete(context.asyncAssertFailure(cause -> {
@@ -85,7 +81,6 @@ public class TenantRefAPITest extends TestBase {
   public void loadDataWithMockEmptyDatabase(TestContext context) {
     mock.setMockContent("mock_content_with_delete.json");
     boolean expectedBoolean = true;
-    List<String> expectedList = mock.getMockPartialContentIds();
     mock.setMockIds();
     postTenantExtendedWithToken("http://localhost:" + MOCK_SERVER_PORT, PERMISSIONS_HEADER)
       .onComplete(context.asyncAssertSuccess(res -> {
