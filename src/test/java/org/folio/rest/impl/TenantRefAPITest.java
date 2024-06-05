@@ -1,7 +1,5 @@
 package org.folio.rest.impl;
 
-import java.util.List;
-
 import io.restassured.RestAssured;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.json.JsonObject;
