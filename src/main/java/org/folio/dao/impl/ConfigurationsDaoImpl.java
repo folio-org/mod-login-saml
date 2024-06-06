@@ -167,7 +167,7 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
 
     return getConfiguration(vertx, okapiHeaders, true)
       .compose(result -> storeEntry(vertx, okapiHeaders, localUpdateSamlConfiguration(result, map2Update)));
-	}
+  }
 
   private static SamlConfiguration localUpdateSamlConfiguration(SamlConfiguration result, Map<String, String> map2Update) {
     for (Map.Entry<String, String> entry : map2Update.entrySet()) {
