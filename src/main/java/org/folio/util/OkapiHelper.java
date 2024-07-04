@@ -45,6 +45,14 @@ public class OkapiHelper {
 
   }
 
+  /**
+  * XOkapiHeaders.URL must be overwritten by XOkapiHeaders.URL_TO
+  * because in the class ConfigurationsClient the requests are sent to okapiHeaders.getUrl(), i.e. the URL of mod-configuration.
+  * For example in the class ConfigurationsClient:
+  * public static Future<JsonArray> ConfigurationsClient.checkConfig(Vertx vertx, OkapiHeaders okapiHeaders,String query)
+  * return WebClientFactory.getWebClient(vertx)
+  *   .getAbs(okapiHeaders.getUrl() + CONFIGURATIONS_ENTRIES_ENDPOINT_URL + "?query=" + encodedQuery) ....
+  */
   public static OkapiHeaders okapiHeadersWithUrlTo(Map<String, String> parsedHeaders ) {
     OkapiHeaders headers = okapiHeaders(parsedHeaders);
     if (headers.getUrl() != null && headers.getUrlTo() != null)

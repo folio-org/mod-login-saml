@@ -1,5 +1,9 @@
 package org.folio.dao.impl;
 
+import static java.util.stream.Collectors.toMap;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import org.apache.commons.lang3.builder.ReflectionDiffBuilder;
@@ -15,6 +19,7 @@ import org.folio.rest.persist.interfaces.Results;
 import org.folio.rest.persist.PostgresClient;
 import org.folio.util.model.OkapiHeaders;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -51,34 +56,33 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
       return Future.failedFuture(new IllegalArgumentException(errorMessage));
     }
     return ConfigurationsClient.getConfigurationWithIds(vertx, okapiHeaders)
-      .compose(result -> storeSamlConfiguration(vertx, okapiHeaders, result))
       .compose(result -> {
         if (withDelete) {
           return localDeleteConfigurationEntries(vertx, okapiHeaders, result)
-            .compose(resultAfterDeletion -> Future.succeededFuture(result))
-            .onFailure(cause -> Future.failedFuture(cause.getMessage()));
+            .compose(resultAfterDeletion -> Future.succeededFuture(result));
         }
         else
           return Future.succeededFuture(result);
       })
+      .compose(result -> localStoreSamlConfiguration(vertx, okapiHeaders, result))
       .onFailure(cause -> LOGGER.warn("There is an empty local DB : {}", cause.getMessage()));
   }
 
-  private Future<Boolean> localDeleteConfigurationEntries(Vertx vertx, OkapiHeaders okapiHeaders,
+  private Future<Void> localDeleteConfigurationEntries(Vertx vertx, OkapiHeaders okapiHeaders,
     SamlConfiguration samlConfiguration){
     return ConfigurationsClient.deleteConfigurationEntries(vertx, okapiHeaders, samlConfiguration)
       .compose(this::localCompareObjects)
       .onFailure(cause -> {
-          String warnMessage = "The data of mod-configuration are not correctly deleted:" + " " + cause.getMessage();
-          LOGGER.warn(warnMessage);
-          Future.failedFuture(warnMessage);
+        String warnMessage = "The data of mod-configuration are not correctly deleted:" + " " + cause.getMessage();
+        LOGGER.warn(warnMessage);
+        Future.failedFuture(warnMessage);
       });
   }
 
 
-  private Future<Boolean> localCompareObjects(SamlConfiguration samlConfiguration) {
+  private Future<Void> localCompareObjects(SamlConfiguration samlConfiguration) {
     if(compareEquality(samlConfiguration, emptySamlConfiguration))
-      return Future.succeededFuture(Boolean.valueOf(true));
+      return Future.succeededFuture();
     else {
       String warnMessage = "After deletion of the data of mod-configuration the compared Objects are different";
       LOGGER.warn(warnMessage);
@@ -161,6 +165,14 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
     return storeEntry(vertx, okapiHeaders, samlConfiguration);
   }
 
+  private Future<SamlConfiguration> localStoreSamlConfiguration(Vertx vertx, OkapiHeaders okapiHeaders, SamlConfiguration samlConfiguration) {
+
+    Objects.requireNonNull(okapiHeaders);
+    Objects.requireNonNull(samlConfiguration);
+    samlConfiguration.setIdsList(new ArrayList<>(0));
+    return storeSamlConfiguration(vertx, okapiHeaders, samlConfiguration);
+  }
+
   @Override
   public Future<SamlConfiguration> storeEntry(Vertx vertx, OkapiHeaders okapiHeaders, Map<String, String> map2Update) {
     Objects.requireNonNull(okapiHeaders);
@@ -205,7 +217,7 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
           String errorMessage = String.format("Switch: Incorrect code. The code value is : %s", code);
           LOGGER.error(ERROR_MESSAGE_STRING, errorMessage);
           throw new IllegalArgumentException(errorMessage);
-        }
+    }
   }
 
   Future<SamlConfiguration> storeEntry(Vertx vertx, OkapiHeaders okapiHeaders, SamlConfiguration samlConfiguration) {
@@ -228,32 +240,18 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
   }
 
   private static Map<String, String> samlConfiguration2Map(SamlConfiguration samlConfiguration) {
-    Map<String, String> localMap = new HashMap<>();
-
-    if(samlConfiguration.getCallback() != null)
-      localMap.put(SamlConfiguration.SAML_CALLBACK, samlConfiguration.getCallback());
-    if(samlConfiguration.getKeystore() != null)
-      localMap.put(SamlConfiguration.KEYSTORE_FILE_CODE, samlConfiguration.getKeystore());
-    if(samlConfiguration.getKeystorePassword() != null)
-      localMap.put(SamlConfiguration.KEYSTORE_PASSWORD_CODE, samlConfiguration.getKeystorePassword());
-    if(samlConfiguration.getPrivateKeyPassword() != null)
-      localMap.put(SamlConfiguration.KEYSTORE_PRIVATEKEY_PASSWORD_CODE, samlConfiguration.getPrivateKeyPassword());
-    if(samlConfiguration.getIdpUrl() != null)
-      localMap.put(SamlConfiguration.IDP_URL_CODE, samlConfiguration.getIdpUrl());
-    if(samlConfiguration.getSamlBinding() != null)
-      localMap.put(SamlConfiguration.SAML_BINDING_CODE, samlConfiguration.getSamlBinding());
-    if(samlConfiguration.getSamlAttribute() != null)
-      localMap.put(SamlConfiguration.SAML_ATTRIBUTE_CODE, samlConfiguration.getSamlAttribute());
-    if(samlConfiguration.getIdpMetadata() != null)
-      localMap.put(SamlConfiguration.IDP_METADATA_CODE, samlConfiguration.getIdpMetadata());
-    if(samlConfiguration.getUserProperty() != null)
-      localMap.put(SamlConfiguration.USER_PROPERTY_CODE, samlConfiguration.getUserProperty());
-    if(samlConfiguration.getMetadataInvalidated() != null)
-      localMap.put(SamlConfiguration.METADATA_INVALIDATED_CODE, samlConfiguration.getMetadataInvalidated());
-    if(samlConfiguration.getOkapiUrl() != null)
-      localMap.put(SamlConfiguration.OKAPI_URL, samlConfiguration.getOkapiUrl());
-
-    return localMap;
+    ObjectMapper mapper = new ObjectMapper();
+    try {
+      String samlConfiguration2json = mapper.writeValueAsString(samlConfiguration);
+      Map<String, Object> localMapAsObject = mapper.readValue(samlConfiguration2json, new TypeReference<>() {});
+      return localMapAsObject.entrySet()
+        .stream()
+        .filter(element -> (!element.getKey().equals("id") && !element.getKey().equals("idsList") && element.getValue() != null))
+        .collect(toMap(Map.Entry::getKey, element -> String.valueOf(element.getValue())));
+    } catch (JsonProcessingException jsonProcEx) {
+      LOGGER.warn("Conversion of an SamlConfiguration Object failed: {}", jsonProcEx.getMessage());
+      return new HashMap<>();
+    }
   }
 
   private static DiffResult<SamlConfiguration> compare(SamlConfiguration samlConfigFirst, SamlConfiguration samlConfigSecond) {
