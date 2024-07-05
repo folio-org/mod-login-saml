@@ -21,17 +21,15 @@ import org.folio.rest.tools.utils.TenantInit;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import java.util.concurrent.TimeUnit;
-import io.vertx.core.VertxOptions;
 
 public class TestBase {//contained in "mock_content_with_delete.json"
   //Compare https://github.com/folio-org/mod-configuration/blob/master/mod-configuration-server/src/test/java/org/folio/rest/TestBase.java
 
   public static Vertx vertx;
-  public static int MODULE_PORT;
-  public static String MODULE_URL;
+  public static int modulePort;
+  public static String moduleUrl;
   public static WebClient webClient;
   public static TenantClient tenantClient;
-  //public static final String TENANT = "harvard";
   public static final String TENANT = "diku";
   public static final String SCHEMA = TENANT + "_mod_login_saml";
   public String localClassName = null;
@@ -39,18 +37,16 @@ public class TestBase {//contained in "mock_content_with_delete.json"
   @BeforeClass
   public static void beforeAll(TestContext context) {
     PostgresClient.setPostgresTester(new PostgresTesterContainer());
-    //vertx = Vertx.vertx();
-    vertx = Vertx.vertx(new VertxOptions().setBlockedThreadCheckInterval(TimeUnit.MILLISECONDS.convert(150L, TimeUnit.MINUTES))
-    .setMaxEventLoopExecuteTime(TimeUnit.NANOSECONDS.convert(200L, TimeUnit.MINUTES)));
+    vertx = Vertx.vertx();
 
-    MODULE_PORT = NetworkUtils.nextFreePort();//setPreferredPort(9231);
-    MODULE_URL = "http://localhost:" + MODULE_PORT;
+    modulePort = NetworkUtils.nextFreePort();
+    moduleUrl = "http://localhost:" + modulePort;
 
-    WebClientOptions webClientOptions = new WebClientOptions().setDefaultPort(MODULE_PORT);
+    WebClientOptions webClientOptions = new WebClientOptions().setDefaultPort(modulePort);
     webClient = WebClient.create(vertx, webClientOptions);
 
     DeploymentOptions moduleOptions = new DeploymentOptions()
-      .setConfig(new JsonObject().put("http.port", MODULE_PORT).put("mock", true));
+      .setConfig(new JsonObject().put("http.port", modulePort).put("mock", true));
 
     vertx.deployVerticle(new RestVerticle(), moduleOptions)
       .onComplete(context.asyncAssertSuccess());
@@ -83,7 +79,7 @@ public class TestBase {//contained in "mock_content_with_delete.json"
     try {
       TenantAttributes ta = new TenantAttributes();
       ta.setModuleTo("mod-login-saml-2.1");
-      TenantClient tenantClient = new TenantClient("http://localhost:" + MODULE_PORT, TENANT, null, webClient);
+      TenantClient tenantClient = new TenantClient("http://localhost:" + modulePort, TENANT, null, webClient);
       return TenantInit.exec(tenantClient, ta, 600);
     } catch (Exception e) {
       e.printStackTrace(System.err);
@@ -95,9 +91,7 @@ public class TestBase {//contained in "mock_content_with_delete.json"
     try {
       TenantAttributes ta = new TenantAttributes();
       ta.setModuleTo("mod-login-saml-2.1");
-      TenantClient tenantClient = new TenantClient("http://localhost:" + MODULE_PORT, TENANT, TENANT, webClient);
-      //TenantClient tenantClient = new TenantClient("http://localhost:" + MODULE_PORT, TENANT, TENANT, true, 1000, 10000); //deprecated
-      //TenantClient tenantClient = new TenantClient("http://localhost:" + MODULE_PORT, TENANT, TENANT, true); //deprecated
+      TenantClient tenantClient = new TenantClient("http://localhost:" + modulePort, TENANT, TENANT, webClient);
       return TenantInit.exec(tenantClient, ta, 600);
     } catch (Exception e) {
       e.printStackTrace(System.err);
@@ -109,7 +103,7 @@ public class TestBase {//contained in "mock_content_with_delete.json"
     try {
       TenantAttributes ta = new TenantAttributes();
       ta.setModuleTo("mod-login-saml-2.1");
-      TenantClient tenantClient = new TenantClientExtended("http://localhost:" + MODULE_PORT, okapiUrlTo,
+      TenantClient tenantClient = new TenantClientExtended("http://localhost:" + modulePort, okapiUrlTo,
         TENANT, TENANT, permissions, webClient);
       return TenantInit.exec(tenantClient, ta, 600);
     } catch (Exception e) {

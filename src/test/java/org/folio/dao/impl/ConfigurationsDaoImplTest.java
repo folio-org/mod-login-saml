@@ -56,11 +56,11 @@ public class ConfigurationsDaoImplTest extends TestBase {
 
   @Rule
   public TestName testName = new TestName();
-  public final String LOCALHOST_ORIGIN = "http://localhost";
+  public static final String LOCALHOST_ORIGIN = "http://localhost";
 
   @BeforeClass
   public static void setupOnce(TestContext context) {
-    RestAssured.port = MODULE_PORT;
+    RestAssured.port = modulePort;
     RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
 
     DeploymentOptions okapiOptions = new DeploymentOptions()

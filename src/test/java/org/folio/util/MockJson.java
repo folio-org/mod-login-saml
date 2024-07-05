@@ -76,6 +76,7 @@ public class MockJson extends AbstractVerticle {
     response.end("Not found in mock");
   }
 
+  @Override
   public void start(Promise<Void> promise) {
     final int port = context.config().getInteger("http.port");
 

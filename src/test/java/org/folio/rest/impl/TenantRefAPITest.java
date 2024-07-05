@@ -33,12 +33,11 @@ public class TenantRefAPITest extends TestBase {
 
   @Rule
   public TestName testName = new TestName();
-  public final String LOCALHOST_ORIGIN = "http://localhost";
 
   @Before
   public void setupOnce(TestContext context) {
     log.info("Running {}", testName.getMethodName());
-    RestAssured.port = TestBase.MODULE_PORT;
+    RestAssured.port = TestBase.modulePort;
     RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
 
     DeploymentOptions okapiOptions = new DeploymentOptions()

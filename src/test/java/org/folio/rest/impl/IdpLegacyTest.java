@@ -54,12 +54,12 @@ public class IdpLegacyTest extends TestBase{
 
   private static final int OKAPI_PORT = TestBase.setPreferredPort(9230);
   private static final String OKAPI_URL = "http://localhost:" + OKAPI_PORT;
-  private static int IDP_PORT;
-  private static String IDP_BASE_URL;
+  private static int idpPort;
+  private static String idpBaseUrl;
   private static final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", OKAPI_URL);
-  private static MockJson OKAPI;
+  private static MockJson okapi;
 
-  private static Vertx VERTX;
+  private static Vertx vertx;
   private DataMigrationHelper dataMigrationHelper = new DataMigrationHelper(TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
 
   @ClassRule
@@ -71,30 +71,30 @@ public class IdpLegacyTest extends TestBase{
 
   @BeforeClass
   public static void setupOnce(TestContext context) throws Exception {
-    RestAssured.port = MODULE_PORT;
+    RestAssured.port = modulePort;
     RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
-    VERTX = Vertx.vertx();
+    vertx = Vertx.vertx();
 
     if (DEBUG) {
       IDP.followOutput(new Slf4jLogConsumer(logger).withSeparateOutputStreams());
     }
-    IDP_PORT = IDP.getFirstMappedPort();
-    IDP_BASE_URL = "http://" + IDP.getHost() + ":" + IDP_PORT + "/simplesaml/";
-    String baseurlpath = IDP_BASE_URL.replace("/", "\\/");
+    idpPort = IDP.getFirstMappedPort();
+    idpBaseUrl = "http://" + IDP.getHost() + ":" + idpPort + "/simplesaml/";
+    String baseurlpath = idpBaseUrl.replace("/", "\\/");
     exec("sed", "-i", "s/'baseurlpath' =>.*/'baseurlpath' => '" + baseurlpath + "',/",
         "/var/www/simplesamlphp/config/config.php");
     exec("sed", "-i", "s/'auth' =>.*/'auth' => 'example-static',/",
         "/var/www/simplesamlphp/metadata/saml20-idp-hosted.php");
 
     /*DeploymentOptions moduleOptions = new DeploymentOptions()
-        .setConfig(new JsonObject().put("http.port", MODULE_PORT)
+        .setConfig(new JsonObject().put("http.port", modulePort)
         .put("mock", true)); // to use SAML2ClientMock*/
 
-    OKAPI = new MockJson();
+    okapi = new MockJson();
     DeploymentOptions okapiOptions = new DeploymentOptions()
         .setConfig(new JsonObject().put("http.port", OKAPI_PORT));
 
-    VERTX.deployVerticle(OKAPI, okapiOptions)
+    vertx.deployVerticle(okapi, okapiOptions)
       .compose(x -> postTenant())
       .onComplete(context.asyncAssertSuccess());
   }
@@ -103,7 +103,7 @@ public class IdpLegacyTest extends TestBase{
   public static void tearDownOnce(TestContext context) {
     TestBase.dropSchema(TestBase.SCHEMA)
       .onComplete(context.asyncAssertSuccess())
-      .compose(x -> VERTX.close());
+      .compose(x -> vertx.close());
   }
 
   @After
@@ -115,7 +115,7 @@ public class IdpLegacyTest extends TestBase{
   public void post(TestContext context) {
     setIdpBinding("POST");
     setOkapi("mock_idptest_post_legacy.json");
-    dataMigrationHelper.dataMigrationCompleted(VERTX, context, false);
+    dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
     for (int i = 0; i < 2; i++) {
       post0();
     }
@@ -160,7 +160,7 @@ public class IdpLegacyTest extends TestBase{
       cookie(cookie).
       formParams("RelayState", relayState).
       formParams("SAMLResponse", matcher.group(1)).
-      post(MODULE_URL + "/saml/callback").
+      post(moduleUrl + "/saml/callback").
     then().
       statusCode(302).
       header("x-okapi-token", "saml-token").
@@ -171,7 +171,7 @@ public class IdpLegacyTest extends TestBase{
   public void redirect(TestContext context) {
     setIdpBinding("Redirect");
     setOkapi("mock_idptest_redirect_legacy.json");
-    dataMigrationHelper.dataMigrationCompleted(VERTX, context, false);
+    dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
 
     for (int i = 0; i < 2; i++) {
       redirect0();
@@ -229,7 +229,7 @@ public class IdpLegacyTest extends TestBase{
       params("RelayState", relayState[1]).
       params("SAMLResponse", matcher.group(1)).
     when().
-      post(MODULE_URL + "/saml/callback").
+      post(moduleUrl + "/saml/callback").
     then().
       statusCode(302).
       header("x-okapi-token", "saml-token").
@@ -257,7 +257,7 @@ public class IdpLegacyTest extends TestBase{
   }
 
   private void setOkapi(String resource) {
-    OKAPI.setMockContent(resource, s -> s.replace("http://localhost:8888/simplesaml/", IDP_BASE_URL));
+    okapi.setMockContent(resource, s -> s.replace("http://localhost:8888/simplesaml/", idpBaseUrl));
   }
 
   private String jsonEncode(String key, String value) {

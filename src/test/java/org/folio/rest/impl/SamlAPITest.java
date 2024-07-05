@@ -86,11 +86,10 @@ public class SamlAPITest extends TestBase {
 
   @Rule
   public TestName testName = new TestName();
-  public final String LOCALHOST_ORIGIN = "http://localhost";
 
   @BeforeClass
   public static void setupOnce(TestContext context) {
-    RestAssured.port = TestBase.MODULE_PORT;
+    RestAssured.port = TestBase.modulePort;
     RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
 
     DeploymentOptions idpOptions = new DeploymentOptions()
@@ -349,7 +348,7 @@ public class SamlAPITest extends TestBase {
     dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
 
     WebClient.create(vertx)
-    .post(MODULE_PORT, "localhost", "/saml/callback")
+    .post(modulePort, "localhost", "/saml/callback")
     .putHeader("X-Okapi-Token", TENANT)
     .putHeader("X-Okapi-Tenant", TENANT)
     .putHeader("X-Okapi-Url", "http://localhost:" + MOCK_SERVER_PORT)
@@ -367,7 +366,7 @@ public class SamlAPITest extends TestBase {
     dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
 
     WebClient.create(vertx)
-      .post(MODULE_PORT, "localhost", "/saml/callback-with-expiry")
+      .post(modulePort, "localhost", "/saml/callback-with-expiry")
       .putHeader("X-Okapi-Token", TENANT)
       .putHeader("X-Okapi-Tenant", TENANT)
       .putHeader("X-Okapi-Url", "http://localhost:" + MOCK_SERVER_PORT)

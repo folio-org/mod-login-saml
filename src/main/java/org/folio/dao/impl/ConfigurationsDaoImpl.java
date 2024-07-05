@@ -246,7 +246,7 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
       Map<String, Object> localMapAsObject = mapper.readValue(samlConfiguration2json, new TypeReference<>() {});
       return localMapAsObject.entrySet()
         .stream()
-        .filter(element -> (!element.getKey().equals("id") && !element.getKey().equals("idsList") && element.getValue() != null))
+        .filter(element -> (!element.getKey().equals(SamlConfiguration.ID_CODE) && !element.getKey().equals("idsList") && element.getValue() != null))
         .collect(toMap(Map.Entry::getKey, element -> String.valueOf(element.getValue())));
     } catch (JsonProcessingException jsonProcEx) {
       LOGGER.warn("Conversion of an SamlConfiguration Object failed: {}", jsonProcEx.getMessage());

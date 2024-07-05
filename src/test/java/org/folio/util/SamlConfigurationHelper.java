@@ -15,7 +15,6 @@ import java.util.Map;
  */
 public final class SamlConfigurationHelper {
   private static final Logger log = LogManager.getLogger(SamlConfigurationHelper.class);
-  public SamlConfigurationHelper() {}
 
   //Evaluating the difference of two objects of the class SamlConfiguration without taking into account the field: id.
   public static DiffResult<SamlConfiguration> compareSamlConfigurations(SamlConfiguration samlConfigFirst, SamlConfiguration samlConfigSecond) {

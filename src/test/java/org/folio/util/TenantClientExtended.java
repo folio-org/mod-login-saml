@@ -33,11 +33,12 @@ public class TenantClientExtended extends TenantClient {
    * Service endpoint "/_/tenant"+queryParams.toString()
    * raml-module-builder/domain-models-runtime/target/generated-sources/raml-jaxrs/org/folio/rest/client/TenantClient.java
    */
-  public Future<HttpResponse<Buffer>> postTenant(org.folio.rest.jaxrs.model.TenantAttributes TenantAttributes) {
+  @Override
+  public Future<HttpResponse<Buffer>> postTenant(org.folio.rest.jaxrs.model.TenantAttributes tenantAttributes) {
     StringBuilder queryParams = new StringBuilder("?");
     Buffer buffer = Buffer.buffer();
-    if (TenantAttributes!= null) {
-      buffer.appendString(org.folio.rest.tools.ClientHelpers.pojo2json(TenantAttributes));
+    if (tenantAttributes!= null) {
+      buffer.appendString(org.folio.rest.tools.ClientHelpers.pojo2json(tenantAttributes));
     }
     io.vertx.ext.web.client.HttpRequest<Buffer> request = webClientLocal
       .requestAbs(io.vertx.core.http.HttpMethod.POST, okapiUrlLocal+"/_/tenant"+queryParams.toString());
