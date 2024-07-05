@@ -142,7 +142,7 @@ public class ConfigurationsClient {
   }
 
   public static Future<SamlConfiguration> deleteConfigurationEntries(Vertx vertx, OkapiHeaders okapiHeaders,
-    SamlConfiguration samlConfiguration) {
+      SamlConfiguration samlConfiguration) {
     Objects.requireNonNull(okapiHeaders);
     Objects.requireNonNull(samlConfiguration);
     Objects.requireNonNull(samlConfiguration.getIdsList());

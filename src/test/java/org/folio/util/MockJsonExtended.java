@@ -84,6 +84,7 @@ public class MockJsonExtended extends MockJson {
     mockIds = getMockPartialContentIds();
   }
 
+  @Override
   protected void handle(RoutingContext context) {
     HttpServerRequest request = context.request();
     HttpServerResponse response = context.response();

@@ -86,10 +86,6 @@ public class IdpTest extends TestBase{
     exec("sed", "-i", "s/'auth' =>.*/'auth' => 'example-static',/",
       "/var/www/simplesamlphp/metadata/saml20-idp-hosted.php");
 
-    /*DeploymentOptions moduleOptions = new DeploymentOptions()
-        .setConfig(new JsonObject().put("http.port", modulePort)
-        .put("mock", true)); // to use SAML2ClientMock*/
-
     okapi = new MockJson();
     DeploymentOptions okapiOptions = new DeploymentOptions()
       .setConfig(new JsonObject().put("http.port", OKAPI_PORT));

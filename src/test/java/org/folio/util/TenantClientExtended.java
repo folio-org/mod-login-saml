@@ -56,8 +56,9 @@ public class TenantClientExtended extends TenantClient {
     if (okapiUrlToLocal != null) {
       request.putHeader("X-Okapi-Url-to", okapiUrlToLocal);
     }
-    if (permissionsLocal != null)
+    if (permissionsLocal != null) {
       request.putHeader("X-Okapi-Permissions", permissionsLocal);
+    }
 
     return request.sendBuffer(buffer);
   }

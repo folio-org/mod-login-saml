@@ -43,7 +43,7 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
   }
 
   private Future<SamlConfiguration> localFutureGetConfigurationMigration(Results<SamlConfiguration> results, Vertx vertx,
-    OkapiHeaders okapiHeaders, boolean withDelete) {
+      OkapiHeaders okapiHeaders, boolean withDelete) {
 
     int localLength = results.getResults().size();
     if (localLength == 1) {
@@ -69,7 +69,7 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
   }
 
   private Future<Void> localDeleteConfigurationEntries(Vertx vertx, OkapiHeaders okapiHeaders,
-    SamlConfiguration samlConfiguration){
+      SamlConfiguration samlConfiguration){
     return ConfigurationsClient.deleteConfigurationEntries(vertx, okapiHeaders, samlConfiguration)
       .compose(this::localCompareObjects)
       .onFailure(cause -> {
@@ -81,7 +81,7 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
 
 
   private Future<Void> localCompareObjects(SamlConfiguration samlConfiguration) {
-    if(compareEquality(samlConfiguration, emptySamlConfiguration))
+    if(isEqual(samlConfiguration, emptySamlConfiguration))
       return Future.succeededFuture();
     else {
       String warnMessage = "After deletion of the data of mod-configuration the compared Objects are different";
@@ -258,10 +258,7 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
     return new ReflectionDiffBuilder<>(samlConfigFirst, samlConfigSecond, ToStringStyle.SHORT_PREFIX_STYLE).build();
   }
 
-  private static boolean compareEquality(SamlConfiguration samlConfigFirst, SamlConfiguration samlConfigSecond) {
-    boolean bool = false;
-    if(compare(samlConfigFirst, samlConfigSecond).getNumberOfDiffs() == 0)
-      bool = true;
-    return bool;
+  private static boolean isEqual(SamlConfiguration samlConfigFirst, SamlConfiguration samlConfigSecond) {
+    return compare(samlConfigFirst, samlConfigSecond).getNumberOfDiffs() == 0;
   }
 }

@@ -12,8 +12,7 @@ public class ConfigurationObjectMapperWithListTest {
   private static final MockJsonExtended mock = new MockJsonExtended();
   private static List<String> expectedList = new ArrayList<>(0);
 
-  private void addValues()
-  {
+  private void addValues() {
     expectedList.add("60eead4f-de97-437c-9cb7-09966ce50e49");
     expectedList.add("6dc15218-ed83-49e0-85ab-bb891e3f42c9");
     expectedList.add("2dd0d26d-3be4-4e80-a631-f7bda5311719");

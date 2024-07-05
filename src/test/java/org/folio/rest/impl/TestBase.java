@@ -69,7 +69,7 @@ public class TestBase {//contained in "mock_content_with_delete.json"
   }
 
   public static Future<Void> dropSchema(String schema) {
-      PostgresClient postgresClient = PostgresClient.getInstance(vertx);
+    PostgresClient postgresClient = PostgresClient.getInstance(vertx);
     return postgresClient.execute("DROP SCHEMA IF EXISTS " + schema + " CASCADE")
       .compose(x -> postgresClient.execute("DROP ROLE IF EXISTS " + schema))
       .mapEmpty();

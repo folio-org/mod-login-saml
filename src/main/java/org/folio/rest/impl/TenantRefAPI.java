@@ -21,7 +21,7 @@ public class TenantRefAPI extends TenantAPI {
   @Validate
   @Override
   Future<Integer> loadData(TenantAttributes attributes, String tenantId,
-    Map<String, String> headers, Context vertxContext) {
+      Map<String, String> headers, Context vertxContext) {
     log.info("TenantRefAPI::loadData");
     try {
       ConfigurationsDao.verifyOkapiHeaders(OkapiHelper.okapiHeadersWithUrlTo(headers));
