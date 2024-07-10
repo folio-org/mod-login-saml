@@ -1,14 +1,7 @@
 package org.folio.dao.impl;
 
-import static java.util.stream.Collectors.toMap;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import org.apache.commons.lang3.builder.ReflectionDiffBuilder;
-import org.apache.commons.lang3.builder.DiffResult;
-import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 import org.folio.config.ConfigurationsClient;
@@ -17,10 +10,10 @@ import org.folio.dao.ConfigurationsDao;
 import org.folio.rest.persist.Criteria.Criterion;
 import org.folio.rest.persist.interfaces.Results;
 import org.folio.rest.persist.PostgresClient;
+import org.folio.util.SamlConfigurationUtil;
 import org.folio.util.model.OkapiHeaders;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -81,7 +74,7 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
 
 
   private Future<Void> localCompareObjects(SamlConfiguration samlConfiguration) {
-    if(isEqual(samlConfiguration, emptySamlConfiguration))
+    if(SamlConfigurationUtil.isEqual(samlConfiguration, emptySamlConfiguration))
       return Future.succeededFuture();
     else {
       String warnMessage = "After deletion of the data of mod-configuration the compared Objects are different";
@@ -119,7 +112,7 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
         if(result.getId() == null)
           return Integer.valueOf(0);
         else
-          return Integer.valueOf(samlConfiguration2Map(result).size());
+          return Integer.valueOf(SamlConfigurationUtil.samlConfiguration2Map(result).size());
       })
       .compose(num -> {
         LOGGER.info("Number of records loaded num={}", num);
@@ -237,28 +230,5 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
       samlConfiguration.setId(id);
     }
     return samlConfiguration;
-  }
-
-  private static Map<String, String> samlConfiguration2Map(SamlConfiguration samlConfiguration) {
-    ObjectMapper mapper = new ObjectMapper();
-    try {
-      String samlConfiguration2json = mapper.writeValueAsString(samlConfiguration);
-      Map<String, Object> localMapAsObject = mapper.readValue(samlConfiguration2json, new TypeReference<>() {});
-      return localMapAsObject.entrySet()
-        .stream()
-        .filter(element -> (!element.getKey().equals(SamlConfiguration.ID_CODE) && !element.getKey().equals("idsList") && element.getValue() != null))
-        .collect(toMap(Map.Entry::getKey, element -> String.valueOf(element.getValue())));
-    } catch (JsonProcessingException jsonProcEx) {
-      LOGGER.warn("Conversion of an SamlConfiguration Object failed: {}", jsonProcEx.getMessage());
-      return new HashMap<>();
-    }
-  }
-
-  private static DiffResult<SamlConfiguration> compare(SamlConfiguration samlConfigFirst, SamlConfiguration samlConfigSecond) {
-    return new ReflectionDiffBuilder<>(samlConfigFirst, samlConfigSecond, ToStringStyle.SHORT_PREFIX_STYLE).build();
-  }
-
-  private static boolean isEqual(SamlConfiguration samlConfigFirst, SamlConfiguration samlConfigSecond) {
-    return compare(samlConfigFirst, samlConfigSecond).getNumberOfDiffs() == 0;
   }
 }

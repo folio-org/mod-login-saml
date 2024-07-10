@@ -15,6 +15,7 @@ import org.folio.rest.tools.utils.NetworkUtils;
 import org.folio.util.MockJsonExtended;
 import org.folio.util.OkapiHelper;
 import org.folio.util.SamlConfigurationHelper;
+import org.folio.util.SamlConfigurationUtil;
 import org.folio.util.model.OkapiHeaders;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.startsWith;
@@ -208,7 +209,7 @@ public class ConfigurationsDaoImplTest extends TestBase {
   public void testSamlConfigurationUpdateEmptyDatabase(TestContext context) {
     mock.setMockContent("mock_content_legacy.json");
     SamlConfiguration samlConfigurationToStoreInDatabase = mock.getMockPartialContent();
-    Map<String, String> map2Update = SamlConfigurationHelper.samlConfigurationToMap(samlConfigurationToStoreInDatabase);
+    Map<String, String> map2Update = SamlConfigurationUtil.samlConfiguration2Map(samlConfigurationToStoreInDatabase);
     int expectedInt = 0;
 
     configurationsDao.storeEntry(vertx, createOkapiHeaders(), map2Update)
@@ -220,7 +221,7 @@ public class ConfigurationsDaoImplTest extends TestBase {
   @Test
   public void testSamlConfigurationUpdateEmptyDatabaseIncorrectCode(TestContext context) {
     mock.setMockContent("mock_example_entries.json");
-    Map<String, String> map2Update = SamlConfigurationHelper.samlConfigurationToMap(mock.getMockPartialContent());
+    Map<String, String> map2Update = SamlConfigurationUtil.samlConfiguration2Map(mock.getMockPartialContent());
     map2Update.put("incorrect", "This is the value of an incorrect code");
 
     configurationsDao.storeEntry(vertx, createOkapiHeaders(), map2Update)
@@ -232,7 +233,7 @@ public class ConfigurationsDaoImplTest extends TestBase {
   public void testSamlConfigurationUpdateEmptyDatabaseComplete(TestContext context) {
     mock.setMockContent("mock_content_legacy.json");
     SamlConfiguration samlConfigurationToStoreInDatabase = mock.getMockPartialContent();
-    Map<String, String> map2Update = SamlConfigurationHelper.samlConfigurationToMap(mock.getMockPartialContent());
+    Map<String, String> map2Update = SamlConfigurationUtil.samlConfiguration2Map(mock.getMockPartialContent());
     map2Update.put(SamlConfiguration.IDP_METADATA_CODE, "SamlConfiguration.IDP_METADATA_CODE value");
     map2Update.put(SamlConfiguration.SAML_ATTRIBUTE_CODE, "SamlConfiguration.SAML_ATTRIBUTE_CODE value");
     map2Update.put(SamlConfiguration.USER_PROPERTY_CODE, "SamlConfiguration.USER_PROPERTY_CODE value");
@@ -250,7 +251,7 @@ public class ConfigurationsDaoImplTest extends TestBase {
     SamlConfiguration samlConfigurationBase = mock.getMockPartialContent();
 
     mock.setMockContent("mock_example_entries.json");
-    Map<String, String> map2Update = SamlConfigurationHelper.samlConfigurationToMap(mock.getMockPartialContent());
+    Map<String, String> map2Update = SamlConfigurationUtil.samlConfiguration2Map(mock.getMockPartialContent());
     int expectedInt = 4;
 
     createDatabaseEntry(context, samlConfigurationBase);

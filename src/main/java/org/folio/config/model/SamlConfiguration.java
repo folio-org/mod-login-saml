@@ -25,6 +25,7 @@ public class SamlConfiguration {
   public static final String METADATA_INVALIDATED_CODE = "metadata.invalidated";
   public static final String OKAPI_URL= "okapi.url";
   public static final String SAML_CALLBACK = "saml.callback";
+  public static final String IDS_LIST_CODE = "idsList";
 
   @JsonProperty(ID_CODE)
   private String id;
@@ -50,6 +51,7 @@ public class SamlConfiguration {
   private String okapiUrl;
   @JsonProperty(SAML_CALLBACK)
   private String callback;
+  @JsonProperty(IDS_LIST_CODE)
   private List<String> idsList;
 
   public SamlConfiguration(){
