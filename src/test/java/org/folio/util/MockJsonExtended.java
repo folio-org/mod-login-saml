@@ -17,6 +17,10 @@ import java.util.List;
 
 public class MockJsonExtended extends MockJson {
   private static final Logger log = LogManager.getLogger(MockJsonExtended.class);
+  private static final String PARTIAL_URL = "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%29";
+  private static final String RECEIVED_DATA_CONSTANT = "receivedData";
+  private static final String CONFIGS_CONSTANT = "configs";
+  private static final String URL_CONSTANT = "url";
 
   JsonArray receivedData = new JsonArray();
   List<String> requestedUrlList = new ArrayList<String>();
@@ -27,16 +31,13 @@ public class MockJsonExtended extends MockJson {
   }
 
   public JsonArray getMockConfigs() {
-    final String partialUrlConstant = "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%29";
-    final String receivedDataConstant = "receivedData";
-    final String configsConstant = "configs";
     for (int i = 0; i < mocks.size(); i++) {
       JsonObject entry = mocks.getJsonObject(i);
       Object localReceivedData = null;
-      if (entry.containsKey("url") && entry.getString("url").contains(partialUrlConstant)) {
-          localReceivedData = entry.getValue(receivedDataConstant);
+      if (entry.containsKey(URL_CONSTANT) && entry.getString(URL_CONSTANT).contains(PARTIAL_URL)) {
+          localReceivedData = entry.getValue(RECEIVED_DATA_CONSTANT);
           if (localReceivedData instanceof JsonObject) {
-            return ((JsonObject)localReceivedData).getJsonArray(configsConstant);
+            return ((JsonObject)localReceivedData).getJsonArray(CONFIGS_CONSTANT);
           }
       }
     }
@@ -44,43 +45,22 @@ public class MockJsonExtended extends MockJson {
   }
 
   public SamlConfiguration getMockPartialContent() {
-    final String partialUrlConstant = "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%29";
-    final String receivedDataConstant = "receivedData";
-    final String configsConstant = "configs";
-    for (int i = 0; i < mocks.size(); i++) {
-      JsonObject entry = mocks.getJsonObject(i);
-      Object localReceivedData = null;
-      if (entry.containsKey("url") && entry.getString("url").contains(partialUrlConstant)) {
-          localReceivedData = entry.getValue(receivedDataConstant);
-          if (localReceivedData instanceof JsonObject) {
-            return ConfigurationObjectMapper
-              .map(((JsonObject)localReceivedData).getJsonArray(configsConstant), SamlConfiguration.class);
-          }
-      }
+    var mockConfigs = getMockConfigs();
+    if (mockConfigs == null) {
+      return (null);
     }
-    return (null);
+    return ConfigurationObjectMapper.map(mockConfigs, SamlConfiguration.class);
   }
 
   public List<String> getMockPartialContentIds() {
-    final String partialUrlConstant = "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%29";
-    final String receivedDataConstant = "receivedData";
-    final String configsConstant = "configs";
-    for (int i = 0; i < mocks.size(); i++) {
-      JsonObject entry = mocks.getJsonObject(i);
-      Object localReceivedData = null;
-      if (entry.containsKey("url") && entry.getString("url").contains(partialUrlConstant)) {
-          localReceivedData = entry.getValue(receivedDataConstant);
-          if (localReceivedData instanceof JsonObject) {
-            return ConfigurationObjectMapperWithList
-              .mapInternal(((JsonObject)localReceivedData).getJsonArray(configsConstant));
-          }
-      }
+    var mockConfigs = getMockConfigs();
+    if (mockConfigs == null) {
+      return (null);
     }
-    return (null);
+    return ConfigurationObjectMapperWithList.mapInternal(mockConfigs);
   }
 
-  public void setMockIds()
-  {
+  public void setMockIds() {
     mockIds = getMockPartialContentIds();
   }
 
