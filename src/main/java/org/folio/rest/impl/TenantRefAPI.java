@@ -29,10 +29,9 @@ public class TenantRefAPI extends TenantAPI {
         .compose(result ->
           new ConfigurationsDaoImpl().dataMigrationLoadData(vertxContext.owner(), OkapiHelper.okapiHeadersWithUrlTo(headers), true));
     } catch (MissingHeaderException misHeadEx) {
-      StringBuilder builder = new StringBuilder("The Okapi headers are not complete. The data migration from mod-configuration is not possible")
-        .append(" ").append(misHeadEx.getMessage());
-      log.warn(builder.toString());
-      return Future.failedFuture(builder.toString());
+      String errorMessage = "The Okapi headers are not complete. The data migration from mod-configuration is not possible: " + misHeadEx.getMessage();
+      log.error("{}", errorMessage);
+      return Future.failedFuture(errorMessage);
     }
   }
 }

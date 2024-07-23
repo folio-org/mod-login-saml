@@ -58,7 +58,7 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
           return Future.succeededFuture(result);
       })
       .compose(result -> localStoreSamlConfiguration(vertx, okapiHeaders, result))
-      .onFailure(cause -> LOGGER.warn("There is an empty local DB : {}", cause.getMessage()));
+      .onFailure(cause -> LOGGER.error("There is an empty local DB : {}", cause.getMessage()));
   }
 
   private Future<Void> localDeleteConfigurationEntries(Vertx vertx, OkapiHeaders okapiHeaders,
@@ -66,9 +66,9 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
     return ConfigurationsClient.deleteConfigurationEntries(vertx, okapiHeaders, samlConfiguration)
       .compose(this::localCompareObjects)
       .onFailure(cause -> {
-        String warnMessage = "The data of mod-configuration are not correctly deleted:" + " " + cause.getMessage();
-        LOGGER.warn(warnMessage);
-        Future.failedFuture(warnMessage);
+        String errorMessage = "The data of mod-configuration are not correctly deleted:" + " " + cause.getMessage();
+        LOGGER.error(ERROR_MESSAGE_STRING, errorMessage);
+        Future.failedFuture(errorMessage);
       });
   }
 
@@ -77,9 +77,9 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
     if(SamlConfigurationUtil.isEqual(samlConfiguration, emptySamlConfiguration))
       return Future.succeededFuture();
     else {
-      String warnMessage = "After deletion of the data of mod-configuration the compared Objects are different";
-      LOGGER.warn(warnMessage);
-      return Future.failedFuture(warnMessage);
+      String errorMessage = "After deletion of the data of mod-configuration the compared Objects are different";
+      LOGGER.error(ERROR_MESSAGE_STRING, errorMessage);
+      return Future.failedFuture(errorMessage);
     }
   }
 
@@ -88,9 +88,9 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
 
     return getConfigurationMigration(vertx, okapiHeaders, withDelete)
       .onFailure(cause -> {
-        String warnMessage = "Local: Cannot load config from mod-configuration. " + cause.getMessage();
-        LOGGER.warn(warnMessage);
-        Future.failedFuture(warnMessage);
+        String errorMessage = "Local: Cannot load config from mod-configuration. " + cause.getMessage();
+        LOGGER.error(ERROR_MESSAGE_STRING, errorMessage);
+        Future.failedFuture(errorMessage);
       });
   }
 
@@ -98,9 +98,9 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
 
     return dataMigration(vertx, okapiHeaders, withDelete)
       .onFailure(cause -> {
-        String warnMessage = "Local: Cannot load config from mod-configuration. " + cause.getMessage();
-        LOGGER.warn(warnMessage);
-        Future.failedFuture(warnMessage);
+        String errorMessage = "Local: Cannot load config from mod-configuration. " + cause.getMessage();
+        LOGGER.error(ERROR_MESSAGE_STRING, errorMessage);
+        Future.failedFuture(errorMessage);
       });
   }
 
@@ -114,10 +114,8 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
         else
           return Integer.valueOf(SamlConfigurationUtil.samlConfiguration2Map(result).size());
       })
-      .compose(num -> {
-        LOGGER.info("Number of records loaded num={}", num);
-        return Future.succeededFuture(num);
-      });
+      .onSuccess(num -> LOGGER.info("Number of records loaded num={}", num))
+      .onFailure(cause -> LOGGER.error(ERROR_MESSAGE_STRING, cause.getMessage()));
   }
 
   @Override
@@ -139,9 +137,9 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
       if (isPut)
         return Future.succeededFuture(new SamlConfiguration());
       else {
-        String warnMessage = "There is an empty DB";
-        LOGGER.warn(ERROR_MESSAGE_STRING, warnMessage);
-        return Future.failedFuture(warnMessage);
+        String errorMessage = "There is an empty DB";
+        LOGGER.error(ERROR_MESSAGE_STRING, errorMessage);
+        return Future.failedFuture(errorMessage);
       }} else {
         String errorMessage = String.format("Number of records are not unique. The number is : %s", Integer.toString(localLength));
         LOGGER.error(ERROR_MESSAGE_STRING, errorMessage);
