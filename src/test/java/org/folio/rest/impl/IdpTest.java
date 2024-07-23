@@ -13,7 +13,7 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.folio.config.SamlConfigHolder;
 import org.folio.util.DataMigrationHelper;
-import org.folio.util.MockJson;
+import org.folio.util.MockJsonExtended;
 import org.folio.util.SamlTestHelper;
 import org.folio.util.StringUtil;
 import org.junit.*;
@@ -57,7 +57,7 @@ public class IdpTest extends TestBase{
   private static int idpPort;
   private static String idpBaseUrl;
   private static final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", OKAPI_URL);
-  private static MockJson okapi;
+  private static MockJsonExtended okapi;
 
   private static Vertx vertx;
   private DataMigrationHelper dataMigrationHelper = new DataMigrationHelper(TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
@@ -86,12 +86,12 @@ public class IdpTest extends TestBase{
     exec("sed", "-i", "s/'auth' =>.*/'auth' => 'example-static',/",
       "/var/www/simplesamlphp/metadata/saml20-idp-hosted.php");
 
-    okapi = new MockJson();
+    okapi = new MockJsonExtended();
     DeploymentOptions okapiOptions = new DeploymentOptions()
       .setConfig(new JsonObject().put("http.port", OKAPI_PORT));
-    okapi.setMockContent("mock_content_with_delete.json");
+    okapi.setMockContent("mock_200_empty.json");
     vertx.deployVerticle(okapi, okapiOptions)
-      .compose(x -> postTenant())
+      .compose(x -> postTenantExtendedWithToken(OKAPI_URL, PERMISSIONS_HEADER))
       .onComplete(context.asyncAssertSuccess());
   }
 
@@ -105,6 +105,7 @@ public class IdpTest extends TestBase{
   @After
   public void after() {
     SamlConfigHolder.getInstance().removeClient(TENANT);
+    deleteAllConfigurationRecords(vertx);
   }
 
   @Test

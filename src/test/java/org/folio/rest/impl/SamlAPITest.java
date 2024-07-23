@@ -81,7 +81,7 @@ public class SamlAPITest extends TestBase {
   private static final int MOCK_SERVER_PORT = NetworkUtils.nextFreePort();
   private static final Header OKAPI_URL_HEADER= new Header("X-Okapi-Url", "http://localhost:" + MOCK_SERVER_PORT);
 
-  private static final MockJson mock = new MockJson();
+  private static final MockJsonExtended mock = new MockJsonExtended();
   private DataMigrationHelper dataMigrationHelper = new DataMigrationHelper(TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
 
   @Rule
@@ -98,10 +98,10 @@ public class SamlAPITest extends TestBase {
     DeploymentOptions okapiOptions = new DeploymentOptions()
       .setConfig(new JsonObject().put("http.port", MOCK_SERVER_PORT));
 
-    mock.setMockContent("mock_content.json");
+    mock.setMockContent("mock_200_empty.json");
     vertx.deployVerticle(IdpMock.class.getName(), idpOptions)
       .compose(x -> vertx.deployVerticle(mock, okapiOptions))
-      .compose(x -> postTenant())
+      .compose(x -> postTenantExtendedWithToken("http://localhost:" + MOCK_SERVER_PORT, PERMISSIONS_HEADER))
       .onComplete(context.asyncAssertSuccess());
   }
 

@@ -69,8 +69,7 @@ public class ConfigurationsDaoImplTest extends TestBase {
 
     mock.setMockContent("mock_200_empty.json");
     vertx.deployVerticle(mock, okapiOptions)
-      .compose(x -> postTenant())
-      //.compose(x -> postTenantWithToken())
+      .compose(x -> postTenantExtendedWithToken("http://localhost:" + JSON_MOCK_PORT, PERMISSIONS_HEADER))
       .onComplete(context.asyncAssertSuccess());
   }
 
@@ -80,7 +79,7 @@ public class ConfigurationsDaoImplTest extends TestBase {
     mock.resetReceivedData();
     mock.resetRequestedUrlList();
     log.info("Running {}", testName.getMethodName());
-    mock.setMockContent("mock_content.json");
+    mock.setMockContent("mock_content_with_delete.json");
   }
 
   @After

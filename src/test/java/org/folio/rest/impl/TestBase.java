@@ -4,7 +4,6 @@ import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
@@ -20,7 +19,6 @@ import org.folio.rest.tools.utils.NetworkUtils;
 import org.folio.rest.tools.utils.TenantInit;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import java.util.concurrent.TimeUnit;
 
 public class TestBase {//contained in "mock_content_with_delete.json"
   //Compare https://github.com/folio-org/mod-configuration/blob/master/mod-configuration-server/src/test/java/org/folio/rest/TestBase.java
@@ -32,6 +30,7 @@ public class TestBase {//contained in "mock_content_with_delete.json"
   public static TenantClient tenantClient;
   public static final String TENANT = "diku";
   public static final String SCHEMA = TENANT + "_mod_login_saml";
+  public static final String PERMISSIONS_HEADER = TENANT + "-permissons"; //for testing org.folio.util.model.OkapiHeaders.java
   public String localClassName = null;
 
   @BeforeClass
@@ -75,30 +74,6 @@ public class TestBase {//contained in "mock_content_with_delete.json"
       .mapEmpty();
   }
 
-  public static Future<Void> postTenant() {
-    try {
-      TenantAttributes ta = new TenantAttributes();
-      ta.setModuleTo("mod-login-saml-2.1");
-      TenantClient tenantClient = new TenantClient("http://localhost:" + modulePort, TENANT, null, webClient);
-      return TenantInit.exec(tenantClient, ta, 600);
-    } catch (Exception e) {
-      e.printStackTrace(System.err);
-      return Future.failedFuture(e);
-    }
-  }
-
-  public static Future<Void> postTenantWithToken() {
-    try {
-      TenantAttributes ta = new TenantAttributes();
-      ta.setModuleTo("mod-login-saml-2.1");
-      TenantClient tenantClient = new TenantClient("http://localhost:" + modulePort, TENANT, TENANT, webClient);
-      return TenantInit.exec(tenantClient, ta, 600);
-    } catch (Exception e) {
-      e.printStackTrace(System.err);
-      return Future.failedFuture(e);
-    }
-  }
-
   public static Future<Void> postTenantExtendedWithToken(String okapiUrlTo, String permissions) {
     try {
       TenantAttributes ta = new TenantAttributes();
@@ -110,13 +85,6 @@ public class TestBase {//contained in "mock_content_with_delete.json"
       e.printStackTrace(System.err);
       return Future.failedFuture(e);
     }
-  }
-
-  public static void postTenantWithTokenCompleted(TestContext context) {
-    Async async = context.async();
-    postTenantWithToken()
-      .onComplete(context.asyncAssertSuccess(result -> async.complete()));
-    async.awaitSuccess(TimeUnit.MILLISECONDS.convert(120, TimeUnit.SECONDS));
   }
 
   public static int setPreferredPort(int port) {

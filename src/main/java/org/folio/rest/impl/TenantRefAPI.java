@@ -27,16 +27,12 @@ public class TenantRefAPI extends TenantAPI {
       ConfigurationsDao.verifyOkapiHeaders(OkapiHelper.okapiHeadersWithUrlTo(headers));
       return super.loadData(attributes, tenantId, headers, vertxContext)
         .compose(result ->
-          new ConfigurationsDaoImpl().dataMigrationLoadData(vertxContext.owner(), OkapiHelper.okapiHeadersWithUrlTo(headers), true)
-            .onFailure(cause -> {
-               log.warn(cause.getMessage());
-               Future.failedFuture(cause.getMessage());
-        }));
+          new ConfigurationsDaoImpl().dataMigrationLoadData(vertxContext.owner(), OkapiHelper.okapiHeadersWithUrlTo(headers), true));
     } catch (MissingHeaderException misHeadEx) {
       StringBuilder builder = new StringBuilder("The Okapi headers are not complete. The data migration from mod-configuration is not possible")
         .append(" ").append(misHeadEx.getMessage());
-      log.warn(builder);
-      return super.loadData(attributes, tenantId, headers, vertxContext);
+      log.warn(builder.toString());
+      return Future.failedFuture(builder.toString());
     }
   }
 }

@@ -12,6 +12,7 @@ import org.folio.rest.tools.utils.NetworkUtils;
 import org.folio.util.MockJsonExtended;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.startsWith;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -27,7 +28,6 @@ import org.junit.runner.RunWith;
 public class TenantRefAPITest extends TestBase {
   private static final Logger log = LogManager.getLogger(TenantRefAPITest.class);
 
-  private static final String PERMISSIONS_HEADER = TENANT + "-permissons"; //for testing org.folio.util.model.OkapiHeaders.java
   private static final int MOCK_SERVER_PORT = NetworkUtils.nextFreePort();
   private static final MockJsonExtended mock = new MockJsonExtended();
 
@@ -77,6 +77,27 @@ public class TenantRefAPITest extends TestBase {
   @Test
   public void loadDataWithMockEmptyDatabase(TestContext context) {
     mock.setMockContent("mock_content_with_delete.json");
+    boolean expectedBoolean = true;
+    mock.setMockIds();
+    postTenantExtendedWithToken("http://localhost:" + MOCK_SERVER_PORT, PERMISSIONS_HEADER)
+      .onComplete(context.asyncAssertSuccess(res -> {
+        assertEquals(expectedBoolean, mock.getRequestedUrlList().containsAll(mock.getMockPartialContentIds()));
+        mock.resetRequestedUrlList();
+      }));
+  }
+
+  @Test
+  public void loadNoDataWithMock400EmptyDatabase(TestContext context) {
+    mock.setMockContent("mock_400.json");
+    mock.setMockIds();
+    postTenantExtendedWithToken("http://localhost:" + MOCK_SERVER_PORT, PERMISSIONS_HEADER)
+      .onComplete(context.asyncAssertFailure(cause ->
+        assertThat(cause.getMessage(), startsWith("Response status code 400 is not equal to 200"))));
+  }
+
+  @Test
+  public void loadNoDataWithMock200EmptyDatabase(TestContext context) {
+    mock.setMockContent("mock_200_empty.json");
     boolean expectedBoolean = true;
     mock.setMockIds();
     postTenantExtendedWithToken("http://localhost:" + MOCK_SERVER_PORT, PERMISSIONS_HEADER)

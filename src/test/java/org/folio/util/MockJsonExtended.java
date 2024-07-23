@@ -55,7 +55,7 @@ public class MockJsonExtended extends MockJson {
   public List<String> getMockPartialContentIds() {
     var mockConfigs = getMockConfigs();
     if (mockConfigs == null) {
-      return (null);
+      return (new ArrayList<String>());
     }
     return ConfigurationObjectMapperWithList.mapInternal(mockConfigs);
   }
@@ -80,7 +80,7 @@ public class MockJsonExtended extends MockJson {
       });
     }
 
-    if((mockIds.size() > 0 && requestedUrlList.size() > 0 && requestedUrlList.containsAll(mockIds)))
+    if((mockIds != null && mockIds.size() > 0 && requestedUrlList.size() > 0 && requestedUrlList.containsAll(mockIds)))
       {
         super.setMockContent("mock_200_empty.json");
         mockIds = new ArrayList<String>();
