@@ -80,7 +80,7 @@ public class TestBase {//contained in "mock_content_with_delete.json"
       ta.setModuleTo("mod-login-saml-2.1");
       TenantClient tenantClient = new TenantClientExtended("http://localhost:" + modulePort, okapiUrlTo,
         TENANT, TENANT, permissions, webClient);
-      return TenantInit.exec(tenantClient, ta, 600);
+      return TenantInit.exec(tenantClient, ta, 60000);
     } catch (Exception e) {
       e.printStackTrace(System.err);
       return Future.failedFuture(e);
