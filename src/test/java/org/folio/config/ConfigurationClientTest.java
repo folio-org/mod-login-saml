@@ -162,7 +162,6 @@ public class ConfigurationClientTest extends TestBase {
         .onComplete(context.asyncAssertSuccess(result -> {
           SamlConfiguration samlConfigurationReceivedbyMock = mock.getReceivedData();
           assertTrue(SamlConfigurationHelper.createDiffResult(samlConfigurationByDataSentToMock, samlConfigurationReceivedbyMock).getDiffs().isEmpty());
-          mock.resetReceivedData();
         }));
     }
   }
@@ -179,7 +178,6 @@ public class ConfigurationClientTest extends TestBase {
         .onComplete(context.asyncAssertSuccess(result -> {
           SamlConfiguration samlConfigurationReceivedbyMock = mock.getReceivedData();
           assertTrue(SamlConfigurationHelper.createDiffResult(samlConfigurationByDataSentToMock, samlConfigurationReceivedbyMock).getDiffs().isEmpty());
-          mock.resetReceivedData();
         }));
     }
   }
@@ -200,7 +198,6 @@ public class ConfigurationClientTest extends TestBase {
         ConfigurationsClient.deleteConfigurationEntries(vertx, dataMigrationHelper.getOkapiHeaders(), result)
           .onComplete(context.asyncAssertSuccess(newResult -> {
             assertEquals(expectedBoolean, mock.getRequestedUrlList().containsAll(expectedList));
-            mock.resetRequestedUrlList();
           }));
      }));
   }

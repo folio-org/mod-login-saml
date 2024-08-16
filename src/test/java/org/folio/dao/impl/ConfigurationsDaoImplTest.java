@@ -83,7 +83,7 @@ public class ConfigurationsDaoImplTest extends TestBase {
   }
 
   @After
-  public void tearDown(TestContext context) {
+  public void tearDown() {
     // Need to clear singleton to maintain test order independence
     SamlConfigHolder.getInstance().removeClient(TENANT);
   }
@@ -133,7 +133,6 @@ public class ConfigurationsDaoImplTest extends TestBase {
         assertTrue(SamlConfigurationHelper.createDiffResult(result, samlConfiguration).getDiffs().isEmpty());
         assertEquals(expectedBoolean, mock.getRequestedUrlList().containsAll(mock.getMockPartialContentIds()));
         log.info("All entries are deleted");
-        mock.resetRequestedUrlList();
       }));
   }
 
@@ -213,7 +212,7 @@ public class ConfigurationsDaoImplTest extends TestBase {
 
     configurationsDao.storeEntry(vertx, createOkapiHeaders(), map2Update)
       .onComplete(context.asyncAssertSuccess(result -> {
-            assertEquals(expectedInt, SamlConfigurationHelper.createDiffResult(result, samlConfigurationToStoreInDatabase).getNumberOfDiffs());
+        assertEquals(expectedInt, SamlConfigurationHelper.createDiffResult(result, samlConfigurationToStoreInDatabase).getNumberOfDiffs());
       }));
   }
 

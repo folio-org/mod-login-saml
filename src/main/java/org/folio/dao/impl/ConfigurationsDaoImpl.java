@@ -22,7 +22,6 @@ import java.util.Objects;
  */
 public class ConfigurationsDaoImpl implements ConfigurationsDao {
   private static final Logger LOGGER = LogManager.getLogger(ConfigurationsDaoImpl.class);
-  private static final String ERROR_MESSAGE_STRING = "errorMessage : %s";
 
   public static final String CONFIGURATION_TABLE = "configuration";
 
@@ -45,7 +44,7 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
     if(localLength > 1) {
       String errorMessage = String.format("Migration: Number of records are not unique. Instead the number is : %s",
         Integer.toString(localLength));
-      LOGGER.error(ERROR_MESSAGE_STRING, errorMessage);
+      LOGGER.error("{}", errorMessage);
       return Future.failedFuture(new IllegalArgumentException(errorMessage));
     }
     return ConfigurationsClient.getConfigurationWithIds(vertx, okapiHeaders)
@@ -67,7 +66,7 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
       .compose(this::localCompareObjects)
       .onFailure(cause -> {
         String errorMessage = "The data of mod-configuration are not correctly deleted:" + " " + cause.getMessage();
-        LOGGER.error(ERROR_MESSAGE_STRING, errorMessage);
+        LOGGER.error("{}", errorMessage);
         Future.failedFuture(errorMessage);
       });
   }
@@ -78,7 +77,7 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
       return Future.succeededFuture();
     else {
       String errorMessage = "After deletion of the data of mod-configuration the compared Objects are different";
-      LOGGER.error(ERROR_MESSAGE_STRING, errorMessage);
+      LOGGER.error("{}", errorMessage);
       return Future.failedFuture(errorMessage);
     }
   }
@@ -89,7 +88,7 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
     return getConfigurationMigration(vertx, okapiHeaders, withDelete)
       .onFailure(cause -> {
         String errorMessage = "Local: Cannot load config from mod-configuration. " + cause.getMessage();
-        LOGGER.error(ERROR_MESSAGE_STRING, errorMessage);
+        LOGGER.error("{}", errorMessage);
         Future.failedFuture(errorMessage);
       });
   }
@@ -99,7 +98,7 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
     return dataMigration(vertx, okapiHeaders, withDelete)
       .onFailure(cause -> {
         String errorMessage = "Local: Cannot load config from mod-configuration. " + cause.getMessage();
-        LOGGER.error(ERROR_MESSAGE_STRING, errorMessage);
+        LOGGER.error("{}", errorMessage);
         Future.failedFuture(errorMessage);
       });
   }
@@ -115,7 +114,7 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
           return Integer.valueOf(SamlConfigurationUtil.samlConfiguration2Map(result).size());
       })
       .onSuccess(num -> LOGGER.info("Number of records loaded num={}", num))
-      .onFailure(cause -> LOGGER.error(ERROR_MESSAGE_STRING, cause.getMessage()));
+      .onFailure(cause -> LOGGER.error("{}", cause.getMessage()));
   }
 
   @Override
@@ -133,18 +132,18 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
     int localLength = results.getResults().size();
     if(localLength == 1) {
       return Future.succeededFuture(results.getResults().get(0));
-    } else if (localLength == 0) {
-      if (isPut)
+    }
+    if(localLength > 1) {
+      String errorMessage = String.format("Number of records are not unique. The number is : %s", Integer.toString(localLength));
+      LOGGER.error("{}", errorMessage);
+      return Future.failedFuture(new IllegalArgumentException(errorMessage));
+    }
+    if (isPut) {
         return Future.succeededFuture(new SamlConfiguration());
-      else {
-        String errorMessage = "There is an empty DB";
-        LOGGER.error(ERROR_MESSAGE_STRING, errorMessage);
-        return Future.failedFuture(errorMessage);
-      }} else {
-        String errorMessage = String.format("Number of records are not unique. The number is : %s", Integer.toString(localLength));
-        LOGGER.error(ERROR_MESSAGE_STRING, errorMessage);
-        return Future.failedFuture(new IllegalArgumentException(errorMessage));
-      }
+    }
+    String errorMessage = "There is an empty DB";
+    LOGGER.error("{}", errorMessage);
+    return Future.failedFuture(errorMessage);
   }
 
   @Override
@@ -206,7 +205,7 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
           break;
         default:
           String errorMessage = String.format("Switch: Incorrect code. The code value is : %s", code);
-          LOGGER.error(ERROR_MESSAGE_STRING, errorMessage);
+          LOGGER.error("{}", errorMessage);
           throw new IllegalArgumentException(errorMessage);
     }
   }

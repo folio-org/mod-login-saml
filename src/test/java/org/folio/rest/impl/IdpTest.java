@@ -98,8 +98,8 @@ public class IdpTest extends TestBase{
   @AfterClass
   public static void tearDownOnce(TestContext context) {
     TestBase.dropSchema(TestBase.SCHEMA)
-      .onComplete(context.asyncAssertSuccess())
-      .compose(x -> vertx.close());
+      .compose(x -> vertx.close())
+      .onComplete(context.asyncAssertSuccess());
   }
 
   @After
