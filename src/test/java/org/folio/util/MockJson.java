@@ -38,7 +38,7 @@ public class MockJson extends AbstractVerticle {
     setMockContent(resource, s -> s);
   }
 
-  private void handle(RoutingContext context) {
+  protected void handle(RoutingContext context) {
     HttpServerRequest request = context.request();
     HttpServerResponse response = context.response();
     String method = request.method().name();
@@ -76,6 +76,7 @@ public class MockJson extends AbstractVerticle {
     response.end("Not found in mock");
   }
 
+  @Override
   public void start(Promise<Void> promise) {
     final int port = context.config().getInteger("http.port");
 

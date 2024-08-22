@@ -6,8 +6,10 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.predicate.ResponsePredicate;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.folio.config.model.SamlConfiguration;
+import org.folio.dao.ConfigurationsDao;
 import org.folio.okapi.common.GenericCompositeFuture;
 import org.folio.okapi.common.WebClientFactory;
 import org.folio.okapi.common.XOkapiHeaders;
@@ -18,44 +20,59 @@ import org.springframework.util.Assert;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * Connect to mod-configuration via Okapi
+
  *
  * @author rsass
  */
 public class ConfigurationsClient {
+  public static final String GET_CONFIGURATION_WARN_MESSAGE = "There is a wrong config from mod-configuration";
+  private static final Logger LOGGER = LogManager.getLogger(ConfigurationsClient.class);
 
   public static final String CONFIGURATIONS_ENTRIES_ENDPOINT_URL = "/configurations/entries";
   public static final String MODULE_NAME = "LOGIN-SAML";
   public static final String CONFIG_NAME = "saml";
 
-  public static final String MISSING_OKAPI_URL = "Missing Okapi URL";
-  public static final String MISSING_TENANT = "Missing Tenant";
-  public static final String MISSING_TOKEN = "Missing Token";
+  private static final String MODULE_QUERY_CONSTANT = "(module==";
+  private static final String CONFIG_NAME_QUERY_CONSTANT = " AND configName==";
+  private static final String QUERY_END_CONSTANT = ")";
+  private static final String QUERY_CONSTANT = MODULE_QUERY_CONSTANT + MODULE_NAME + CONFIG_NAME_QUERY_CONSTANT + CONFIG_NAME;
 
   private ConfigurationsClient() {
-
-  }
-
-  protected static void verifyOkapiHeaders(OkapiHeaders okapiHeaders) throws MissingHeaderException {
-    if (StringUtils.isBlank(okapiHeaders.getUrl())) {
-      throw new MissingHeaderException(MISSING_OKAPI_URL);
-    }
-    if (StringUtils.isBlank(okapiHeaders.getTenant())) {
-      throw new MissingHeaderException(MISSING_TENANT);
-    }
-    if (StringUtils.isBlank(okapiHeaders.getToken())) {
-      throw new MissingHeaderException(MISSING_TOKEN);
-    }
   }
 
   public static Future<SamlConfiguration> getConfiguration(Vertx vertx, OkapiHeaders okapiHeaders) {
-    String query = "(module==" + MODULE_NAME + " AND configName==" + CONFIG_NAME + ")";
+    Objects.requireNonNull(okapiHeaders);
 
-    return checkConfig(vertx, okapiHeaders, query)
-      .compose(configs -> ConfigurationObjectMapper.map(configs, SamlConfiguration.class));
+    return checkConfig(vertx, okapiHeaders, QUERY_CONSTANT + QUERY_END_CONSTANT)
+      .onFailure(cause -> LOGGER.error("There aren't any data received from mod-configuration: {}", cause.getMessage()))
+      .map(configs -> {
+        try {
+          return ConfigurationObjectMapper.map(configs, SamlConfiguration.class);
+        } catch (IllegalArgumentException iArgEx) {
+          String errorMessage = String.format(GET_CONFIGURATION_WARN_MESSAGE + ": %s",
+            iArgEx.getMessage());
+          LOGGER.error(errorMessage, iArgEx);
+          throw new IllegalArgumentException(iArgEx.getMessage());
+        }
+      });
+  }
+
+  public static Future<SamlConfiguration> getConfigurationWithIds(Vertx vertx, OkapiHeaders okapiHeaders) {
+    Objects.requireNonNull(okapiHeaders);
+
+    return checkConfig(vertx, okapiHeaders, QUERY_CONSTANT + QUERY_END_CONSTANT)
+      .onFailure(cause -> LOGGER.error("There are no data from mod-configuration received: {}", cause.getMessage()))
+      .map(configs -> {
+        try {
+          return ConfigurationObjectMapperWithList.map(configs, ConfigurationObjectMapper.map(configs, SamlConfiguration.class));
+        } catch (IllegalArgumentException iArgEx) {
+          LOGGER.warn(GET_CONFIGURATION_WARN_MESSAGE, iArgEx);
+          throw new IllegalArgumentException(iArgEx.getMessage());
+        }
+      });
   }
 
   public static Future<SamlConfiguration> storeEntries(Vertx vertx, OkapiHeaders headers, Map<String, String> entries) {
@@ -65,10 +82,10 @@ public class ConfigurationsClient {
 
     List<Future<Void>> futures = entries.entrySet().stream()
       .map(entry -> ConfigurationsClient.storeEntry(vertx, headers, entry.getKey(), entry.getValue()))
-      .collect(Collectors.toList());
+      .toList();
 
-    return GenericCompositeFuture.all(futures).compose(compositeEvent ->
-      ConfigurationsClient.getConfiguration(vertx, headers)
+    return GenericCompositeFuture.all(futures)
+      .compose(compositeEvent -> ConfigurationsClient.getConfiguration(vertx, headers)
     );
   }
 
@@ -101,8 +118,9 @@ public class ConfigurationsClient {
   }
 
   public static Future<JsonArray> checkConfig(Vertx vertx, OkapiHeaders okapiHeaders, String query) {
-    verifyOkapiHeaders(okapiHeaders);
+    ConfigurationsDao.verifyOkapiHeaders(okapiHeaders);
     CharSequence encodedQuery = PercentCodec.encode(query);
+
     return WebClientFactory.getWebClient(vertx)
       .getAbs(okapiHeaders.getUrl() + CONFIGURATIONS_ENTRIES_ENDPOINT_URL + "?query=" + encodedQuery)
       .putHeader(XOkapiHeaders.TOKEN, okapiHeaders.getToken())
@@ -113,20 +131,53 @@ public class ConfigurationsClient {
       .send()
       .map(res -> res.bodyAsJsonObject().getJsonArray("configs"));
   }
+
   /**
    * Complete future with found config entry id, or null, if not found
    */
   public static Future<String> checkEntry(Vertx vertx, OkapiHeaders okapiHeaders, String code) {
-    String query = "(module==" + MODULE_NAME + " AND configName==" + CONFIG_NAME + " AND code== " + code + ")";
+    String query = QUERY_CONSTANT + " AND code==" + code + QUERY_END_CONSTANT;
     return checkConfig(vertx, okapiHeaders, query)
       .map(configs -> configs.isEmpty() ? null : configs.getJsonObject(0).getString("id"));
   }
 
-  public static class MissingHeaderException extends RuntimeException {
-    private static final long serialVersionUID = 7340537453740028325L;
+  public static Future<SamlConfiguration> deleteConfigurationEntries(Vertx vertx, OkapiHeaders okapiHeaders,
+      SamlConfiguration samlConfiguration) {
+    Objects.requireNonNull(okapiHeaders);
+    Objects.requireNonNull(samlConfiguration);
+    Objects.requireNonNull(samlConfiguration.getIdsList());
 
-    public MissingHeaderException(String message) {
-      super(message);
-    }
+    ConfigurationsDao.verifyOkapiHeaders(okapiHeaders);
+
+    List<String> entries = samlConfiguration.getIdsList();
+
+    List<Future<Void>> futures = entries.stream()
+      .map(entry -> ConfigurationsClient.deleteConfigurationEntry(vertx, okapiHeaders, entry)).toList();
+
+    return GenericCompositeFuture.all(futures)
+      .compose(compositeEvent -> ConfigurationsClient.getConfiguration(vertx, okapiHeaders)
+    );
   }
+
+  public static Future<Void> deleteConfigurationEntry(Vertx vertx, OkapiHeaders okapiHeaders, String configId) {
+    Assert.hasText(configId, "config entry ID is mandatory");
+
+    HttpMethod httpMethod = HttpMethod.DELETE;
+    String endpoint = CONFIGURATIONS_ENTRIES_ENDPOINT_URL + "/" + configId;
+
+    return WebClientFactory.getWebClient(vertx)
+      .requestAbs(httpMethod, okapiHeaders.getUrl() + endpoint)
+      .putHeader(XOkapiHeaders.TOKEN, okapiHeaders.getToken())
+      .putHeader(XOkapiHeaders.URL, okapiHeaders.getUrl())
+      .putHeader(XOkapiHeaders.TENANT, okapiHeaders.getTenant())
+      .expect(ResponsePredicate.SC_NO_CONTENT) //204 No Content
+      .send()
+      .otherwise(ex -> {
+         String error = "To delete" + " " + configId + " " + ex.getMessage();
+         LOGGER.error(error, ex);
+         throw new IllegalArgumentException(error);
+      })
+     .mapEmpty();
+  }
+
 }

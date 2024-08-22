@@ -2,6 +2,8 @@ package org.folio.config.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * POJO for strongly typed configuration client
@@ -11,6 +13,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SamlConfiguration {
 
+  public static final String ID_CODE = "id";
   public static final String KEYSTORE_FILE_CODE = "keystore.file";
   public static final String KEYSTORE_PASSWORD_CODE = "keystore.password"; // NOSONAR
   public static final String KEYSTORE_PRIVATEKEY_PASSWORD_CODE = "keystore.privatekey.password"; // NOSONAR
@@ -22,7 +25,10 @@ public class SamlConfiguration {
   public static final String METADATA_INVALIDATED_CODE = "metadata.invalidated";
   public static final String OKAPI_URL= "okapi.url";
   public static final String SAML_CALLBACK = "saml.callback";
+  public static final String IDS_LIST_CODE = "idsList";
 
+  @JsonProperty(ID_CODE)
+  private String id;
   @JsonProperty(IDP_URL_CODE)
   private String idpUrl;
   @JsonProperty(KEYSTORE_FILE_CODE)
@@ -45,7 +51,52 @@ public class SamlConfiguration {
   private String okapiUrl;
   @JsonProperty(SAML_CALLBACK)
   private String callback;
+  @JsonProperty(IDS_LIST_CODE)
+  private List<String> idsList;
 
+  public SamlConfiguration(){
+    idsList = new ArrayList<>(0);
+  }
+
+  public SamlConfiguration(String idpUrl) {
+    idsList = new ArrayList<>(0);
+    setIdpUrl(idpUrl);
+    setId(null);
+  }
+
+  public String getCallback() { return callback; }
+
+  public void setCallback(String callback) {
+    this.callback = callback;
+  }
+
+  public String getId() {
+    return id;
+  }
+
+  public void setId(String id) {
+    this.id = id;
+  }
+
+  public List<String> getIdsList() {
+    return idsList;
+  }
+
+  public void addToIdsList(String externalId) {
+    this.idsList.add(externalId);
+  }
+
+  public void setIdsList(List<String> externalList) {
+    this.idsList = externalList;
+  }
+
+  public String getIdpMetadata() {
+    return idpMetadata;
+  }
+
+  public void setIdpMetadata(String idpMetadata) {
+    this.idpMetadata = idpMetadata;
+  }
 
   public String getIdpUrl() {
     return idpUrl;
@@ -69,6 +120,22 @@ public class SamlConfiguration {
 
   public void setKeystorePassword(String keystorePassword) {
     this.keystorePassword = keystorePassword;
+  }
+
+  public String getMetadataInvalidated() {
+    return metadataInvalidated;
+  }
+
+  public void setMetadataInvalidated(String metadataInvalidated) {
+    this.metadataInvalidated = metadataInvalidated;
+  }
+
+  public String getOkapiUrl() {
+    return okapiUrl;
+  }
+
+  public void setOkapiUrl(String okapiUrl) {
+    this.okapiUrl = okapiUrl;
   }
 
   public String getPrivateKeyPassword() {
@@ -101,34 +168,5 @@ public class SamlConfiguration {
 
   public void setUserProperty(String userProperty) {
     this.userProperty = userProperty;
-  }
-
-  public String getMetadataInvalidated() {
-    return metadataInvalidated;
-  }
-
-  public void setMetadataInvalidated(String metadataInvalidated) {
-    this.metadataInvalidated = metadataInvalidated;
-  }
-  public String getOkapiUrl() {
-    return okapiUrl;
-  }
-
-  public void setOkapiUrl(String okapiUrl) {
-    this.okapiUrl = okapiUrl;
-  }
-
-  public String getIdpMetadata() {
-    return idpMetadata;
-  }
-
-  public void setIdpMetadata(String idpMetadata) {
-    this.idpMetadata = idpMetadata;
-  }
-
-  public String getCallback() { return callback; }
-
-  public void setCallback(String callback) {
-    this.callback = callback;
   }
 }

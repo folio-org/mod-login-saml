@@ -1,6 +1,5 @@
 package org.folio.config;
 
-import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
@@ -16,16 +15,15 @@ public class ConfigurationObjectMapper {
   private ConfigurationObjectMapper() {
   }
 
-  public static <T> Future<T> map(JsonArray array, Class<T> clazz) {
+  public static <T> T map(JsonArray array, Class<T> clazz) throws IllegalArgumentException {
     try {
-      T mappedValue = mapInternal(array, clazz);
-      return Future.succeededFuture(mappedValue);
+      return mapInternal(array, clazz);
     } catch (Exception ex) {
-      return Future.failedFuture(ex);
+      throw new IllegalArgumentException(ex);
     }
   }
 
-  private static <T> T mapInternal(JsonArray array, Class<T> clazz) {
+  public static <T> T mapInternal(JsonArray array, Class<T> clazz) {
 
     return array.stream()
       .filter(JsonObject.class::isInstance)

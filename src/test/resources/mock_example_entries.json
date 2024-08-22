@@ -1,0 +1,35 @@
+{
+    "mocks": [
+      {
+        "url": "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%29",
+        "method": "get",
+        "status": 200,
+        "receivedData": {
+          "totalRecords": 3,
+          "configs": [
+            {
+              "id": "60eead4f-de97-437c-9cb7-09966ce50e49",
+              "module": "LOGIN-SAML",
+              "configName": "saml",
+              "code": "idp.url",
+              "value": "https://idp.ssocircle-new-idp-url.com"
+            },
+            {
+              "id": "6dc15218-ed83-49e0-85ab-bb891e3f42c9",
+              "module": "LOGIN-SAML",
+              "configName": "saml",
+              "code": "keystore.password",
+              "value": "iOzPffanq1xj-new-keystore.password"
+            },
+            {
+              "id": "2dd0d26d-3be4-4e80-a631-f7bda5311719",
+              "module": "LOGIN-SAML",
+              "configName": "saml",
+              "code": "saml.binding",
+              "value": "REDIRECT"
+            }
+          ]
+        }
+      }
+    ]
+}

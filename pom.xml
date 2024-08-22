@@ -1,4 +1,6 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.folio</groupId>
   <artifactId>mod-login-saml</artifactId>
@@ -96,6 +98,13 @@
     </dependency>
 
     <dependency>
+      <groupId>org.folio</groupId>
+      <artifactId>postgres-testing</artifactId>
+      <version>${raml-module-builder-version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-slf4j-impl</artifactId>
     </dependency>
@@ -111,7 +120,8 @@
       <version>${vertx-pac4j.version}</version>
       <exclusions>
         <exclusion>
-          <!-- Remove exclusion when vertx-pac4j comes with json-smart >= 2.4.10 -->
+          <!-- Remove exclusion when vertx-pac4j comes with json-smart >=
+            2.4.10 -->
           <groupId>net.minidev</groupId>
           <artifactId>json-smart</artifactId>
         </exclusion>
@@ -137,9 +147,8 @@
     </dependency>
 
     <!-- Fixes Denial of Service (DoS) on deeply nested JSON array or object:
-         https://nvd.nist.gov/vuln/detail/CVE-2023-1370
-         Remove when vertx-pac4j comes with json-smart >= 2.4.10
-    -->
+      https://nvd.nist.gov/vuln/detail/CVE-2023-1370 Remove when vertx-pac4j comes
+      with json-smart >= 2.4.10 -->
     <dependency>
       <groupId>net.minidev</groupId>
       <artifactId>json-smart</artifactId>
@@ -381,8 +390,8 @@
                 <fileSet>
                   <sourceFile>${project.build.directory}/ModuleDescriptor-template.json</sourceFile>
                   <destinationFile>${project.build.directory}/ModuleDescriptor.json</destinationFile>
-	        </fileSet>
-	        <fileSet>
+                </fileSet>
+                <fileSet>
                   <sourceFile>${project.build.directory}/DeploymentDescriptor-template.json</sourceFile>
                   <destinationFile>${project.build.directory}/DeploymentDescriptor.json</destinationFile>
                 </fileSet>
@@ -415,10 +424,12 @@
                 </filter>
               </filters>
               <transformers>
-                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                <transformer
+                  implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
                   <resource>META-INF/services/org.opensaml.core.config.Initializer</resource>
                 </transformer>
-                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                <transformer
+                  implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <manifestEntries>
                     <Main-Class>org.folio.rest.RestLauncher</Main-Class>
                     <Main-Verticle>org.folio.rest.RestVerticle</Main-Verticle>

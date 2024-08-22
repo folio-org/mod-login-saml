@@ -3,6 +3,8 @@ package org.folio.config;
 import java.net.MalformedURLException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
 
 import io.vertx.core.Context;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -12,6 +14,8 @@ import org.apache.logging.log4j.Logger;
 import org.folio.config.model.SAML2ClientMock;
 import org.folio.config.model.SamlClientComposite;
 import org.folio.config.model.SamlConfiguration;
+import org.folio.dao.ConfigurationsDao;
+import org.folio.dao.impl.ConfigurationsDaoImpl;
 import org.folio.util.OkapiHelper;
 import org.folio.util.model.OkapiHeaders;
 import org.opensaml.saml.common.xml.SAMLConstants;
@@ -22,7 +26,6 @@ import org.pac4j.saml.state.SAML2StateGenerator;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.UrlResource;
 
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -42,12 +45,16 @@ public class SamlClientLoader {
   private static final Logger log = LogManager.getLogger(SamlClientLoader.class);
 
   public static class SamlIdpUrlFormationException extends RuntimeException {
+    private static final long serialVersionUID = 7340537453740028326L;
+
     public SamlIdpUrlFormationException(String message) {
       super(message);
     }
   }
 
   public static class InvalidCallbackUrlException extends RuntimeException {
+    private static final long serialVersionUID = 7340537453740028327L;
+
     public InvalidCallbackUrlException(String message) {
       super(message);
     }
@@ -59,9 +66,10 @@ public class SamlClientLoader {
     boolean generateMissingKeyStore, Context vertxContext) {
     OkapiHeaders okapiHeaders = OkapiHelper.okapiHeaders(routingContext);
     final String tenantId = okapiHeaders.getTenant();
-
+    ConfigurationsDao configurationsDao = new ConfigurationsDaoImpl();
     Vertx vertx = vertxContext.owner();
-    return ConfigurationsClient.getConfiguration(vertx, okapiHeaders)
+
+    return configurationsDao.getConfiguration(vertx, okapiHeaders, false)
       .compose(samlConfiguration -> {
         final String idpUrl = samlConfiguration.getIdpUrl();
         final String keystore = samlConfiguration.getKeystore();
@@ -97,7 +105,7 @@ public class SamlClientLoader {
             saml2Client.init();
             blockingHandler.complete();
           }).compose(res ->
-            storeKeystore(okapiHeaders, vertx, keystoreFileName, actualKeystorePassword, actualPrivateKeyPassword)
+            storeKeystore(okapiHeaders, vertx, keystoreFileName, actualKeystorePassword, actualPrivateKeyPassword, configurationsDao)
               .map(keystoreBytes -> {
                 ByteArrayResource keystoreResource = new ByteArrayResource(keystoreBytes.getBytes());
                 try {
@@ -137,7 +145,7 @@ public class SamlClientLoader {
    * complete returned future with original file bytes.
    */
   private static Future<Buffer> storeKeystore(OkapiHeaders okapiHeaders, Vertx vertx, String keystoreFileName,
-    String keystorePassword, String privateKeyPassword) {
+    String keystorePassword, String privateKeyPassword, ConfigurationsDao configurationsDao) {
 
     // read generated jks file
     return vertx.fileSystem().readFile(keystoreFileName).compose(fileResult -> {
@@ -145,20 +153,16 @@ public class SamlClientLoader {
       // base64 encode
       Buffer encodedBytes = Buffer.buffer(Base64.getEncoder().encode(rawBytes));
 
-      // store in mod-configuration with passwords, wait for all operations to finish
-      return CompositeFuture.all(
-          ConfigurationsClient.storeEntry(vertx, okapiHeaders,
-            SamlConfiguration.KEYSTORE_FILE_CODE, encodedBytes.toString(StandardCharsets.UTF_8)),
-          ConfigurationsClient.storeEntry(vertx, okapiHeaders,
-            SamlConfiguration.KEYSTORE_PASSWORD_CODE, keystorePassword),
-          ConfigurationsClient.storeEntry(vertx, okapiHeaders,
-            SamlConfiguration.KEYSTORE_PRIVATEKEY_PASSWORD_CODE, privateKeyPassword),
-          ConfigurationsClient.storeEntry(vertx, okapiHeaders,
-            SamlConfiguration.METADATA_INVALIDATED_CODE, "true") // if keystore modified, current metadata is invalid.
-        )
+      // store in local database with passwords
+      Map<String, String> map2Update = new HashMap<>();
+      map2Update.put(SamlConfiguration.KEYSTORE_FILE_CODE, encodedBytes.toString(StandardCharsets.UTF_8));
+      map2Update.put(SamlConfiguration.KEYSTORE_PASSWORD_CODE, keystorePassword);
+      map2Update.put(SamlConfiguration.KEYSTORE_PRIVATEKEY_PASSWORD_CODE, privateKeyPassword);
+      map2Update.put(SamlConfiguration.METADATA_INVALIDATED_CODE, "true"); // if keystore modified, current metadata is invalid.
+      return configurationsDao.storeEntry(vertx, okapiHeaders, map2Update)
         .compose(res -> vertx.fileSystem().delete(keystoreFileName))
         .map(x -> Buffer.buffer(rawBytes));
-    });
+      });
   }
 
   protected static SAML2Configuration getSaml2ConfigurationForByteArrayResource(ByteArrayResource keystoreResource,
