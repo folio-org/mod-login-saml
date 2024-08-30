@@ -1,5 +1,10 @@
 package org.folio.rest.impl;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.startsWith;
+
 import io.restassured.RestAssured;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.json.JsonObject;
@@ -10,14 +15,10 @@ import org.apache.logging.log4j.Logger;
 import org.folio.config.SamlConfigHolder;
 import org.folio.rest.tools.utils.NetworkUtils;
 import org.folio.util.MockJsonExtended;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.startsWith;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import static org.junit.Assert.assertEquals;
 import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
 
@@ -48,7 +49,7 @@ public class TenantRefAPITest extends TestBase {
   }
 
  @Before
-  public void setUp(TestContext context) {
+  public void setUp() {
     mock.resetReceivedData();
     mock.resetRequestedUrlList();
     log.info("Running {}", testName.getMethodName());
@@ -64,25 +65,21 @@ public class TenantRefAPITest extends TestBase {
   @Test
   public void loadDataWithMockEmptyDatabaseWithDeletionFailure(TestContext context) {
     mock.setMockContent("mock_content_with_delete.json");
-    boolean expectedBoolean = true;
     String expectedText = "After deletion of the data of mod-configuration the compared Objects are different";
-    postTenantExtendedWithToken("http://localhost:" + MOCK_SERVER_PORT, PERMISSIONS_HEADER)
+    postTenantUpgrade("http://localhost:" + MOCK_SERVER_PORT)
       .onComplete(context.asyncAssertFailure(cause -> {
         assertThat(cause.getMessage(), containsString(expectedText));
-        assertEquals(expectedBoolean, mock.getRequestedUrlList().containsAll(mock.getMockPartialContentIds()));
-        mock.resetRequestedUrlList();
+        assertThatRequestedUrlListContainsAllPartialContentIds();
       }));
   }
 
   @Test
   public void loadDataWithMockEmptyDatabase(TestContext context) {
     mock.setMockContent("mock_content_with_delete.json");
-    boolean expectedBoolean = true;
     mock.setMockIds();
-    postTenantExtendedWithToken("http://localhost:" + MOCK_SERVER_PORT, PERMISSIONS_HEADER)
+    postTenantUpgrade("http://localhost:" + MOCK_SERVER_PORT)
       .onComplete(context.asyncAssertSuccess(res -> {
-        assertEquals(expectedBoolean, mock.getRequestedUrlList().containsAll(mock.getMockPartialContentIds()));
-        mock.resetRequestedUrlList();
+        assertThatRequestedUrlListContainsAllPartialContentIds();
       }));
   }
 
@@ -90,7 +87,7 @@ public class TenantRefAPITest extends TestBase {
   public void loadNoDataWithMock400EmptyDatabase(TestContext context) {
     mock.setMockContent("mock_400.json");
     mock.setMockIds();
-    postTenantExtendedWithToken("http://localhost:" + MOCK_SERVER_PORT, PERMISSIONS_HEADER)
+    postTenantUpgrade("http://localhost:" + MOCK_SERVER_PORT)
       .onComplete(context.asyncAssertFailure(cause ->
         assertThat(cause.getMessage(), startsWith("Response status code 400 is not equal to 200"))));
   }
@@ -98,12 +95,26 @@ public class TenantRefAPITest extends TestBase {
   @Test
   public void loadNoDataWithMock200EmptyDatabase(TestContext context) {
     mock.setMockContent("mock_200_empty.json");
-    boolean expectedBoolean = true;
     mock.setMockIds();
-    postTenantExtendedWithToken("http://localhost:" + MOCK_SERVER_PORT, PERMISSIONS_HEADER)
+    postTenantUpgrade("http://localhost:" + MOCK_SERVER_PORT)
       .onComplete(context.asyncAssertSuccess(res -> {
-        assertEquals(expectedBoolean, mock.getRequestedUrlList().containsAll(mock.getMockPartialContentIds()));
-        mock.resetRequestedUrlList();
+        assertThatRequestedUrlListContainsAllPartialContentIds();
       }));
+  }
+
+  @Test
+  public void dontLoadDataOnInstall(TestContext context) {
+    mock.setMockContent("mock_400.json");
+    mock.setMockIds();
+    postTenantInstall("http://localhost:" + MOCK_SERVER_PORT)
+      .onComplete(context.asyncAssertSuccess());
+  }
+
+  private void assertThatRequestedUrlListContainsAllPartialContentIds() {
+    var partialContentIds = mock.getMockPartialContentIds();
+    if (partialContentIds.isEmpty()) {
+      return;
+    }
+    assertThat(mock.getRequestedUrlList(), containsInAnyOrder(partialContentIds.toArray()));
   }
 }
