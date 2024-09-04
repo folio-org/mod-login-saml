@@ -22,6 +22,7 @@ public class SamlConfiguration {
   public static final String METADATA_INVALIDATED_CODE = "metadata.invalidated";
   public static final String OKAPI_URL= "okapi.url";
   public static final String SAML_CALLBACK = "saml.callback";
+  public static final String SAML_USE_SECURE_TOKENS = "saml.useSecureTokens";
 
   @JsonProperty(IDP_URL_CODE)
   private String idpUrl;
@@ -45,6 +46,8 @@ public class SamlConfiguration {
   private String okapiUrl;
   @JsonProperty(SAML_CALLBACK)
   private String callback;
+  @JsonProperty(SAML_USE_SECURE_TOKENS)
+  private String useSecureTokens;
 
 
   public String getIdpUrl() {
@@ -131,4 +134,8 @@ public class SamlConfiguration {
   public void setCallback(String callback) {
     this.callback = callback;
   }
+
+  public String getUseSecureTokens() { return useSecureTokens; }
+
+  public void setUseSecureTokens(String useSecureTokens) { this.useSecureTokens = useSecureTokens; }
 }
