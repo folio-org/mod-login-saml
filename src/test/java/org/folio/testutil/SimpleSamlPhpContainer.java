@@ -21,16 +21,12 @@ public class SimpleSamlPhpContainer<C extends SimpleSamlPhpContainer<C>>
    */
   public SimpleSamlPhpContainer(String okapiUrl, String callback) {
     super(DockerImageName.parse("kenchan0130/simplesamlphp:1.19.9"));
-    copyResource("authsources.php", "/var/www/simplesamlphp/config/authsources.php");
-    withExposedPorts(8080);
+    var authsources = MountableFile.forClasspathResource("simplesamlphp/authsources.php");
+    withCopyToContainer(authsources, "/var/www/simplesamlphp/config/authsources.php");
+    withExposedPorts(Integer.valueOf(8080));
     var callbackUrl = okapiUrl + "/_/invoke/tenant/diku/saml/" + callback;
     withEnv("SIMPLESAMLPHP_SP_ENTITY_ID", callbackUrl);
     withEnv("SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE", callbackUrl);
-  }
-
-  private void copyResource(String filename, String destination) {
-    var file = MountableFile.forClasspathResource("simplesamlphp/" + filename);
-    withCopyFileToContainer(file, destination);
   }
 
   public void init() {
