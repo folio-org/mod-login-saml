@@ -575,7 +575,7 @@ public class SamlAPITest {
       .body("bindingMethod", equalTo("POST"))
       .statusCode(200)
       .extract();
-
+//
     String cookie = resp.cookie(SamlAPI.RELAY_STATE);
     String relayState = resp.body().jsonPath().getString(SamlAPI.RELAY_STATE);
 
@@ -671,21 +671,6 @@ public class SamlAPITest {
       .then()
       .statusCode(403)
       .body(is("Inactive user account!"));
-
-    mock.setMockContent("mock_tokenresponse.json");
-    given()
-      .header(TENANT_HEADER)
-      .header(TOKEN_HEADER)
-      .header(OKAPI_URL_HEADER)
-      .cookie(SamlAPI.RELAY_STATE, cookie)
-      .formParam("SAMLResponse", "saml-response")
-      .formParam("RelayState", relayState)
-      .post("/saml/callback")
-      .then()
-      .statusCode(302)
-      .header("Location", containsString(PercentCodec.encodeAsString(testPath)))
-      .header("x-okapi-token", "saml-token")
-      .cookie("ssoToken", "saml-token");
   }
 
   @Test

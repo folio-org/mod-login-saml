@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.*;
 
+import javax.ws.rs.core.Configuration;
 import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
@@ -199,17 +200,17 @@ public class SamlAPI implements Saml {
   @Override
   public void postSamlCallback(String body, RoutingContext routingContext, Map<String, String> okapiHeaders,
                                Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    doPostSamlCallback(body, routingContext, okapiHeaders, asyncResultHandler, vertxContext, TOKEN_SIGN_ENDPOINT_LEGACY);
+    doPostSamlCallback(body, routingContext, okapiHeaders, asyncResultHandler, vertxContext);
   }
 
   @Override
   public void postSamlCallbackWithExpiry(String body, RoutingContext routingContext, Map<String, String> okapiHeaders,
                                          Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    doPostSamlCallback(body, routingContext, okapiHeaders, asyncResultHandler, vertxContext, TOKEN_SIGN_ENDPOINT);
+    doPostSamlCallback(body, routingContext, okapiHeaders, asyncResultHandler, vertxContext);
   }
 
   private void doPostSamlCallback(String body, RoutingContext routingContext, Map<String, String> okapiHeaders,
-    Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext, String tokenSignEndpoint) {
+                                  Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
     registerFakeSession(routingContext);
 
@@ -251,8 +252,9 @@ public class SamlAPI implements Saml {
           JsonObject payload = new JsonObject().put("payload",
             new JsonObject().put("sub", userObject.getString(USERNAME)).put("user_id", userId));
 
+          var tokenSignEndpoint = getTokenSignEndpoint(configuration);
           return fetchToken(webClient, payload, parsedHeaders, tokenSignEndpoint).map(jsonResponse -> {
-            if (isLegacyResponse(tokenSignEndpoint)) {
+            if (isLegacyResponse(configuration)) {
               return redirectResponseLegacy(jsonResponse, stripesBaseUrl, originalUrl);
             } else {
               return redirectResponse(jsonResponse, stripesBaseUrl, originalUrl);
@@ -281,8 +283,16 @@ public class SamlAPI implements Saml {
     return response;
   }
 
-  private boolean isLegacyResponse(String endpoint) {
-    return endpoint.equals(TOKEN_SIGN_ENDPOINT_LEGACY);
+  private boolean isLegacyResponse(SamlConfiguration configuration) {
+    return "callback".equals(configuration.getCallback()) && (configuration.getUseSecureTokens() == null
+        || "false".equals(configuration.getUseSecureTokens()));
+  }
+
+  private String getTokenSignEndpoint(SamlConfiguration configuration) {
+    if (isLegacyResponse(configuration)) {
+      return TOKEN_SIGN_ENDPOINT_LEGACY;
+    }
+    return TOKEN_SIGN_ENDPOINT;
   }
 
   private Future<JsonObject> fetchToken(WebClient client, JsonObject payload, OkapiHeaders parsedHeaders, String endpoint) {
