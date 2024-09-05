@@ -21,19 +21,6 @@ public class SimpleSamlPhpContainer<C extends SimpleSamlPhpContainer<C>>
    */
   public SimpleSamlPhpContainer(String okapiUrl, String callback) {
     super(DockerImageName.parse("kenchan0130/simplesamlphp:1.19.9"));
-    // CI builds like https://jenkins-aws.indexdata.com/ don't run containers on
-    // localhost but on IP 172.17.0.1. See also
-    // https://java.testcontainers.org/features/networking/#getting-the-container-host
-    //
-    // How to generate the files server.key and server.crt for both localhost and the IP:
-    // openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -days 10000 -nodes \
-    //     -keyout server.key -out server.crt \
-    //     -subj "/CN=localhost"   -addext "subjectAltName=DNS:localhost,IP:172.17.0.1"
-    //
-    // How to display the certificate:
-    // openssl x509 -text -noout < server.crt
-    copyResource("server.key", "/var/www/simplesamlphp/cert/server.key");
-    copyResource("server.crt", "/var/www/simplesamlphp/cert/server.crt");
     copyResource("authsources.php", "/var/www/simplesamlphp/config/authsources.php");
     withExposedPorts(8080);
     var callbackUrl = okapiUrl + "/_/invoke/tenant/diku/saml/" + callback;
@@ -50,6 +37,7 @@ public class SimpleSamlPhpContainer<C extends SimpleSamlPhpContainer<C>>
     if (DEBUG) {
       followOutput(new Slf4jLogConsumer(logger).withSeparateOutputStreams());
     }
+    // kenchan0130/simplesamlphp doesn't support https
     baseUrl = "http://" + getHost() + ":" + getFirstMappedPort() + "/simplesaml/";
     String baseurlpath = baseUrl.replace("/", "\\/");
     exec("sed", "-i", "s/'baseurlpath' =>.*/'baseurlpath' => '" + baseurlpath + "',/",
