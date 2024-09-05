@@ -469,11 +469,9 @@ public class SamlAPI implements Saml {
             ConfigEntryUtil.valueChanged(config.getCallback(), updatedConfig.getCallback(), callback ->
               updateEntries.put(SamlConfiguration.SAML_CALLBACK, callback));
 
-            // TODO Need to convert the SamlConfigRequest boolean to a string "true" or "false" or null. Must be one of those.
-            ConfigEntryUtil.valueChanged(config.getUseSecureTokens(), null, useSecureTokens ->
+            ConfigEntryUtil.valueChanged(config.getUseSecureTokens(), updatedConfig.getUseSecureTokens(), useSecureTokens ->
               updateEntries.put(SamlConfiguration.SAML_USE_SECURE_TOKENS, useSecureTokens));
 
-            // TODO This returns a 404 if updatedEntries has something added by the code above rather than by the SamlConfigRequest
             return storeConfigEntries(rc, parsedHeaders, updateEntries, vertxContext);
           })
           .onFailure(cause -> {
@@ -485,6 +483,8 @@ public class SamlAPI implements Saml {
             PutSamlConfigurationResponse.respond200WithApplicationJson(result))));
       });
   }
+
+
 
   private Future<SamlConfig> storeConfigEntries(RoutingContext rc, OkapiHeaders parsedHeaders,
     Map<String, String> updateEntries, Context vertxContext) {
