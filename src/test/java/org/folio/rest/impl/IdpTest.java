@@ -154,7 +154,7 @@ public class IdpTest {
     assertThat(matcher.find(), is(true));
 
     SamlTestHelper.testCookieResponse(cookie, relayState, TEST_PATH, CookieSameSite.LAX.toString(),
-      matcher.group(1), TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
+      matcher.group(1), TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER, SamlAPITest.CALLBACK_WITH_EXPIRY_URL);
   }
 
   @Test
@@ -210,7 +210,8 @@ public class IdpTest {
     assertThat(matcher.find(), is(true));
 
     SamlTestHelper.testCookieResponse(cookie, relayState[1], TEST_PATH, CookieSameSite.LAX.toString(),
-                                      matcher.group(1), TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
+                                      matcher.group(1), TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER,
+                                      SamlAPITest.CALLBACK_WITH_EXPIRY_URL);
   }
 
   private void setIdpBinding(String binding) {

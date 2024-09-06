@@ -13,7 +13,7 @@ public class SamlTestHelper {
 
   public static void testCookieResponse(Cookie cookie, String relayState, String testPath, String sameSite,
                                         String samlResponse, Header tenantHeader, Header tokenHeader,
-                                        Header okapiUrlHeader) {
+                                        Header okapiUrlHeader, String callbackUrl) {
     RestAssured.given()
       .header(tenantHeader)
       .header(tokenHeader)
@@ -21,7 +21,7 @@ public class SamlTestHelper {
       .cookie(cookie)
       .formParam("SAMLResponse", samlResponse)
       .formParam("RelayState", relayState)
-      .post("/saml/callback-with-expiry")
+      .post(callbackUrl)
       .then()
       .statusCode(302)
       .cookie("folioRefreshToken", RestAssuredMatchers.detailedCookie()

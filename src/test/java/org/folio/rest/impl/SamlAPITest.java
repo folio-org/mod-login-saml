@@ -82,11 +82,13 @@ public class SamlAPITest {
   private static final Header ACCESS_CONTROL_REQUEST_METHOD_HEADER = new Header(
     HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD.toString(), "POST");
   private static final String STRIPES_URL = "http://localhost:3000";
-
   public static final int PORT = 8081;
   public static final int IDP_MOCK_PORT = NetworkUtils.nextFreePort();
+  public static final String CALLBACK_URL = "/saml/callback";
+  public static final String CALLBACK_WITH_EXPIRY_URL = "/saml/callback-with-expiry";
   private static final int JSON_MOCK_PORT = NetworkUtils.nextFreePort();
   private static final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", "http://localhost:" + JSON_MOCK_PORT);
+
   public MockJson mock;
 
   private static Vertx mockVertx = Vertx.vertx();
@@ -594,6 +596,10 @@ public class SamlAPITest {
       .header("x-okapi-token", "saml-token")
       .cookie("ssoToken", "saml-token");
 
+      testCallbackErrorCases(CALLBACK_URL, relayState, cookie);
+  }
+
+  private void testCallbackErrorCases(String callbackUrl, String relayState, String cookie) {
     log.info("=== Test - POST /saml/callback - failure (wrong cookie) ===");
     given()
       .header(TENANT_HEADER)
@@ -602,7 +608,7 @@ public class SamlAPITest {
       .cookie(SamlAPI.RELAY_STATE, "bad" + cookie)
       .formParam("SAMLResponse", "saml-response")
       .formParam("RelayState", relayState)
-      .post("/saml/callback")
+      .post(callbackUrl)
       .then()
       .statusCode(403)
       .body(is("CSRF attempt detected"));
@@ -615,7 +621,7 @@ public class SamlAPITest {
       .cookie(SamlAPI.RELAY_STATE, cookie)
       .formParam("SAMLResponse", "saml-response")
       .formParam("RelayState", relayState.replace("localhost", "^"))
-      .post("/saml/callback")
+      .post(callbackUrl)
       .then()
       .statusCode(400)
       .body(containsString("Invalid relay state url"));
@@ -627,7 +633,7 @@ public class SamlAPITest {
       .header(OKAPI_URL_HEADER)
       .formParam("SAMLResponse", "saml-response")
       .formParam("RelayState", relayState)
-      .post("/saml/callback")
+      .post(callbackUrl)
       .then()
       .statusCode(403)
       .body(is("CSRF attempt detected"));
@@ -641,7 +647,7 @@ public class SamlAPITest {
       .cookie(SamlAPI.RELAY_STATE, cookie)
       .formParam("SAMLResponse", "saml-response")
       .formParam("RelayState", relayState)
-      .post("/saml/callback")
+      .post( callbackUrl)
       .then()
       .statusCode(500)
       .body(is("Response status code 404 is not equal to 200"));
@@ -654,7 +660,7 @@ public class SamlAPITest {
       .cookie(SamlAPI.RELAY_STATE, cookie)
       .formParam("SAMLResponse", "saml-response")
       .formParam("RelayState", relayState)
-      .post("/saml/callback")
+      .post(callbackUrl)
       .then()
       .statusCode(400)
       .body(is("No user found by externalSystemId == saml-user-id"));
@@ -667,7 +673,7 @@ public class SamlAPITest {
       .cookie(SamlAPI.RELAY_STATE, cookie)
       .formParam("SAMLResponse", "saml-response")
       .formParam("RelayState", relayState)
-      .post("/saml/callback")
+      .post(callbackUrl)
       .then()
       .statusCode(403)
       .body(is("Inactive user account!"));
@@ -719,9 +725,21 @@ public class SamlAPITest {
 
   @Test
   public void callbackEndpointTests() {
+    // Default. No configuration needed. /saml/callback-with-expiry returns RTR tokens.
+    testCallback(CALLBACK_WITH_EXPIRY_URL);
+  }
+
+  @Test
+  public void callbackEndpointTestsUseSecureTokens() {
+    // Configuration needed. /saml/callback returns RTR tokens allowing existing metadata to be used.
+    mock.setMockContent("mock_content_secure_tokens.json");
+    testCallback(CALLBACK_URL);
+  }
+
+  private void testCallback(String callbackUrl) {
     final String testPath = "/test/path";
 
-    log.info("=== Setup - POST /saml/login - need relayState and cookie ===");
+    log.info("=== Setup - POST /saml/login RTR - need relayState and cookie ===");
     ExtractableResponse<Response> resp = given()
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
@@ -741,105 +759,16 @@ public class SamlAPITest {
     String relayState = resp.body().jsonPath().getString(SamlAPI.RELAY_STATE);
     String samlResponse = "saml-response";
 
-    log.info("=== Test - POST /saml/callback-with-expiry - success ===");
+    log.info("=== Test - POST /saml/callback RTR - success ===");
     SamlTestHelper.testCookieResponse(detailedCookie, relayState, testPath, CookieSameSite.LAX.toString(),
-                                      samlResponse, TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
+      samlResponse, TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER, callbackUrl);
 
     CookieSameSiteConfig.set(Map.of("LOGIN_COOKIE_SAMESITE", CookieSameSite.NONE.toString()));
     SamlTestHelper.testCookieResponse(detailedCookie, relayState, testPath, CookieSameSite.NONE.toString(),
-                                      samlResponse, TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
+      samlResponse, TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER, callbackUrl);
     CookieSameSiteConfig.set(Map.of());
 
-    log.info("=== Test - POST /saml/callback-with-expiry - failure (wrong cookie) ===");
-    given()
-      .header(TENANT_HEADER)
-      .header(TOKEN_HEADER)
-      .header(OKAPI_URL_HEADER)
-      .cookie(SamlAPI.RELAY_STATE, "bad" + cookie)
-      .formParam("SAMLResponse", "saml-response")
-      .formParam("RelayState", relayState)
-      .post("/saml/callback-with-expiry")
-      .then()
-      .statusCode(403)
-      .body(is("CSRF attempt detected"));
-
-    log.info("=== Test - POST /saml/callback/callback-with-expiry - failure (wrong relay) ===");
-    given()
-      .header(TENANT_HEADER)
-      .header(TOKEN_HEADER)
-      .header(OKAPI_URL_HEADER)
-      .cookie(SamlAPI.RELAY_STATE, cookie)
-      .formParam("SAMLResponse", "saml-response")
-      .formParam("RelayState", relayState.replace("localhost", "^"))
-      .post("/saml/callback-with-expiry")
-      .then()
-      .statusCode(400)
-      .body(containsString("Invalid relay state url"));
-
-    log.info("=== Test - POST /saml/callback-with-expiry - failure (no cookie) ===");
-    given()
-      .header(TENANT_HEADER)
-      .header(TOKEN_HEADER)
-      .header(OKAPI_URL_HEADER)
-      .formParam("SAMLResponse", "saml-response")
-      .formParam("RelayState", relayState)
-      .post("/saml/callback-with-expiry")
-      .then()
-      .statusCode(403)
-      .body(is("CSRF attempt detected"));
-
-    // not found ..
-    mock.setMockContent("mock_400.json");
-    given()
-      .header(TENANT_HEADER)
-      .header(TOKEN_HEADER)
-      .header(OKAPI_URL_HEADER)
-      .cookie(SamlAPI.RELAY_STATE, cookie)
-      .formParam("SAMLResponse", "saml-response")
-      .formParam("RelayState", relayState)
-      .post("/saml/callback-with-expiry")
-      .then()
-      .statusCode(500)
-      .body(is("Response status code 404 is not equal to 200"));
-
-    mock.setMockContent("mock_nouser.json");
-    given()
-      .header(TENANT_HEADER)
-      .header(TOKEN_HEADER)
-      .header(OKAPI_URL_HEADER)
-      .cookie(SamlAPI.RELAY_STATE, cookie)
-      .formParam("SAMLResponse", "saml-response")
-      .formParam("RelayState", relayState)
-      .post("/saml/callback-with-expiry")
-      .then()
-      .statusCode(400)
-      .body(is("No user found by externalSystemId == saml-user-id"));
-
-    mock.setMockContent("mock_inactiveuser.json");
-    given()
-      .header(TENANT_HEADER)
-      .header(TOKEN_HEADER)
-      .header(OKAPI_URL_HEADER)
-      .cookie(SamlAPI.RELAY_STATE, cookie)
-      .formParam("SAMLResponse", "saml-response")
-      .formParam("RelayState", relayState)
-      .post("/saml/callback-with-expiry")
-      .then()
-      .statusCode(403)
-      .body(is("Inactive user account!"));
-
-    mock.setMockContent("mock_tokenresponse.json");
-    given()
-      .header(TENANT_HEADER)
-      .header(TOKEN_HEADER)
-      .header(OKAPI_URL_HEADER)
-      .cookie(SamlAPI.RELAY_STATE, cookie)
-      .formParam("SAMLResponse", "saml-response")
-      .formParam("RelayState", relayState)
-      .post("/saml/callback-with-expiry")
-      .then()
-      .statusCode(302)
-      .header("Location", containsString(PercentCodec.encodeAsString(testPath)));
+    testCallbackErrorCases(callbackUrl, relayState, cookie);
   }
 
   void postSamlLogin(int expectedStatus) {
