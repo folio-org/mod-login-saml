@@ -74,17 +74,28 @@ public class TestBase {//contained in "mock_content_with_delete.json"
       .mapEmpty();
   }
 
-  public static Future<Void> postTenantExtendedWithToken(String okapiUrlTo, String permissions) {
+  public static Future<Void> postTenant(String okapiUrlTo, TenantAttributes ta) {
     try {
-      TenantAttributes ta = new TenantAttributes();
-      ta.setModuleTo("mod-login-saml-2.1");
       TenantClient tenantClient = new TenantClientExtended("http://localhost:" + modulePort, okapiUrlTo,
-        TENANT, TENANT, permissions, webClient);
+        TENANT, TENANT, PERMISSIONS_HEADER, webClient);
       return TenantInit.exec(tenantClient, ta, 60000);
     } catch (Exception e) {
       e.printStackTrace(System.err);
       return Future.failedFuture(e);
     }
+  }
+
+  public static Future<Void> postTenantInstall(String okapiUrlTo) {
+    TenantAttributes ta = new TenantAttributes();
+    ta.setModuleTo("mod-login-saml-2.1.99");
+    return postTenant(okapiUrlTo, ta);
+  }
+
+  public static Future<Void> postTenantUpgrade(String okapiUrlTo) {
+    TenantAttributes ta = new TenantAttributes();
+    ta.setModuleFrom("mod-login-saml-2.0.0");
+    ta.setModuleTo("mod-login-saml-2.1.99");
+    return postTenant(okapiUrlTo, ta);
   }
 
   public static int setPreferredPort(int port) {
