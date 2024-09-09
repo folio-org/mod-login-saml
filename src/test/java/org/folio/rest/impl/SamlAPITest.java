@@ -952,6 +952,7 @@ public class SamlAPITest {
       .then()
       .statusCode(200)
       .body("callback", equalTo("callback"))
+      .body("useSecureTokens", equalTo(true))
       .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"));
   }
 
