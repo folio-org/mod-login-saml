@@ -114,8 +114,8 @@ public class IdpTest {
   private void setIdpBinding(String binding) {
     // append entry at end, last entry wins
     exec("sed", "-i",
-      "s/];/'SingleSignOnServiceBinding' => 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-" + binding + "',\\n];/",
-      "/var/www/simplesamlphp/metadata/saml20-idp-hosted.php");
+        "s/];/'SingleSignOnServiceBinding' => 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-" + binding + "',\\n];/",
+        "/var/www/simplesamlphp/metadata/saml20-idp-hosted.php");
   }
 
   private static void exec(String... command) {

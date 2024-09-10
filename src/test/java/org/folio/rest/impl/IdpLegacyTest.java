@@ -44,7 +44,7 @@ public class IdpLegacyTest {
   private static final org.slf4j.Logger logger = LoggerFactory.getLogger(IdpLegacyTest.class);
   private static final boolean DEBUG = false;
   private static final ImageFromDockerfile simplesamlphp =
-    new ImageFromDockerfile().withFileFromPath(".", Path.of("src/test/resources/simplesamlphp/"));
+      new ImageFromDockerfile().withFileFromPath(".", Path.of("src/test/resources/simplesamlphp/"));
 
   private static final String TENANT = "diku";
   private static final Header TENANT_HEADER = new Header("X-Okapi-Tenant", TENANT);

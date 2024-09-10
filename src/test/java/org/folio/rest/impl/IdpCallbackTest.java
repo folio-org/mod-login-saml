@@ -28,7 +28,7 @@ public class IdpCallbackTest {
   private static final org.slf4j.Logger logger = LoggerFactory.getLogger(IdpTest.class);
   private static final boolean DEBUG = false;
   private static final ImageFromDockerfile simplesamlphp =
-    new ImageFromDockerfile().withFileFromPath(".", Path.of("src/test/resources/simplesamlphp/"));
+      new ImageFromDockerfile().withFileFromPath(".", Path.of("src/test/resources/simplesamlphp/"));
 
   private static final String TENANT = "diku";
 

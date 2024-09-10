@@ -577,7 +577,7 @@ public class SamlAPITest {
       .body("bindingMethod", equalTo("POST"))
       .statusCode(200)
       .extract();
-//
+
     String cookie = resp.cookie(SamlAPI.RELAY_STATE);
     String relayState = resp.body().jsonPath().getString(SamlAPI.RELAY_STATE);
 
@@ -761,11 +761,11 @@ public class SamlAPITest {
 
     log.info("=== Test - POST /saml/callback RTR - success ===");
     SamlTestHelper.testCookieResponse(detailedCookie, relayState, testPath, CookieSameSite.LAX.toString(),
-      samlResponse, TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER, callbackUrl);
+                                      samlResponse, TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER, callbackUrl);
 
     CookieSameSiteConfig.set(Map.of("LOGIN_COOKIE_SAMESITE", CookieSameSite.NONE.toString()));
     SamlTestHelper.testCookieResponse(detailedCookie, relayState, testPath, CookieSameSite.NONE.toString(),
-      samlResponse, TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER, callbackUrl);
+                                      samlResponse, TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER, callbackUrl);
     CookieSameSiteConfig.set(Map.of());
 
     testCallbackErrorCases(callbackUrl, relayState, cookie);
