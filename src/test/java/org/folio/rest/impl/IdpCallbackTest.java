@@ -45,10 +45,10 @@ public class IdpCallbackTest {
 
   @ClassRule
   public static final GenericContainer<?> IDP = new GenericContainer<>(simplesamlphp)
-    .withExposedPorts(8080)
-    .withEnv("SIMPLESAMLPHP_SP_ENTITY_ID", OKAPI_URL + "/_/invoke/tenant/diku/saml/callback")
-    .withEnv("SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE",
-      OKAPI_URL + "/_/invoke/tenant/diku/saml/callback");
+      .withExposedPorts(8080)
+      .withEnv("SIMPLESAMLPHP_SP_ENTITY_ID", OKAPI_URL + "/_/invoke/tenant/diku/saml/callback")
+      .withEnv("SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE",
+               OKAPI_URL + "/_/invoke/tenant/diku/saml/callback");
 
   @BeforeClass
   public static void setupOnce(TestContext context)  {
@@ -63,13 +63,13 @@ public class IdpCallbackTest {
     IDP_BASE_URL = "http://" + IDP.getHost() + ":" + IDP_PORT + "/simplesaml/";
     String baseurlpath = IDP_BASE_URL.replace("/", "\\/");
     exec("sed", "-i", "s/'baseurlpath' =>.*/'baseurlpath' => '" + baseurlpath + "',/",
-      "/var/www/simplesamlphp/config/config.php");
+        "/var/www/simplesamlphp/config/config.php");
     exec("sed", "-i", "s/'auth' =>.*/'auth' => 'example-static',/",
-      "/var/www/simplesamlphp/metadata/saml20-idp-hosted.php");
+        "/var/www/simplesamlphp/metadata/saml20-idp-hosted.php");
 
     DeploymentOptions moduleOptions = new DeploymentOptions()
       .setConfig(new JsonObject().put("http.port", MODULE_PORT)
-        .put("mock", true)); // to use SAML2ClientMock
+      .put("mock", true)); // to use SAML2ClientMock
 
     OKAPI = new MockJson();
     DeploymentOptions okapiOptions = new DeploymentOptions()

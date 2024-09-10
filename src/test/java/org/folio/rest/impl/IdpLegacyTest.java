@@ -65,10 +65,10 @@ public class IdpLegacyTest {
 
   @ClassRule
   public static final GenericContainer<?> IDP = new GenericContainer<>(simplesamlphp)
-    .withExposedPorts(8080)
-    .withEnv("SIMPLESAMLPHP_SP_ENTITY_ID", OKAPI_URL + "/_/invoke/tenant/diku/saml/callback")
-    .withEnv("SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE",
-      OKAPI_URL + "/_/invoke/tenant/diku/saml/callback");
+      .withExposedPorts(8080)
+      .withEnv("SIMPLESAMLPHP_SP_ENTITY_ID", OKAPI_URL + "/_/invoke/tenant/diku/saml/callback")
+      .withEnv("SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE",
+               OKAPI_URL + "/_/invoke/tenant/diku/saml/callback");
 
   @BeforeClass
   public static void setupOnce(TestContext context) {
@@ -79,15 +79,13 @@ public class IdpLegacyTest {
     if (DEBUG) {
       IDP.followOutput(new Slf4jLogConsumer(logger).withSeparateOutputStreams());
     }
-
     IDP_PORT = IDP.getFirstMappedPort();
     IDP_BASE_URL = "http://" + IDP.getHost() + ":" + IDP_PORT + "/simplesaml/";
     String baseurlpath = IDP_BASE_URL.replace("/", "\\/");
     exec("sed", "-i", "s/'baseurlpath' =>.*/'baseurlpath' => '" + baseurlpath + "',/",
-      "/var/www/simplesamlphp/config/config.php");
+        "/var/www/simplesamlphp/config/config.php");
     exec("sed", "-i", "s/'auth' =>.*/'auth' => 'example-static',/",
-      "/var/www/simplesamlphp/metadata/saml20-idp-hosted.php");
-
+        "/var/www/simplesamlphp/metadata/saml20-idp-hosted.php");
 
     DeploymentOptions moduleOptions = new DeploymentOptions()
         .setConfig(new JsonObject().put("http.port", MODULE_PORT)
@@ -240,8 +238,8 @@ public class IdpLegacyTest {
   private void setIdpBinding(String binding) {
     // append entry at end, last entry wins
     exec("sed", "-i",
-      "s/];/'SingleSignOnServiceBinding' => 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-" + binding + "',\\n];/",
-      "/var/www/simplesamlphp/metadata/saml20-idp-hosted.php");
+        "s/];/'SingleSignOnServiceBinding' => 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-" + binding + "',\\n];/",
+        "/var/www/simplesamlphp/metadata/saml20-idp-hosted.php");
   }
 
   private static void exec(String... command) {
@@ -261,7 +259,7 @@ public class IdpLegacyTest {
     OKAPI.setMockContent(resource, s -> s.replace("http://localhost:8888/simplesaml/", IDP_BASE_URL));
   }
 
-  private static String jsonEncode(String key, String value) {
+  private String jsonEncode(String key, String value) {
     return new JsonObject().put(key, value).encode();
   }
 }
