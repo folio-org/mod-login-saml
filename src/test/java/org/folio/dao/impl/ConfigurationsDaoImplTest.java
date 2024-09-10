@@ -69,7 +69,7 @@ public class ConfigurationsDaoImplTest extends TestBase {
 
     mock.setMockContent("mock_200_empty.json");
     vertx.deployVerticle(mock, okapiOptions)
-      .compose(x -> postTenantExtendedWithToken("http://localhost:" + JSON_MOCK_PORT, PERMISSIONS_HEADER))
+      .compose(x -> postTenantInstall("http://localhost:" + JSON_MOCK_PORT))
       .onComplete(context.asyncAssertSuccess());
   }
 

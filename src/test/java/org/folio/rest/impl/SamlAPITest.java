@@ -101,7 +101,7 @@ public class SamlAPITest extends TestBase {
     mock.setMockContent("mock_200_empty.json");
     vertx.deployVerticle(IdpMock.class.getName(), idpOptions)
       .compose(x -> vertx.deployVerticle(mock, okapiOptions))
-      .compose(x -> postTenantExtendedWithToken("http://localhost:" + MOCK_SERVER_PORT, PERMISSIONS_HEADER))
+      .compose(x -> postTenantInstall("http://localhost:" + MOCK_SERVER_PORT))
       .onComplete(context.asyncAssertSuccess());
   }
 
