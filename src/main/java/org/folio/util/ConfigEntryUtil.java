@@ -43,8 +43,6 @@ public class ConfigEntryUtil {
 
     String newValueString = (newValue == null) ? null : newValue.toString();
 
-    if (valueChanged(oldValue, newValueString)) {
-      onChanged.accept(newValueString);
-    }
+    valueChanged(oldValue, newValueString);
   }
 }

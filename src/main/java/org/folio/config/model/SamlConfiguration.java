@@ -135,7 +135,11 @@ public class SamlConfiguration {
     this.callback = callback;
   }
 
-  public String getUseSecureTokens() { return useSecureTokens; }
+  public String getUseSecureTokens() {
+    return useSecureTokens;
+  }
 
-  public void setUseSecureTokens(String useSecureTokens) { this.useSecureTokens = useSecureTokens; }
+  public void setUseSecureTokens(String useSecureTokens) {
+    this.useSecureTokens = useSecureTokens;
+  }
 }

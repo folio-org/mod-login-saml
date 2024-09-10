@@ -284,8 +284,7 @@ public class SamlAPI implements Saml {
   }
 
   private boolean isLegacyResponse(SamlConfiguration configuration) {
-    return "callback".equals(configuration.getCallback()) && (configuration.getUseSecureTokens() == null
-        || "false".equals(configuration.getUseSecureTokens()));
+    return "callback".equals(configuration.getCallback()) && ! "true".equals(configuration.getUseSecureTokens());
   }
 
   private String getTokenSignEndpoint(SamlConfiguration configuration) {
