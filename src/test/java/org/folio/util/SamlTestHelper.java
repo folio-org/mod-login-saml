@@ -6,14 +6,9 @@ import io.restassured.http.Header;
 import io.restassured.matcher.RestAssuredMatchers;
 import io.restassured.response.ExtractableResponse;
 import io.restassured.response.Response;
-import io.vertx.core.DeploymentOptions;
-import io.vertx.core.Vertx;
 import io.vertx.core.http.CookieSameSite;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.unit.TestContext;
-import org.folio.rest.RestVerticle;
 import org.folio.rest.impl.SamlAPI;
-import org.folio.testutil.SimpleSamlPhpContainer;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -28,7 +23,6 @@ import static org.hamcrest.Matchers.both;
 
 public class SamlTestHelper {
   public static final int OKAPI_PORT = 9230;
-  public static final int MODULE_PORT = 9231;
   public static final String OKAPI_URL = "http://localhost:" + OKAPI_PORT;
   public static final String TENANT = "diku";
   private static final Header TENANT_HEADER = new Header("X-Okapi-Tenant", TENANT);
@@ -37,25 +31,6 @@ public class SamlTestHelper {
   private static final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", OKAPI_URL);
   private static final String TEST_PATH = "/test/path";
   private static final String STRIPES_URL = "http://localhost:3000";
-  private static MockJson OKAPI;
-
-  public static void deployVerticle(Vertx vertx, TestContext context) {
-    DeploymentOptions moduleOptions = new DeploymentOptions()
-      .setConfig(new JsonObject().put("http.port", MODULE_PORT)
-        .put("mock", true)); // to use SAML2ClientMock
-
-    OKAPI = new MockJson();
-    DeploymentOptions okapiOptions = new DeploymentOptions()
-      .setConfig(new JsonObject().put("http.port", OKAPI_PORT));
-
-    vertx.deployVerticle(new RestVerticle(), moduleOptions)
-      .compose(x -> vertx.deployVerticle(OKAPI, okapiOptions))
-      .onComplete(context.asyncAssertSuccess());
-  }
-
-  public static void setOkapi(String resource, SimpleSamlPhpContainer idp) {
-    OKAPI.setMockContent(resource, s -> s.replace("http://localhost:8888/simplesaml/", idp.getBaseUrl()));
-  }
 
   public static void testPost(String callback) {
     ExtractableResponse<Response> resp = given()
