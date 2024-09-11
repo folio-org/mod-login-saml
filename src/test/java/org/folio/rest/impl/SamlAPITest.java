@@ -600,7 +600,7 @@ public class SamlAPITest {
   }
 
   private void testCallbackErrorCases(String callbackUrl, String relayState, String cookie) {
-    log.info("=== Test - POST /saml/callback - failure (wrong cookie) ===");
+    log.info("=== Test - POST /saml/{} - failure (wrong cookie) ===", callbackUrl);
     given()
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
@@ -613,7 +613,7 @@ public class SamlAPITest {
       .statusCode(403)
       .body(is("CSRF attempt detected"));
 
-    log.info("=== Test - POST /saml/callback - failure (wrong relay) ===");
+    log.info("=== Test - POST /saml/{} - failure (wrong relay) ===", callbackUrl);
     given()
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
@@ -626,7 +626,7 @@ public class SamlAPITest {
       .statusCode(400)
       .body(containsString("Invalid relay state url"));
 
-    log.info("=== Test - POST /saml/callback - failure (no cookie) ===");
+    log.info("=== Test - POST /saml/{} - failure (no cookie) ===", callbackUrl);
     given()
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
@@ -759,7 +759,7 @@ public class SamlAPITest {
     String relayState = resp.body().jsonPath().getString(SamlAPI.RELAY_STATE);
     String samlResponse = "saml-response";
 
-    log.info("=== Test - POST /saml/callback RTR - success ===");
+    log.info("=== Test - POST /saml/{} RTR - success ===", callbackUrl);
     SamlTestHelper.testCookieResponse(detailedCookie, relayState, testPath, CookieSameSite.LAX.toString(),
                                       samlResponse, TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER, callbackUrl);
 

@@ -39,10 +39,8 @@ public class ConfigEntryUtil {
    * If value changed, calls the provided {@link Consumer} with the newValue
    */
   public static void valueChanged(String oldValue, Boolean newValue, Consumer<String> onChanged) {
-    Objects.requireNonNull(onChanged);
-
     String newValueString = (newValue == null) ? null : newValue.toString();
 
-    valueChanged(oldValue, newValueString);
+    valueChanged(oldValue, newValueString, onChanged);
   }
 }

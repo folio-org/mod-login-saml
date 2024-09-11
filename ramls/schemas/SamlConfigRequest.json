@@ -46,7 +46,7 @@
     },
     "useSecureTokens": {
       "type": "boolean",
-      "description": "When present, and 'true', and when callback is configured with the value 'callback', enables the refresh token payload on the callback endpoint.",
+      "description": "When present, and 'true', and when callback is configured with the value 'callback', enables the refresh token payload on the /callback endpoint.",
       "required": false
     }
   }
