@@ -226,7 +226,7 @@
     <url>https://github.com/folio-org/mod-login-saml</url>
     <connection>scm:git:git://github.com:folio-org/mod-login-saml.git</connection>
     <developerConnection>scm:git:git@github.com:folio-org/mod-login-saml.git</developerConnection>
-    <tag>v2.8.1</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <build>
