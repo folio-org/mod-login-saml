@@ -71,7 +71,7 @@ public class IdpLegacyTest {
                OKAPI_URL + "/_/invoke/tenant/diku/saml/callback");
 
   @BeforeClass
-  public static void setupOnce(TestContext context) throws Exception {
+  public static void setupOnce(TestContext context) {
     RestAssured.port = MODULE_PORT;
     RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
     VERTX = Vertx.vertx();
@@ -248,7 +248,7 @@ public class IdpLegacyTest {
       if (result.getExitCode() > 0) {
         System.out.println(result.getStdout());
         System.err.println(result.getStderr());
-          throw new RuntimeException("failure in IDP.execInContainer");
+        throw new RuntimeException("failure in IDP.execInContainer");
       }
     } catch (UnsupportedOperationException | IOException | InterruptedException e) {
       throw new RuntimeException(e);

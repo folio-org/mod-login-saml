@@ -61,6 +61,13 @@
             "configName": "saml",
             "code": "saml.callback",
             "value": "callback"
+          },
+          {
+            "id": "dcc452cf-f726-423b-91ec-ec89e36f9e98",
+            "module": "LOGIN-SAML",
+            "configName": "saml",
+            "code": "saml.useSecureTokens",
+            "value": "true"
           }
         ],
         "totalRecords": 9
@@ -124,6 +131,23 @@
             "configName": "saml",
             "code": "saml.callback",
             "value": "callback-b"
+          }
+        ]
+      }
+    },
+    {
+      "url": "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%20AND%20code%3D%3D%20saml.useSecureTokens%29",
+      "method": "get",
+      "status": 200,
+      "receivedData": {
+        "totalRecords": 1,
+        "configs": [
+          {
+            "id": "dcc452cf-f726-423b-91ec-ec89e36f9e98",
+            "module": "LOGIN-SAML",
+            "configName": "saml",
+            "code": "saml.useSecureTokens",
+            "value": "false"
           }
         ]
       }
@@ -195,11 +219,15 @@
       }
     },
     {
-      "url": "/token",
+      "url": "/token/sign",
       "method": "post",
       "status": 201,
       "receivedData": {
-        "token": "saml-token"
+        "accessToken": "saml-access-token",
+        "refreshToken": "saml-refresh-token",
+        "accessTokenExpiration": "2050-10-05T20:19:33Z",
+        "refreshTokenExpiration": "2050-10-05T20:19:33Z",
+        "tenantId": "diku"
       }
     },
     {

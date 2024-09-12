@@ -199,17 +199,17 @@ public class SamlAPI implements Saml {
   @Override
   public void postSamlCallback(String body, RoutingContext routingContext, Map<String, String> okapiHeaders,
                                Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    doPostSamlCallback(body, routingContext, okapiHeaders, asyncResultHandler, vertxContext, TOKEN_SIGN_ENDPOINT_LEGACY);
+    doPostSamlCallback(body, routingContext, okapiHeaders, asyncResultHandler, vertxContext);
   }
 
   @Override
   public void postSamlCallbackWithExpiry(String body, RoutingContext routingContext, Map<String, String> okapiHeaders,
                                          Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    doPostSamlCallback(body, routingContext, okapiHeaders, asyncResultHandler, vertxContext, TOKEN_SIGN_ENDPOINT);
+    doPostSamlCallback(body, routingContext, okapiHeaders, asyncResultHandler, vertxContext);
   }
 
   private void doPostSamlCallback(String body, RoutingContext routingContext, Map<String, String> okapiHeaders,
-    Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext, String tokenSignEndpoint) {
+                                  Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
     registerFakeSession(routingContext);
 
@@ -251,8 +251,9 @@ public class SamlAPI implements Saml {
           JsonObject payload = new JsonObject().put("payload",
             new JsonObject().put("sub", userObject.getString(USERNAME)).put("user_id", userId));
 
+          var tokenSignEndpoint = getTokenSignEndpoint(configuration);
           return fetchToken(webClient, payload, parsedHeaders, tokenSignEndpoint).map(jsonResponse -> {
-            if (isLegacyResponse(tokenSignEndpoint)) {
+            if (isLegacyResponse(configuration)) {
               return redirectResponseLegacy(jsonResponse, stripesBaseUrl, originalUrl);
             } else {
               return redirectResponse(jsonResponse, stripesBaseUrl, originalUrl);
@@ -281,8 +282,15 @@ public class SamlAPI implements Saml {
     return response;
   }
 
-  private boolean isLegacyResponse(String endpoint) {
-    return endpoint.equals(TOKEN_SIGN_ENDPOINT_LEGACY);
+  private boolean isLegacyResponse(SamlConfiguration configuration) {
+    return "callback".equals(configuration.getCallback()) && ! "true".equals(configuration.getUseSecureTokens());
+  }
+
+  private String getTokenSignEndpoint(SamlConfiguration configuration) {
+    if (isLegacyResponse(configuration)) {
+      return TOKEN_SIGN_ENDPOINT_LEGACY;
+    }
+    return TOKEN_SIGN_ENDPOINT;
   }
 
   private Future<JsonObject> fetchToken(WebClient client, JsonObject payload, OkapiHeaders parsedHeaders, String endpoint) {
@@ -469,6 +477,9 @@ public class SamlAPI implements Saml {
             ConfigEntryUtil.valueChanged(config.getCallback(), updatedConfig.getCallback(), callback ->
               updateEntries.put(SamlConfiguration.SAML_CALLBACK, callback));
 
+            ConfigEntryUtil.valueChanged(config.getUseSecureTokens(), updatedConfig.getUseSecureTokens(), useSecureTokens ->
+              updateEntries.put(SamlConfiguration.SAML_USE_SECURE_TOKENS, useSecureTokens));
+
             return storeConfigEntries(rc, parsedHeaders, updateEntries, vertxContext);
           })
           .onFailure(cause -> {
@@ -480,6 +491,8 @@ public class SamlAPI implements Saml {
             PutSamlConfigurationResponse.respond200WithApplicationJson(result))));
       });
   }
+
+
 
   private Future<SamlConfig> storeConfigEntries(RoutingContext rc, OkapiHeaders parsedHeaders,
     Map<String, String> updateEntries, Context vertxContext) {
@@ -608,6 +621,7 @@ public class SamlAPI implements Saml {
       .withSamlAttribute(config.getSamlAttribute())
       .withUserProperty(config.getUserProperty())
       .withCallback(config.getCallback())
+      .withUseSecureTokens(Boolean.valueOf(config.getUseSecureTokens()))
       .withMetadataInvalidated(Boolean.valueOf(config.getMetadataInvalidated()));
     try {
       URI uri = URI.create(config.getOkapiUrl());

@@ -24,18 +24,18 @@ import java.nio.file.Path;
  * Test against a real IDP: https://simplesamlphp.org/ running in a Docker container.
  */
 @RunWith(VertxUnitRunner.class)
-public class IdpTest {
+public class IdpCallbackTest {
   private static final org.slf4j.Logger logger = LoggerFactory.getLogger(IdpTest.class);
   private static final boolean DEBUG = false;
   private static final ImageFromDockerfile simplesamlphp =
-    new ImageFromDockerfile().withFileFromPath(".", Path.of("src/test/resources/simplesamlphp/"));
+      new ImageFromDockerfile().withFileFromPath(".", Path.of("src/test/resources/simplesamlphp/"));
 
   private static final String TENANT = "diku";
 
   private static final int MODULE_PORT = 9231;
   private static final int OKAPI_PORT = 9230;
   private static final String OKAPI_URL = "http://localhost:" + OKAPI_PORT;
-  private static final String CALLBACK_WITH_EXPIRY = "callback-with-expiry";
+  private static final String CALLBACK = "callback";
 
   private static int IDP_PORT;
   private static String IDP_BASE_URL;
@@ -46,12 +46,12 @@ public class IdpTest {
   @ClassRule
   public static final GenericContainer<?> IDP = new GenericContainer<>(simplesamlphp)
       .withExposedPorts(8080)
-      .withEnv("SIMPLESAMLPHP_SP_ENTITY_ID", OKAPI_URL + "/_/invoke/tenant/diku/saml/callback-with-expiry")
+      .withEnv("SIMPLESAMLPHP_SP_ENTITY_ID", OKAPI_URL + "/_/invoke/tenant/diku/saml/callback")
       .withEnv("SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE",
-               OKAPI_URL + "/_/invoke/tenant/diku/saml/callback-with-expiry");
+               OKAPI_URL + "/_/invoke/tenant/diku/saml/callback");
 
   @BeforeClass
-  public static void setupOnce(TestContext context) {
+  public static void setupOnce(TestContext context)  {
     RestAssured.port = MODULE_PORT;
     RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
     VERTX = Vertx.vertx();
@@ -83,7 +83,7 @@ public class IdpTest {
   @AfterClass
   public static void tearDownOnce(TestContext context) {
     VERTX.close()
-    .onComplete(context.asyncAssertSuccess());
+      .onComplete(context.asyncAssertSuccess());
   }
 
   @After
@@ -92,30 +92,30 @@ public class IdpTest {
   }
 
   @Test
-  public void post() {
+  public void postCallback() {
     setIdpBinding("POST");
-    setOkapi("mock_idptest_post.json");
+    setOkapi("mock_idptest_post_secure_tokens.json");
 
     for (int i = 0; i < 2; i++) {
-      SamlTestHelper.testPost(CALLBACK_WITH_EXPIRY);
+      SamlTestHelper.testPost(CALLBACK);
     }
   }
 
   @Test
-  public void redirect() {
+  public void redirectCallback() {
     setIdpBinding("Redirect");
-    setOkapi("mock_idptest_redirect.json");
+    setOkapi("mock_idptest_redirect_secure_tokens.json");
 
     for (int i = 0; i < 2; i++) {
-      SamlTestHelper.testRedirect(CALLBACK_WITH_EXPIRY);
+      SamlTestHelper.testRedirect(CALLBACK);
     }
   }
 
   private void setIdpBinding(String binding) {
     // append entry at end, last entry wins
     exec("sed", "-i",
-        "s/];/'SingleSignOnServiceBinding' => 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-" + binding + "',\\n];/",
-        "/var/www/simplesamlphp/metadata/saml20-idp-hosted.php");
+      "s/];/'SingleSignOnServiceBinding' => 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-" + binding + "',\\n];/",
+      "/var/www/simplesamlphp/metadata/saml20-idp-hosted.php");
   }
 
   private static void exec(String... command) {
