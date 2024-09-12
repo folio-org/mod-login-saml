@@ -1,3 +1,8 @@
+## 2.8.2 - 2024-09-12
+
+* [MODLOGSAML-192](https://folio-org.atlassian.net/browse/MODLOGSAML-192) Allow `callback` endpoint to return RTR tokens when configured
+* [MODLOGSAML-194](https://folio-org.atlassian.net/browse/MODLOGSAML-194) pac4j 5.7.7, cryptacular 1.2.7 fixing vulns
+
 ## 2.8.1 - 2024-05-29
 
 * [MODLOGSAML-191](https://folio-org.atlassian.net/browse/MODLOGSAML-191) Vert.x 4.5.7 and RMB 35.2.2 fixing Netty CVE-2024-29025
