@@ -17,7 +17,7 @@ import java.util.List;
 
 public class MockJsonExtended extends MockJson {
   private static final Logger log = LogManager.getLogger(MockJsonExtended.class);
-  private static final String PARTIAL_URL = "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%29";
+  private static final String PARTIAL_URL = "/configurations/entries?limit=1000&query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%29";
   private static final String RECEIVED_DATA_CONSTANT = "receivedData";
   private static final String CONFIGS_CONSTANT = "configs";
   private static final String URL_CONSTANT = "url";
