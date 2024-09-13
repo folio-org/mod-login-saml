@@ -122,7 +122,7 @@ public class ConfigurationsClient {
     CharSequence encodedQuery = PercentCodec.encode(query);
 
     return WebClientFactory.getWebClient(vertx)
-      .getAbs(okapiHeaders.getUrl() + CONFIGURATIONS_ENTRIES_ENDPOINT_URL + "?query=" + encodedQuery)
+      .getAbs(okapiHeaders.getUrl() + CONFIGURATIONS_ENTRIES_ENDPOINT_URL + "?limit=1000&query=" + encodedQuery)
       .putHeader(XOkapiHeaders.TOKEN, okapiHeaders.getToken())
       .putHeader(XOkapiHeaders.URL, okapiHeaders.getUrl())
       .putHeader(XOkapiHeaders.TENANT, okapiHeaders.getTenant())

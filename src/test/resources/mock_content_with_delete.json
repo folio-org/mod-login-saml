@@ -1,7 +1,7 @@
 {
     "mocks": [
     {
-      "url": "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%29",
+      "url": "/configurations/entries?limit=1000&query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%29",
       "method": "get",
       "status": 200,
       "receivedData": {
@@ -98,7 +98,7 @@
       "status": 204
     },
     {
-      "url": "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%20AND%20code%3D%3D%idp.metadata%29",
+      "url": "/configurations/entries?limit=1000&query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%20AND%20code%3D%3D%idp.metadata%29",
       "method": "get",
       "status": 200,
       "receivedData": {
@@ -115,7 +115,7 @@
       }
     },
     {
-      "url": "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%20AND%20code%3D%3Didp.url%29",
+      "url": "/configurations/entries?limit=1000&query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%20AND%20code%3D%3Didp.url%29",
       "method": "get",
       "status": 200,
       "receivedData": {
@@ -132,7 +132,7 @@
       }
     },
     {
-      "url": "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%20AND%20code%3D%3Dmetadata.invalidated%29",
+      "url": "/configurations/entries?limit=1000&query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%20AND%20code%3D%3Dmetadata.invalidated%29",
       "method": "get",
       "status": 200,
       "receivedData": {
@@ -149,7 +149,7 @@
       }
     },
     {
-      "url": "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%20AND%20code%3D%3Duser.property%29",
+      "url": "/configurations/entries?limit=1000&query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%20AND%20code%3D%3Duser.property%29",
       "method": "get",
       "status": 200,
       "receivedData": {
@@ -158,7 +158,7 @@
       }
     },
     {
-      "url": "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%20AND%20code%3D%3Dsaml.attribute%29",
+      "url": "/configurations/entries?limit=1000&query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%20AND%20code%3D%3Dsaml.attribute%29",
       "method": "get",
       "status": 200,
       "receivedData": {
@@ -167,7 +167,7 @@
       }
     },
     {
-      "url": "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%20AND%20code%3D%3Dkeystore.file%29",
+      "url": "/configurations/entries?limit=1000&query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%20AND%20code%3D%3Dkeystore.file%29",
       "method": "get",
       "status": 200,
       "receivedData": {
@@ -184,7 +184,7 @@
        }
     },
     {
-      "url": "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%20AND%20code%3D%3Dkeystore.password%29",
+      "url": "/configurations/entries?limit=1000&query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%20AND%20code%3D%3Dkeystore.password%29",
       "method": "get",
       "status": 200,
       "receivedData": {
@@ -201,7 +201,7 @@
       }
     },
     {
-      "url": "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%20AND%20code%3D%3Dkeystore.privatekey.password%29",
+      "url": "/configurations/entries?limit=1000&query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%20AND%20code%3D%3Dkeystore.privatekey.password%29",
       "method": "get",
       "status": 200,
       "receivedData": {
@@ -218,7 +218,7 @@
       }
     },
     {
-      "url": "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%20AND%20code%3D%3Dsaml.binding%29",
+      "url": "/configurations/entries?limit=1000&query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%20AND%20code%3D%3Dsaml.binding%29",
       "method": "get",
       "status": 200,
       "receivedData": {
@@ -235,7 +235,7 @@
       }
     },
     {
-      "url": "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%20AND%20code%3D%3Dokapi.url%29",
+      "url": "/configurations/entries?limit=1000&query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%20AND%20code%3D%3Dokapi.url%29",
       "method": "get",
       "status": 200,
       "receivedData": {
