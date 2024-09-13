@@ -1,3 +1,7 @@
+## 2.9.3 - 2024-09-13
+
+* [MODLOGSAML-198](https://folio-org.atlassian.net/browse/MODLOGSAML-198) limit=1000 for GET /configurations/entries
+
 ## 2.8.2 - 2024-09-12
 
 * [MODLOGSAML-192](https://folio-org.atlassian.net/browse/MODLOGSAML-192) Allow `callback` endpoint to return RTR tokens when configured
