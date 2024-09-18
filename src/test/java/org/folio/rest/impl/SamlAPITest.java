@@ -3,12 +3,16 @@ package org.folio.rest.impl;
 import static io.restassured.RestAssured.given;
 import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
 import static org.folio.util.Base64AwareXsdMatcher.matchesBase64XsdInClasspath;
+import static com.github.tomakehurst.wiremock.client.WireMock.any;
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThrows;
 
+import com.github.tomakehurst.wiremock.junit.WireMockClassRule;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
@@ -37,6 +41,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -50,10 +55,10 @@ import org.pac4j.core.profile.UserProfile;
 import org.pac4j.core.redirect.RedirectionActionBuilder;
 import org.pac4j.saml.client.SAML2Client;
 import org.w3c.dom.ls.LSResourceResolver;
-
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.http.Header;
+import io.restassured.matcher.RestAssuredMatchers;
 import io.restassured.response.ExtractableResponse;
 import io.restassured.response.Response;
 import io.vertx.core.DeploymentOptions;
@@ -87,13 +92,19 @@ public class SamlAPITest {
   public static final String CALLBACK_URL = "/saml/callback";
   public static final String CALLBACK_WITH_EXPIRY_URL = "/saml/callback-with-expiry";
   private static final int JSON_MOCK_PORT = NetworkUtils.nextFreePort();
+  private static final int OKAPI_PROXY_PORT = NetworkUtils.nextFreePort();
   private static final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", "http://localhost:" + JSON_MOCK_PORT);
+  private static final Header OKAPI_PROXY_URL_HEADER=
+      new Header("X-Okapi-Url", "http://localhost:" + OKAPI_PROXY_PORT + "/okapi");
 
   public MockJson mock;
 
   private static Vertx mockVertx = Vertx.vertx();
 
   private Vertx vertx;
+
+  @ClassRule
+  public static WireMockClassRule okapiProxy = new WireMockClassRule(OKAPI_PROXY_PORT);
 
   @Rule
   public TestName testName = new TestName();
@@ -106,6 +117,11 @@ public class SamlAPITest {
 
   @BeforeClass
   public static void setupOnce(TestContext context) {
+    okapiProxy.stubFor(any(urlMatching("/okapi/.*"))
+        .willReturn(aResponse()
+            .proxiedFrom("http://localhost:" + JSON_MOCK_PORT)
+            .withProxyUrlPrefixToRemove("/okapi")));
+
     DeploymentOptions mockOptions = new DeploymentOptions()
       .setConfig(new JsonObject().put("http.port", IDP_MOCK_PORT))
       .setWorker(true);
@@ -758,6 +774,20 @@ public class SamlAPITest {
     Cookie detailedCookie = resp.detailedCookie(SamlAPI.RELAY_STATE);
     String relayState = resp.body().jsonPath().getString(SamlAPI.RELAY_STATE);
     String samlResponse = "saml-response";
+
+    log.info("=== Test - POST /saml/callback-with-expiry with okapi path ===");
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_PROXY_URL_HEADER)
+      .cookie(SamlAPI.RELAY_STATE, cookie)
+      .formParam("SAMLResponse", "saml-response")
+      .formParam("RelayState", relayState)
+      .post("/saml/callback-with-expiry")
+      .then()
+      .statusCode(302)
+      .cookie("folioRefreshToken", RestAssuredMatchers.detailedCookie().path("/okapi/authn"))
+      .cookie("folioAccessToken", RestAssuredMatchers.detailedCookie().path("/okapi/"));
 
     log.info("=== Test - POST /saml/{} RTR - success ===", callbackUrl);
     SamlTestHelper.testCookieResponse(detailedCookie, relayState, testPath, CookieSameSite.LAX.toString(),
