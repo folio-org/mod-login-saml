@@ -257,7 +257,8 @@ public class SamlAPI implements Saml {
               if (isLegacyResponse(tokenSignEndpoint)) {
                 return redirectResponseLegacy(jsonResponse, stripesBaseUrl, originalUrl);
               } else {
-                return redirectResponse(jsonResponse, stripesBaseUrl, originalUrl);
+                var okapiPath = UrlUtil.getPathFromOkapiUrl(parsedHeaders.getUrl());
+                return redirectResponse(jsonResponse, stripesBaseUrl, originalUrl, okapiPath);
               }
             });
           });
@@ -321,7 +322,9 @@ public class SamlAPI implements Saml {
     return PostSamlCallbackResponse.respond302(headers);
   }
 
-  private Response redirectResponse(JsonObject jsonObject, URI stripesBaseUrl, URI originalUrl) {
+  private Response redirectResponse(JsonObject jsonObject,
+      URI stripesBaseUrl, URI originalUrl, String okapiPath) {
+
     String accessToken = jsonObject.getString(ACCESS_TOKEN);
     String refreshToken = jsonObject.getString(REFRESH_TOKEN);
     String accessTokenExpiration = jsonObject.getString(ACCESS_TOKEN_EXPIRATION);
@@ -339,13 +342,14 @@ public class SamlAPI implements Saml {
 
     // NOTE RMB doesn't support sending multiple headers with the same key so we
     // make our own response.
-    return Response.status(302).header(SET_COOKIE, accessTokenCookie(accessToken, accessTokenExpiration))
-      .header(SET_COOKIE, refreshTokenCookie(refreshToken, refreshTokenExpiration))
+    return Response.status(302)
+      .header(SET_COOKIE, accessTokenCookie(accessToken, accessTokenExpiration, okapiPath))
+      .header(SET_COOKIE, refreshTokenCookie(refreshToken, refreshTokenExpiration, okapiPath))
       .header(LOCATION, location)
       .build();
   }
 
-  private String refreshTokenCookie(String refreshToken, String refreshTokenExpiration) {
+  private String refreshTokenCookie(String refreshToken, String refreshTokenExpiration, String okapiPath) {
     // The refresh token expiration is the time after which the token will be
     // considered expired.
     var exp = Instant.parse(refreshTokenExpiration).getEpochSecond();
@@ -360,7 +364,7 @@ public class SamlAPI implements Saml {
     var rtCookie = Cookie.cookie(FOLIO_REFRESH_TOKEN, refreshToken)
       .setMaxAge(ttlSeconds)
       .setSecure(true)
-      .setPath("/authn")
+      .setPath(okapiPath + "/authn")
       .setHttpOnly(true)
       .setSameSite(CookieSameSiteConfig.get())
       .setDomain(null)
@@ -371,7 +375,7 @@ public class SamlAPI implements Saml {
     return rtCookie;
   }
 
-  private String accessTokenCookie(String accessToken, String accessTokenExpiration) {
+  private String accessTokenCookie(String accessToken, String accessTokenExpiration, String okapiPath) {
     // The refresh token expiration is the time after which the token will be
     // considered expired.
     var exp = Instant.parse(accessTokenExpiration).getEpochSecond();
@@ -386,7 +390,7 @@ public class SamlAPI implements Saml {
     var atCookie = Cookie.cookie(FOLIO_ACCESS_TOKEN, accessToken)
       .setMaxAge(ttlSeconds)
       .setSecure(true)
-      .setPath("/")
+      .setPath(okapiPath + "/")
       .setHttpOnly(true)
       .setSameSite(CookieSameSiteConfig.get())
       .encode();

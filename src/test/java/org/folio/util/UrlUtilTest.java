@@ -1,17 +1,22 @@
 package org.folio.util;
 
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.UncheckedIOException;
+import java.net.MalformedURLException;
 import org.folio.rest.tools.utils.NetworkUtils;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.function.ThrowingRunnable;
 import org.junit.runner.RunWith;
 
 import io.vertx.core.DeploymentOptions;
@@ -48,6 +53,23 @@ public class UrlUtilTest {
   @AfterClass
   public static void afterOnce(TestContext context) {
     mockVertx.close(context.asyncAssertSuccess());
+  }
+
+  void assertMalformedUrlException(ThrowingRunnable runnable) {
+    var e = assertThrows(UncheckedIOException.class, runnable);
+    assertThat(e.getMessage(), startsWith("Malformed Okapi URL: "));
+    assertThat(e.getCause(), instanceOf(MalformedURLException.class));
+  }
+
+  @Test
+  public void getPathFromOkapiUrl() {
+    assertMalformedUrlException(() -> UrlUtil.getPathFromOkapiUrl(null));
+    assertMalformedUrlException(() -> UrlUtil.getPathFromOkapiUrl(""));
+    assertMalformedUrlException(() -> UrlUtil.getPathFromOkapiUrl(":"));
+    assertThat(UrlUtil.getPathFromOkapiUrl("https://localhost"), is(""));
+    assertThat(UrlUtil.getPathFromOkapiUrl("https://localhost/"), is(""));
+    assertThat(UrlUtil.getPathFromOkapiUrl("https://localhost/okapi"), is("/okapi"));
+    assertThat(UrlUtil.getPathFromOkapiUrl("https://localhost/okapi/"), is("/okapi"));
   }
 
   @Test
