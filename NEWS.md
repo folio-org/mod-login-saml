@@ -1,4 +1,8 @@
-## 2.9.3 - 2024-09-13
+## 2.8.4 - 2024-09-19
+
+* [MODLOGSAML-197](https://folio-org.atlassian.net/browse/MODLOGSAML-197) Okapi-URL path missing from cookie path
+
+## 2.8.3 - 2024-09-13
 
 * [MODLOGSAML-198](https://folio-org.atlassian.net/browse/MODLOGSAML-198) limit=1000 for GET /configurations/entries
 
