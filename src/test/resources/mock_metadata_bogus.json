@@ -7,7 +7,7 @@
       "receivedData": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><EntityDescriptor xmlns=\"urn:oasis:names:tc:SAML:2.0:metadata\" entityID=\"\"></EntityDescriptor>"
     },
     {
-      "url": "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%29",
+      "url": "/configurations/entries?limit=1000&query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%29",
       "method": "get",
       "status": 200,
       "receivedData": {

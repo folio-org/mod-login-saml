@@ -51,7 +51,7 @@ public class OkapiHelper {
   * For example in the class ConfigurationsClient:
   * public static Future<JsonArray> ConfigurationsClient.checkConfig(Vertx vertx, OkapiHeaders okapiHeaders,String query)
   * return WebClientFactory.getWebClient(vertx)
-  *   .getAbs(okapiHeaders.getUrl() + CONFIGURATIONS_ENTRIES_ENDPOINT_URL + "?query=" + encodedQuery) ....
+  *   .getAbs(okapiHeaders.getUrl() + CONFIGURATIONS_ENTRIES_ENDPOINT_URL + "?limit=1000&query=" + encodedQuery) ....
   */
   public static OkapiHeaders okapiHeadersWithUrlTo(Map<String, String> parsedHeaders ) {
     OkapiHeaders headers = okapiHeaders(parsedHeaders);
