@@ -110,7 +110,7 @@ public class IdpTest extends TestBase{
     String samlRequest = resp.body().jsonPath().getString("samlRequest");
     String relayState = resp.body().jsonPath().getString(SamlAPI.RELAY_STATE);
     Cookie cookie = resp.detailedCookie(SamlAPI.RELAY_STATE);
-    assertThat(cookie.getValue(), is(relayState));
+    assertThat(cookie.getValue(), endsWith(relayState));
 
     String body = given()
       .formParams("RelayState", relayState)

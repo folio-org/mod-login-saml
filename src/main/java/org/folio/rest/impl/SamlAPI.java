@@ -159,7 +159,9 @@ public class SamlAPI implements Saml {
 
     // register non-persistent session (this request only) to overWrite relayState
     Session session = new SharedDataSessionImpl(new PRNG(vertxContext.owner()));
-    session.put(SAML_RELAY_STATE_ATTRIBUTE, relayState);
+    // csrfToken without url because RelayState data MUST NOT exceed 80 bytes in length:
+    // https://docs.oasis-open.org/security/saml/v2.0/saml-bindings-2.0-os.pdf
+    session.put(SAML_RELAY_STATE_ATTRIBUTE, csrfToken);
     routingContext.setSession(session);
 
     final boolean generateMissingConfig = false; // do not allow login if config is missing
@@ -216,22 +218,22 @@ public class SamlAPI implements Saml {
 
     final SessionStore sessionStore = new DummySessionStore(routingContext.vertx(), routingContext.session());
     final VertxWebContext webContext = new VertxWebContext(routingContext, sessionStore);
-    final String relayState = getRelayState(routingContext, body);
-
+    final Cookie relayStateCookie = routingContext.request().getCookie(RELAY_STATE);
+    String relayStateCookieValue = "null";
     URI relayStateUrl;
     try {
-      assert (relayState != null); // this avoids a Sonar warning later on
-      relayStateUrl = new URI(relayState);
+      relayStateCookieValue = relayStateCookie.getValue();
+      relayStateUrl = new URI(relayStateCookieValue);
     } catch (Exception e) {
       asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond400WithTextPlain(
-          "Invalid relay state url: " + relayState)));
+          "Invalid url in relayState cookie: " + relayStateCookieValue)));
       return;
     }
     URI originalUrl = relayStateUrl;
     URI stripesBaseUrl = UrlUtil.parseBaseUrl(originalUrl);
 
-    Cookie relayStateCookie = routingContext.getCookie(RELAY_STATE);
-    if (relayStateCookie == null || !relayState.contentEquals(relayStateCookie.getValue())) {
+    final String relayState = getRelayState(routingContext, body);
+    if (relayState == null || relayState.length() != 36 || !relayStateCookieValue.endsWith(relayState)) {
       asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond403WithTextPlain("CSRF attempt detected")));
       return;
     }
