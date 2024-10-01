@@ -316,47 +316,39 @@ public class SamlAPITest extends TestBase {
       .statusLine(containsString("Invalid origin header"));
   }
 
-  @Test
-  public void callbackIdpMetadataTest_LegacyDB(TestContext context) {//former method: void  callbackIdpMetadataTest_Legac()
-    String origin = "http://localhost";
-    log.info("=== Test Callback with right metadata - POST /saml/callback - success ===");
+  private void assertCallbackSuccess(TestContext context, String testTitle, String mockFile, String path) {
+    log.info(testTitle);
 
-    mock.setMockContent("mock_content_with_metadata_legacy.json");
+    mock.setMockContent(mockFile);
     dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
 
     given()
-      .header(new Header(HttpHeaders.ORIGIN.toString(), origin))
+      .header(HttpHeaders.ORIGIN.toString(), "http://localhost")
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
       .header(OKAPI_URL_HEADER)
       .contentType(ContentType.URLENC)
       .cookie(SamlAPI.RELAY_STATE, readResourceToString("relay_state.txt"))
       .body(readResourceToString("saml_response.txt"))
-      .post("/saml/callback")
+      .post(path)
       .then()
       .statusCode(302);
   }
 
   @Test
+  public void callbackIdpMetadataTest_LegacyDB(TestContext context) {//former method: void  callbackIdpMetadataTest_Legac()
+    assertCallbackSuccess(context,
+        "=== Test Callback with right metadata - POST /saml/callback - success ===",
+        "mock_content_with_metadata_legacy.json",
+        "/saml/callback");
+  }
+
+  @Test
   public void callbackIdpMetadataTestDB(TestContext context) {
-    String origin = "http://localhost";
-
-    log.info("=== Test Callback with right metadata - POST /saml/callback-with-expiry - success ===");
-
-    mock.setMockContent("mock_content_with_metadata.json");
-    dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
-
-    given()
-      .header(new Header(HttpHeaders.ORIGIN.toString(), origin))
-      .header(TENANT_HEADER)
-      .header(TOKEN_HEADER)
-      .header(OKAPI_URL_HEADER)
-      .contentType(ContentType.URLENC)
-      .cookie(SamlAPI.RELAY_STATE, readResourceToString("relay_state.txt"))
-      .body(readResourceToString("saml_response.txt"))
-      .post("/saml/callback-with-expiry")
-      .then()
-      .statusCode(302);
+    assertCallbackSuccess(context,
+        "=== Test Callback with right metadata - POST /saml/callback-with-expiry - success ===",
+        "mock_content_with_metadata.json",
+        "/saml/callback-with-expiry");
   }
 
   @Test
@@ -693,23 +685,10 @@ public class SamlAPITest extends TestBase {
 
   @Test
   public void callbackForConsortium(TestContext context) {
-    String origin = "http://localhost";
-
-    log.info("=== Test Callback for enabled consortium - success ===");
-
-    mock.setMockContent("mock_one_user_tenant.json");
-    dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
-    given()
-      .header(new Header(HttpHeaders.ORIGIN.toString(), origin))
-      .header(TENANT_HEADER)
-      .header(TOKEN_HEADER)
-      .header(OKAPI_URL_HEADER)
-      .contentType(ContentType.URLENC)
-      .cookie(SamlAPI.RELAY_STATE, readResourceToString("relay_state.txt"))
-      .body(readResourceToString("saml_response.txt"))
-      .post("/saml/callback-with-expiry")
-      .then()
-      .statusCode(302);
+    assertCallbackSuccess(context,
+        "=== Test Callback for enabled consortium - success ===",
+        "mock_one_user_tenant.json",
+        "/saml/callback-with-expiry");
   }
 
   @Test
