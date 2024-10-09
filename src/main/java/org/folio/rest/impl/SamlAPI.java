@@ -7,6 +7,7 @@ import static org.folio.rest.impl.ApiInitializer.MAX_FORM_ATTRIBUTE_SIZE;
 
 import java.io.InputStream;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.*;
@@ -188,14 +189,18 @@ public class SamlAPI implements Saml {
     }
   }
 
-  private String getRelayState(RoutingContext routingContext, String body) {
+  private boolean isRelayStateValid(RoutingContext routingContext, String body, String relayStateCookieValue) {
     String relayState = routingContext.request().getFormAttribute("RelayState");
 
     if (relayState == null && body.length() > MAX_FORM_ATTRIBUTE_SIZE) {
       log.error("HTTP body size {} exceeds MAX_FORM_ATTRIBUTE_SIZE={}", body.length(), MAX_FORM_ATTRIBUTE_SIZE);
     }
 
-    return relayState;
+    if (relayState == null) {
+      return false;
+    }
+
+    return relayState.length() == 36 && relayStateCookieValue.endsWith(relayState);
   }
 
   @Override
@@ -224,7 +229,7 @@ public class SamlAPI implements Saml {
     try {
       relayStateCookieValue = relayStateCookie.getValue();
       relayStateUrl = new URI(relayStateCookieValue);
-    } catch (Exception e) {
+    } catch (NullPointerException | URISyntaxException e) {
       asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond400WithTextPlain(
           "Invalid url in relayState cookie: " + relayStateCookieValue)));
       return;
@@ -232,8 +237,7 @@ public class SamlAPI implements Saml {
     URI originalUrl = relayStateUrl;
     URI stripesBaseUrl = UrlUtil.parseBaseUrl(originalUrl);
 
-    final String relayState = getRelayState(routingContext, body);
-    if (relayState == null || relayState.length() != 36 || !relayStateCookieValue.endsWith(relayState)) {
+    if (!isRelayStateValid(routingContext, body, relayStateCookieValue)) {
       asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond403WithTextPlain("CSRF attempt detected")));
       return;
     }
