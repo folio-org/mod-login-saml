@@ -197,7 +197,7 @@ public class SamlAPITest extends TestBase {
 
     String cookie = resp.cookie(SamlAPI.RELAY_STATE);
     String relayState = resp.body().jsonPath().getString(SamlAPI.RELAY_STATE);
-    assertEquals(cookie, relayState);
+    assertThat(cookie, endsWith(relayState));
 
     SAML2Client saml2client = SamlConfigHolder.getInstance().findClient(TENANT).getClient();
 
@@ -218,7 +218,7 @@ public class SamlAPITest extends TestBase {
 
     cookie = resp.cookie(SamlAPI.RELAY_STATE);
     relayState = resp.body().jsonPath().getString("relayState");
-    assertEquals(cookie, relayState);
+    assertThat(cookie, endsWith(relayState));
     // saml2client should have been reused
     assertEquals(saml2client, SamlConfigHolder.getInstance().findClient(TENANT).getClient());
 
@@ -316,46 +316,39 @@ public class SamlAPITest extends TestBase {
       .statusLine(containsString("Invalid origin header"));
   }
 
-  public void callbackIdpMetadataTest_LegacyDB(TestContext context) {//former method: void  callbackIdpMetadataTest_Legac()
-    String origin = "http://localhost";
-    log.info("=== Test Callback with right metadata - POST /saml/callback - success ===");
+  private void assertCallbackSuccess(TestContext context, String testTitle, String mockFile, String path) {
+    log.info(testTitle);
 
-    mock.setMockContent("mock_content_with_metadata_legacy.json");
+    mock.setMockContent(mockFile);
     dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
 
     given()
-      .header(new Header(HttpHeaders.ORIGIN.toString(), origin))
+      .header(HttpHeaders.ORIGIN.toString(), "http://localhost")
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
       .header(OKAPI_URL_HEADER)
       .contentType(ContentType.URLENC)
       .cookie(SamlAPI.RELAY_STATE, readResourceToString("relay_state.txt"))
       .body(readResourceToString("saml_response.txt"))
-      .post("/saml/callback")
+      .post(path)
       .then()
       .statusCode(302);
   }
 
   @Test
+  public void callbackIdpMetadataTest_LegacyDB(TestContext context) {//former method: void  callbackIdpMetadataTest_Legac()
+    assertCallbackSuccess(context,
+        "=== Test Callback with right metadata - POST /saml/callback - success ===",
+        "mock_content_with_metadata_legacy.json",
+        "/saml/callback");
+  }
+
+  @Test
   public void callbackIdpMetadataTestDB(TestContext context) {
-    String origin = "http://localhost";
-
-    log.info("=== Test Callback with right metadata - POST /saml/callback-with-expiry - success ===");
-
-    mock.setMockContent("mock_content_with_metadata.json");
-    dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
-
-    given()
-      .header(new Header(HttpHeaders.ORIGIN.toString(), origin))
-      .header(TENANT_HEADER)
-      .header(TOKEN_HEADER)
-      .header(OKAPI_URL_HEADER)
-      .contentType(ContentType.URLENC)
-      .cookie(SamlAPI.RELAY_STATE, readResourceToString("relay_state.txt"))
-      .body(readResourceToString("saml_response.txt"))
-      .post("/saml/callback-with-expiry")
-      .then()
-      .statusCode(302);
+    assertCallbackSuccess(context,
+        "=== Test Callback with right metadata - POST /saml/callback-with-expiry - success ===",
+        "mock_content_with_metadata.json",
+        "/saml/callback-with-expiry");
   }
 
   @Test
@@ -574,7 +567,7 @@ public class SamlAPITest extends TestBase {
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
       .header(OKAPI_URL_HEADER)
-      .cookie(SamlAPI.RELAY_STATE, "bad" + cookie)
+      .cookie(SamlAPI.RELAY_STATE, cookie + "bad")
       .formParam("SAMLResponse", "saml-response")
       .formParam("RelayState", relayState)
       .post("/saml/callback")
@@ -582,18 +575,18 @@ public class SamlAPITest extends TestBase {
       .statusCode(403)
       .body(is("CSRF attempt detected"));
 
-    log.info("=== Test - POST /saml/callback - failure (wrong relay) ===");
+    log.info("=== Test - POST /saml/callback - failure (invalid relay) ===");
     given()
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
       .header(OKAPI_URL_HEADER)
-      .cookie(SamlAPI.RELAY_STATE, cookie)
+      .cookie(SamlAPI.RELAY_STATE, cookie.replace("localhost", "^"))
       .formParam("SAMLResponse", "saml-response")
-      .formParam("RelayState", relayState.replace("localhost", "^"))
+      .formParam("RelayState", relayState)
       .post("/saml/callback")
       .then()
       .statusCode(400)
-      .body(containsString("Invalid relay state url"));
+      .body(containsString("Invalid url in relayState cookie"));
 
     log.info("=== Test - POST /saml/callback - failure (no cookie) ===");
     given()
@@ -604,8 +597,8 @@ public class SamlAPITest extends TestBase {
       .formParam("RelayState", relayState)
       .post("/saml/callback")
       .then()
-      .statusCode(403)
-      .body(is("CSRF attempt detected"));
+      .statusCode(400)
+      .body(is("Invalid url in relayState cookie: null"));
 
     // not found ..
     mock.setMockContent("mock_400.json");
@@ -692,23 +685,10 @@ public class SamlAPITest extends TestBase {
 
   @Test
   public void callbackForConsortium(TestContext context) {
-    String origin = "http://localhost";
-
-    log.info("=== Test Callback for enabled consortium - success ===");
-
-    mock.setMockContent("mock_one_user_tenant.json");
-    dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
-    given()
-      .header(new Header(HttpHeaders.ORIGIN.toString(), origin))
-      .header(TENANT_HEADER)
-      .header(TOKEN_HEADER)
-      .header(OKAPI_URL_HEADER)
-      .contentType(ContentType.URLENC)
-      .cookie(SamlAPI.RELAY_STATE, readResourceToString("relay_state.txt"))
-      .body(readResourceToString("saml_response.txt"))
-      .post("/saml/callback-with-expiry")
-      .then()
-      .statusCode(302);
+    assertCallbackSuccess(context,
+        "=== Test Callback for enabled consortium - success ===",
+        "mock_one_user_tenant.json",
+        "/saml/callback-with-expiry");
   }
 
   @Test
@@ -763,7 +743,7 @@ public class SamlAPITest extends TestBase {
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
       .header(OKAPI_URL_HEADER)
-      .cookie(SamlAPI.RELAY_STATE, "bad" + cookie)
+      .cookie(SamlAPI.RELAY_STATE, cookie + "bad")
       .formParam("SAMLResponse", "saml-response")
       .formParam("RelayState", relayState)
       .post("/saml/callback-with-expiry")
@@ -771,18 +751,18 @@ public class SamlAPITest extends TestBase {
       .statusCode(403)
       .body(is("CSRF attempt detected"));
 
-    log.info("=== Test - POST /saml/callback/callback-with-expiry - failure (wrong relay) ===");
+    log.info("=== Test - POST /saml/callback/callback-with-expiry - failure (invalid relay) ===");
     given()
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
       .header(OKAPI_URL_HEADER)
-      .cookie(SamlAPI.RELAY_STATE, cookie)
+      .cookie(SamlAPI.RELAY_STATE, cookie.replace("localhost", "^"))
       .formParam("SAMLResponse", "saml-response")
-      .formParam("RelayState", relayState.replace("localhost", "^"))
+      .formParam("RelayState", relayState)
       .post("/saml/callback-with-expiry")
       .then()
       .statusCode(400)
-      .body(containsString("Invalid relay state url"));
+      .body(containsString("Invalid url in relayState cookie"));
 
     log.info("=== Test - POST /saml/callback-with-expiry - failure (no cookie) ===");
     given()
@@ -793,8 +773,8 @@ public class SamlAPITest extends TestBase {
       .formParam("RelayState", relayState)
       .post("/saml/callback-with-expiry")
       .then()
-      .statusCode(403)
-      .body(is("CSRF attempt detected"));
+      .statusCode(400)
+      .body(is("Invalid url in relayState cookie: null"));
 
     // not found ..
     mock.setMockContent("mock_400.json");

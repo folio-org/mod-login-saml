@@ -3,6 +3,7 @@ package org.folio.rest.impl;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.Matchers.is;
 
@@ -111,7 +112,7 @@ public class IdpLegacyTest extends TestBase{
     String samlRequest = resp.body().jsonPath().getString("samlRequest");
     String relayState = resp.body().jsonPath().getString(SamlAPI.RELAY_STATE);
     Cookie cookie = resp.detailedCookie(SamlAPI.RELAY_STATE);
-    assertThat(cookie.getValue(), is(relayState));
+    assertThat(cookie.getValue(), endsWith(relayState));
 
     String body =
         given().

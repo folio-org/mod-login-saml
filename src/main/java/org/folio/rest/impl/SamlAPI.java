@@ -7,6 +7,7 @@ import static org.folio.rest.impl.ApiInitializer.MAX_FORM_ATTRIBUTE_SIZE;
 
 import java.io.InputStream;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.*;
@@ -159,7 +160,9 @@ public class SamlAPI implements Saml {
 
     // register non-persistent session (this request only) to overWrite relayState
     Session session = new SharedDataSessionImpl(new PRNG(vertxContext.owner()));
-    session.put(SAML_RELAY_STATE_ATTRIBUTE, relayState);
+    // csrfToken without url because RelayState data MUST NOT exceed 80 bytes in length:
+    // https://docs.oasis-open.org/security/saml/v2.0/saml-bindings-2.0-os.pdf
+    session.put(SAML_RELAY_STATE_ATTRIBUTE, csrfToken);
     routingContext.setSession(session);
 
     final boolean generateMissingConfig = false; // do not allow login if config is missing
@@ -186,14 +189,18 @@ public class SamlAPI implements Saml {
     }
   }
 
-  private String getRelayState(RoutingContext routingContext, String body) {
+  private boolean isRelayStateValid(RoutingContext routingContext, String body, String relayStateCookieValue) {
     String relayState = routingContext.request().getFormAttribute("RelayState");
 
     if (relayState == null && body.length() > MAX_FORM_ATTRIBUTE_SIZE) {
       log.error("HTTP body size {} exceeds MAX_FORM_ATTRIBUTE_SIZE={}", body.length(), MAX_FORM_ATTRIBUTE_SIZE);
     }
 
-    return relayState;
+    if (relayState == null) {
+      return false;
+    }
+
+    return relayState.length() == 36 && relayStateCookieValue.endsWith(relayState);
   }
 
   @Override
@@ -216,22 +223,21 @@ public class SamlAPI implements Saml {
 
     final SessionStore sessionStore = new DummySessionStore(routingContext.vertx(), routingContext.session());
     final VertxWebContext webContext = new VertxWebContext(routingContext, sessionStore);
-    final String relayState = getRelayState(routingContext, body);
-
+    final Cookie relayStateCookie = routingContext.request().getCookie(RELAY_STATE);
+    String relayStateCookieValue = "null";
     URI relayStateUrl;
     try {
-      assert (relayState != null); // this avoids a Sonar warning later on
-      relayStateUrl = new URI(relayState);
-    } catch (Exception e) {
+      relayStateCookieValue = relayStateCookie.getValue();
+      relayStateUrl = new URI(relayStateCookieValue);
+    } catch (NullPointerException | URISyntaxException e) {
       asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond400WithTextPlain(
-          "Invalid relay state url: " + relayState)));
+          "Invalid url in relayState cookie: " + relayStateCookieValue)));
       return;
     }
     URI originalUrl = relayStateUrl;
     URI stripesBaseUrl = UrlUtil.parseBaseUrl(originalUrl);
 
-    Cookie relayStateCookie = routingContext.getCookie(RELAY_STATE);
-    if (relayStateCookie == null || !relayState.contentEquals(relayStateCookie.getValue())) {
+    if (!isRelayStateValid(routingContext, body, relayStateCookieValue)) {
       asyncResultHandler.handle(Future.succeededFuture(PostSamlCallbackResponse.respond403WithTextPlain("CSRF attempt detected")));
       return;
     }
