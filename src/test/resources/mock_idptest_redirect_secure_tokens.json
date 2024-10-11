@@ -1,7 +1,7 @@
 {
   "mocks": [
     {
-      "url": "/configurations/entries?limit=1000&query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%29",
+      "url": "/configurations/entries?query=%28module%3D%3DLOGIN-SAML%20AND%20configName%3D%3Dsaml%29",
       "method": "get",
       "status": 200,
       "receivedData": {
@@ -11,7 +11,7 @@
             "module": "LOGIN-SAML",
             "configName": "saml",
             "code": "idp.url",
-            "value": "https://idp.ssocircle.com"
+            "value": "http://localhost:8888/simplesaml/saml2/idp/metadata.php"
           },
           {
             "id": "022d8342-fa51-44d1-8b2b-27da36e11f07",
@@ -39,7 +39,7 @@
             "module": "LOGIN-SAML",
             "configName": "saml",
             "code": "saml.binding",
-            "value": "POST"
+            "value": "REDIRECT"
           },
           {
             "id": "717bf1d1-a5a3-460f-a0de-29e6b70a0027",
@@ -53,7 +53,7 @@
             "module": "LOGIN-SAML",
             "configName": "saml",
             "code": "okapi.url",
-            "value": "http://localhost:9130"
+            "value": "http://localhost:9230"
           },
           {
             "id": "81816efc-63b1-11ee-8c99-0242ac120002",
@@ -61,9 +61,16 @@
             "configName": "saml",
             "code": "saml.callback",
             "value": "callback"
+          },
+          {
+            "id": "dcc452cf-f726-423b-91ec-ec89e36f9e98",
+            "module": "LOGIN-SAML",
+            "configName": "saml",
+            "code": "saml.useSecureTokens",
+            "value": "true"
           }
         ],
-        "totalRecords": 8
+        "totalRecords": 9
       },
       "receivedPath": "",
       "sendData": {}
@@ -71,10 +78,30 @@
     {
       "url": "/users?query=externalSystemId%3D%3D%22saml-user-id%22",
       "method": "get",
-        "status": 200,
+      "status": 200,
       "receivedData": {
-        "totalRecords": 0,
-        "users": [ ]
+        "totalRecords": 1,
+        "users": [
+          {
+            "id": "saml-user",
+            "username": "samluser",
+            "active": true
+          }
+        ]
+      },
+      "receivedPath": "",
+      "sendData": {}
+    },
+    {
+      "url": "/token/sign",
+      "method": "post",
+      "status": 201,
+      "receivedData": {
+        "accessToken": "saml-access-token",
+        "refreshToken": "saml-refresh-token",
+        "accessTokenExpiration": "2050-10-05T20:19:33Z",
+        "refreshTokenExpiration": "2050-10-05T20:19:33Z",
+        "tenantId": "diku"
       }
     },
     {

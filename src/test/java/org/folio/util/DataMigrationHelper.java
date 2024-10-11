@@ -51,7 +51,8 @@ public final class DataMigrationHelper {
     deleteAllConfigurationRecordsCompleted(vertx, context);
     Async asyncDataMigration = context.async();
     dataMigration(vertx, withDelete)
-      .onComplete(result -> asyncDataMigration.complete());
+      .onComplete(result ->
+        asyncDataMigration.complete());
 
     asyncDataMigration.awaitSuccess(TimeUnit.MILLISECONDS.convert(10L, TimeUnit.MINUTES));
   }

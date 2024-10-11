@@ -19,17 +19,18 @@ import org.junit.runner.RunWith;
  * Test against a real IDP: https://simplesamlphp.org/ running in a Docker container.
  */
 @RunWith(VertxUnitRunner.class)
-public class IdpTest extends TestBase {
+public class IdpCallbackTest extends TestBase {
   private static final String TENANT = "diku";
   private static final Header TENANT_HEADER = new Header("X-Okapi-Tenant", TENANT);
   private static final Header TOKEN_HEADER = new Header("X-Okapi-Token", "mytoken");
+  private static final Header JSON_CONTENT_TYPE_HEADER = new Header("Content-Type", "application/json");
+  private static final String STRIPES_URL = "http://localhost:3000";
 
   private static final int OKAPI_PORT = TestBase.setPreferredPort(9230);
   private static final String OKAPI_URL = "http://localhost:" + OKAPI_PORT;
 
-  private static final String CALLBACK_WITH_EXPIRY = "callback-with-expiry";
-
   private static final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", OKAPI_URL);
+  private static final String CALLBACK_WITH_EXPIRY = "callback-with-expiry";
   private static MockJsonExtended okapi;
 
   private static Vertx vertx;
@@ -37,7 +38,7 @@ public class IdpTest extends TestBase {
 
   @ClassRule
   public static final SimpleSamlPhpContainer<?> IDP =
-      new SimpleSamlPhpContainer<>(OKAPI_URL, "callback-with-expiry");
+    new SimpleSamlPhpContainer<>(OKAPI_URL, "callback-with-expiry");
 
   @BeforeClass
   public static void setupOnce(TestContext context) {
@@ -90,10 +91,8 @@ public class IdpTest extends TestBase {
     }
   }
 
-
-
   private void setOkapi(String resource) {
     okapi.setMockContent(resource,
-        s -> s.replace("http://localhost:8888/simplesaml/", IDP.getBaseUrl()));
+      s -> s.replace("http://localhost:8888/simplesaml/", IDP.getBaseUrl()));
   }
 }

@@ -26,6 +26,7 @@ public class SamlConfiguration {
   public static final String OKAPI_URL= "okapi.url";
   public static final String SAML_CALLBACK = "saml.callback";
   public static final String IDS_LIST_CODE = "idsList";
+  public static final String SAML_USE_SECURE_TOKENS = "saml.useSecureTokens";
 
   @JsonProperty(ID_CODE)
   private String id;
@@ -53,6 +54,8 @@ public class SamlConfiguration {
   private String callback;
   @JsonProperty(IDS_LIST_CODE)
   private List<String> idsList;
+  @JsonProperty(SAML_USE_SECURE_TOKENS)
+  private String useSecureTokens;
 
   public SamlConfiguration(){
     idsList = new ArrayList<>(0);
@@ -168,5 +171,13 @@ public class SamlConfiguration {
 
   public void setUserProperty(String userProperty) {
     this.userProperty = userProperty;
+  }
+
+  public String getUseSecureTokens() {
+    return useSecureTokens;
+  }
+
+  public void setUseSecureTokens(String useSecureTokens) {
+    this.useSecureTokens = useSecureTokens;
   }
 }
