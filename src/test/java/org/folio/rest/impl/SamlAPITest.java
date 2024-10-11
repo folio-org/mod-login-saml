@@ -690,6 +690,8 @@ public class SamlAPITest extends TestBase {
   @Test
   public void getConfigurationEndpointDB(TestContext context) { //former method: getConfigurationEndpoint()
     // GET (Data from DB)
+    mock.setMockContent("mock_content.json");
+    dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
     given()
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
@@ -702,6 +704,7 @@ public class SamlAPITest extends TestBase {
       .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"))
       .body("idpUrl", equalTo("https://idp.ssocircle.com"))
       .body("samlBinding", equalTo("POST"))
+      // TODO What should these be?
       .body("callback", equalTo("callback"))
       .body("useSecureTokens", equalTo(Boolean.TRUE))
       .body("metadataInvalidated", equalTo(Boolean.FALSE));
@@ -1082,41 +1085,39 @@ public class SamlAPITest extends TestBase {
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
       .header(OKAPI_URL_HEADER)
-      // TODO Is this what Julian had in his test of this? I have swapped "bad" so that endswith works.
       .cookie(SamlAPI.RELAY_STATE, cookie + "bad")
       .formParam("SAMLResponse", "saml-response")
       .formParam("RelayState", relayState)
       .post(callbackUrl)
       .then()
-      // TODO This is 302
       .statusCode(403)
       .body(is("CSRF attempt detected"));
 
-    log.info("=== Test - POST /saml/{} - failure (wrong relay) ===", callbackUrl);
+    log.info("=== Test - POST /saml/{} - failure (invalid relay) ===", callbackUrl);
     given()
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
       .header(OKAPI_URL_HEADER)
-      .cookie(SamlAPI.RELAY_STATE, cookie)
+      .cookie(SamlAPI.RELAY_STATE, cookie.replace("localhost", "^"))
       .formParam("SAMLResponse", "saml-response")
-      .formParam("RelayState", relayState.replace("localhost", "^"))
-      .post(callbackUrl)
+      .formParam("RelayState", relayState)
+      .post("/saml/callback")
       .then()
-      // TODO This is failing with 302 what did Julian's test have?
       .statusCode(400)
-      .body(containsString("Invalid relay state url"));
+      .body(containsString("Invalid url in relayState cookie"));
 
     log.info("=== Test - POST /saml/{} - failure (no cookie) ===", callbackUrl);
     given()
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
       .header(OKAPI_URL_HEADER)
+      .cookie(SamlAPI.RELAY_STATE, cookie.replace("localhost", "^"))
       .formParam("SAMLResponse", "saml-response")
       .formParam("RelayState", relayState)
-      .post(callbackUrl)
+      .post("/saml/callback")
       .then()
-      .statusCode(403)
-      .body(is("CSRF attempt detected"));
+      .statusCode(400)
+      .body(containsString("Invalid url in relayState cookie"));
 
     // not found ..
     mock.setMockContent("mock_400.json");

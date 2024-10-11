@@ -61,8 +61,14 @@
             "configName": "saml",
             "code": "user.property",
             "value": "username"
+          },
+          {
+            "id": "81816efc-63b1-11ee-8c99-0242ac120002",
+            "module": "LOGIN-SAML",
+            "configName": "saml",
+            "code": "saml.callback",
+            "value": "callback"
           }
-
         ],
         "totalRecords": 6
       },
