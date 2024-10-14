@@ -704,15 +704,12 @@ public class SamlAPITest extends TestBase {
       .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"))
       .body("idpUrl", equalTo("https://idp.ssocircle.com"))
       .body("samlBinding", equalTo("POST"))
-      // TODO What should these be?
-      .body("callback", equalTo("callback"))
-      .body("useSecureTokens", equalTo(Boolean.TRUE))
       .body("metadataInvalidated", equalTo(Boolean.FALSE));
   }
 
   @Test
   public void getConfigurationEndpointLegacy(TestContext context) {
-    mock.setMockContent("mock_content_legacy.json");
+    mock.setMockContent("mock_content_legacy.json"); // Does not contain useSecureTokens in config. This is legacy mode.
     dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
     given()
       .header(TENANT_HEADER)
@@ -726,6 +723,7 @@ public class SamlAPITest extends TestBase {
       .body("idpUrl", equalTo("https://idp.ssocircle.com"))
       .body("samlBinding", equalTo("POST"))
       .body("callback", equalTo("callback"))
+      .body("useSecureTokens", equalTo(Boolean.FALSE))
       .body("metadataInvalidated", equalTo(Boolean.FALSE));
   }
 
@@ -798,7 +796,9 @@ public class SamlAPITest extends TestBase {
       .statusCode(200)
       .body("callback", equalTo("callback"))
       .body("useSecureTokens", equalTo(true))
-      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"));
+      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"))
+      .body("callback", equalTo("callback"))
+      .body("useSecureTokens", equalTo(Boolean.TRUE));
   }
 
   @Test
@@ -851,7 +851,9 @@ public class SamlAPITest extends TestBase {
       .then()
       .statusCode(200)
       .body("callback", equalTo("callback"))
-      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"));
+      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"))
+      .body("callback", equalTo("callback"))
+      .body("useSecureTokens", equalTo(Boolean.FALSE));
   }
 
   @Test
