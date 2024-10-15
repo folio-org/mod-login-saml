@@ -568,6 +568,22 @@ public class SamlAPITest extends TestBase {
       .cookie("ssoToken", "saml-token");
 
     testCallbackErrorCases(CALLBACK_URL, relayState, cookie);
+
+    mock.setMockContent("mock_tokenresponse.json");
+    dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
+    given()
+      .header(TENANT_HEADER)
+      .header(TOKEN_HEADER)
+      .header(OKAPI_URL_HEADER)
+      .cookie(SamlAPI.RELAY_STATE, cookie)
+      .formParam("SAMLResponse", "saml-response")
+      .formParam("RelayState", relayState)
+      .post("/saml/callback")
+      .then()
+      .statusCode(302)
+      .header("Location", containsString(PercentCodec.encodeAsString(testPath)))
+      .header("x-okapi-token", "saml-token")
+      .cookie("ssoToken", "saml-token");
   }
 
   @Test
@@ -690,8 +706,6 @@ public class SamlAPITest extends TestBase {
   @Test
   public void getConfigurationEndpointDB(TestContext context) { //former method: getConfigurationEndpoint()
     // GET (Data from DB)
-    mock.setMockContent("mock_content.json");
-    dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
     given()
       .header(TENANT_HEADER)
       .header(TOKEN_HEADER)
@@ -709,7 +723,7 @@ public class SamlAPITest extends TestBase {
 
   @Test
   public void getConfigurationEndpointLegacy(TestContext context) {
-    mock.setMockContent("mock_content_legacy.json"); // Does not contain useSecureTokens in config. This is legacy mode.
+    mock.setMockContent("mock_content_legacy.json"); // Should not contain useSecureTokens in config. This is legacy mode.
     dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
     given()
       .header(TENANT_HEADER)
@@ -794,8 +808,6 @@ public class SamlAPITest extends TestBase {
       .put("/saml/configuration")
       .then()
       .statusCode(200)
-      .body("callback", equalTo("callback"))
-      .body("useSecureTokens", equalTo(true))
       .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"))
       .body("callback", equalTo("callback"))
       .body("useSecureTokens", equalTo(Boolean.TRUE));
@@ -880,9 +892,6 @@ public class SamlAPITest extends TestBase {
       .then()
       .statusCode(200)
       .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"));
-      // This works.
-      //.body(matchesJsonSchema(new File("/Users/sellis/Code/folio/mod-login-saml/ramls/schemas/SamlConfig.json")));
-
   }
 
   private String readResourceToString(String idpMetadataFile) {

@@ -27,7 +27,6 @@ public class TestBase {//contained in "mock_content_with_delete.json"
   public static int modulePort;
   public static String moduleUrl;
   public static WebClient webClient;
-  public static TenantClient tenantClient;
   public static final String TENANT = "diku";
   public static final String SCHEMA = TENANT + "_mod_login_saml";
   public static final String PERMISSIONS_HEADER = TENANT + "-permissons"; //for testing org.folio.util.model.OkapiHeaders.java
