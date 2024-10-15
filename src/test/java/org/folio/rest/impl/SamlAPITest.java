@@ -1,7 +1,6 @@
 package org.folio.rest.impl;
 
 import static io.restassured.RestAssured.given;
-import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchema;
 import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
 import static org.folio.util.Base64AwareXsdMatcher.matchesBase64XsdInClasspath;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
@@ -15,7 +14,6 @@ import static org.junit.Assert.assertThrows;
 
 import com.github.tomakehurst.wiremock.junit.WireMockClassRule;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
