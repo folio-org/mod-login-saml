@@ -206,18 +206,17 @@ public class SamlAPI implements Saml {
   @Override
   public void postSamlCallback(String body, RoutingContext routingContext, Map<String, String> okapiHeaders,
     Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    doPostSamlCallback(body, routingContext, okapiHeaders, asyncResultHandler, vertxContext,
-      TOKEN_SIGN_ENDPOINT_LEGACY);
+    doPostSamlCallback(body, routingContext, okapiHeaders, asyncResultHandler, vertxContext);
   }
 
   @Override
   public void postSamlCallbackWithExpiry(String body, RoutingContext routingContext, Map<String, String> okapiHeaders,
     Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
-    doPostSamlCallback(body, routingContext, okapiHeaders, asyncResultHandler, vertxContext, TOKEN_SIGN_ENDPOINT);
+    doPostSamlCallback(body, routingContext, okapiHeaders, asyncResultHandler, vertxContext);
   }
 
   private void doPostSamlCallback(String body, RoutingContext routingContext, Map<String, String> okapiHeaders,
-    Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext, String tokenSignEndpoint) {
+    Handler<AsyncResult<Response>> asyncResultHandler, Context vertxContext) {
 
     registerFakeSession(routingContext);
 
@@ -258,6 +257,7 @@ public class SamlAPI implements Saml {
           JsonObject payload = new JsonObject().put("payload",
             new JsonObject().put("sub", userObject.getString(USERNAME)).put("user_id", userId));
 
+          var tokenSignEndpoint = getTokenSignEndpoint(configuration);
           return fetchToken(webClient, payload, parsedHeaders, tokenSignEndpoint)
             .map(jsonResponse -> {
               if (isLegacyResponse(tokenSignEndpoint)) {
@@ -274,6 +274,17 @@ public class SamlAPI implements Saml {
         var response = failCallbackResponse(cause, routingContext);
         asyncResultHandler.handle(Future.succeededFuture(response));
       });
+  }
+
+  private boolean isLegacyResponse(SamlConfiguration configuration) {
+    return "callback".equals(configuration.getCallback()) && ! "true".equals(configuration.getUseSecureTokens());
+  }
+
+  private String getTokenSignEndpoint(SamlConfiguration configuration) {
+    if (isLegacyResponse(configuration)) {
+      return TOKEN_SIGN_ENDPOINT_LEGACY;
+    }
+    return TOKEN_SIGN_ENDPOINT;
   }
 
   private PostSamlCallbackResponse failCallbackResponse(Throwable cause, RoutingContext routingContext) {
@@ -605,6 +616,7 @@ public class SamlAPI implements Saml {
       .withSamlAttribute(config.getSamlAttribute())
       .withUserProperty(config.getUserProperty())
       .withCallback(config.getCallback())
+      .withUseSecureTokens(Boolean.valueOf(config.getUseSecureTokens()))
       .withMetadataInvalidated(Boolean.valueOf(config.getMetadataInvalidated()));
     try {
       URI uri = URI.create(config.getOkapiUrl());
@@ -714,6 +726,10 @@ public class SamlAPI implements Saml {
 
     result.setCallback(config.getCallback());
     ConfigEntryUtil.valueChanged(config.getCallback(), updatedConfig.getCallback(), result::setCallback);
+
+    result.setUseSecureTokens(config.getUseSecureTokens());
+    ConfigEntryUtil.valueChanged(config.getUseSecureTokens(), updatedConfig.getUseSecureTokens(),
+      result::setUseSecureTokens);
 
     result.setKeystore(config.getKeystore());
     result.setKeystorePassword(config.getKeystorePassword());

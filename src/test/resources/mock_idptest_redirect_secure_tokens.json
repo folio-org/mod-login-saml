@@ -11,7 +11,7 @@
             "module": "LOGIN-SAML",
             "configName": "saml",
             "code": "idp.url",
-            "value": "https://idp.ssocircle.com"
+            "value": "http://localhost:8888/simplesaml/saml2/idp/metadata.php"
           },
           {
             "id": "022d8342-fa51-44d1-8b2b-27da36e11f07",
@@ -39,7 +39,7 @@
             "module": "LOGIN-SAML",
             "configName": "saml",
             "code": "saml.binding",
-            "value": "POST"
+            "value": "REDIRECT"
           },
           {
             "id": "717bf1d1-a5a3-460f-a0de-29e6b70a0027",
@@ -53,14 +53,7 @@
             "module": "LOGIN-SAML",
             "configName": "saml",
             "code": "okapi.url",
-            "value": "http://localhost:9130"
-          },
-          {
-            "id": "cb20fa86-affb-4488-8b37-2e8c597fff66",
-            "module": "LOGIN-SAML",
-            "configName": "saml",
-            "code": "user.property",
-            "value": "username"
+            "value": "http://localhost:9230"
           },
           {
             "id": "81816efc-63b1-11ee-8c99-0242ac120002",
@@ -68,6 +61,13 @@
             "configName": "saml",
             "code": "saml.callback",
             "value": "callback"
+          },
+          {
+            "id": "dcc452cf-f726-423b-91ec-ec89e36f9e98",
+            "module": "LOGIN-SAML",
+            "configName": "saml",
+            "code": "saml.useSecureTokens",
+            "value": "true"
           }
         ],
         "totalRecords": 9
@@ -76,7 +76,7 @@
       "sendData": {}
     },
     {
-      "url": "/users?query=username%3D%3D%22saml-user-id%22",
+      "url": "/users?query=externalSystemId%3D%3D%22saml-user-id%22",
       "method": "get",
       "status": 200,
       "receivedData": {
@@ -88,15 +88,9 @@
             "active": true
           }
         ]
-      }
-    },
-    {
-      "url": "/token",
-      "method": "post",
-      "status": 201,
-      "receivedData": {
-        "token": "new-saml-token"
-      }
+      },
+      "receivedPath": "",
+      "sendData": {}
     },
     {
       "url": "/token/sign",
@@ -111,29 +105,12 @@
       }
     },
     {
-      "url": "/user-tenants?username=saml-user-id",
+      "url": "/user-tenants?externalSystemId=saml-user-id",
       "method": "get",
       "status": 200,
       "receivedData": {
-        "totalRecords": 2,
-        "userTenants": [
-          {
-            "id": "e7c7d8ae-0272-4071-8d8a-61b3492b6931",
-            "userId": "8091ec80-290a-4d61-a08f-0d8fa576c097",
-            "username": "samluser",
-            "tenantId": "new-saml-tenant",
-            "centralTenantId": "saml-test",
-            "consortiumId": "4c88c2d9-7614-4901-8920-a31408a15de1"
-          },
-          {
-            "id": "136070e9-6102-4d3a-bc89-f11ccd1825e0",
-            "userId": "8091ec80-290a-4d61-a08f-0d8fa576c097",
-            "username": "samluser",
-            "tenantId": "new-saml-tenant",
-            "centralTenantId": "saml-test",
-            "consortiumId": "4c88c2d9-7614-4901-8920-a31408a15de1"
-          }
-        ]
+        "totalRecords": 0,
+        "userTenants": []
       }
     }
   ]

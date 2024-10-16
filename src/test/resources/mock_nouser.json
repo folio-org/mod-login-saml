@@ -47,16 +47,16 @@
             "configName": "saml",
             "code": "metadata.invalidated",
             "value": "false"
-          },{
+          },
+          {
             "id": "cb20fa86-affb-4488-8b37-2e8c597fff66",
             "module": "LOGIN-SAML",
             "configName": "saml",
             "code": "okapi.url",
             "value": "http://localhost:9130"
           }
-
         ],
-        "totalRecords": 6
+        "totalRecords": 7
       },
       "receivedPath": "",
       "sendData": {}
