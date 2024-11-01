@@ -1,4 +1,4 @@
-T# mod-login-saml
+# mod-login-saml
 
 Copyright (C) 2017-2024 The Open Library Foundation
 
