@@ -25,7 +25,7 @@
           "permissionsRequired": [],
           "delegateCORS": true,
           "modulePermissions": [
-            "auth.signtoken",
+            "auth.signtoken.all",
             "configuration.entries.collection.get",
             "users.collection.get",
             "user-tenants.collection.get"
@@ -39,7 +39,7 @@
           "permissionsRequired": [],
           "delegateCORS": true,
           "modulePermissions": [
-            "auth.signtoken",
+            "auth.signtoken.all",
             "configuration.entries.collection.get",
             "users.collection.get",
             "user-tenants.collection.get"
@@ -138,11 +138,11 @@
   "requires": [
     {
       "id": "authtoken",
-      "version": "2.0"
+      "version": "2.1"
     },
     {
       "id": "authtoken2",
-      "version": "1.0"
+      "version": "1.1"
     },
     {
       "id": "users",
