@@ -1,3 +1,30 @@
+## 2.9.1 - 2024-11-02
+
+* [MODAT-168](https://folio-org.atlassian.net/browse/MODAT-168) Rename permission auth.signtoken to auth.signtoken.all; bump interfaces
+* [MODLOGSAML-200](https://folio-org.atlassian.net/browse/MODLOGSAML-200) Upgrade deps: RMB 35.3.0, log4j 2.24.1, PostgreSQL 16, etc.
+
+## 2.9.0 - 2024-11-02
+
+* [MODLOGSAML-111](https://folio-org.atlassian.net/browse/MODLOGSAML-111) Move config from mod-configuration DB to mod-login-saml DB
+* [MODLOGSAML-193](https://folio-org.atlassian.net/browse/MODLOGSAML-193) Don't migrate config on fresh install, only on upgrade
+* [MODLOGSAML-195](https://folio-org.atlassian.net/browse/MODLOGSAML-195) SimpleSamlPhpContainer, avoid Dockerfile
+* [MODLOGSAML-196](https://folio-org.atlassian.net/browse/MODLOGSAML-196) Add folio-module-descriptor-validator
+* [MODLOGSAML-189](https://folio-org.atlassian.net/browse/MODLOGSAML-189) Relay State must be a string with a maximum length of 80
+* [MODLOGSAML-192](https://folio-org.atlassian.net/browse/MODLOGSAML-192) Allow callback endpoint to return RTR tokens when configured
+
+## 2.8.4 - 2024-09-19
+
+* [MODLOGSAML-197](https://folio-org.atlassian.net/browse/MODLOGSAML-197) Okapi-URL path missing from cookie path
+
+## 2.8.3 - 2024-09-13
+
+* [MODLOGSAML-198](https://folio-org.atlassian.net/browse/MODLOGSAML-198) limit=1000 for GET /configurations/entries
+
+## 2.8.2 - 2024-09-12
+
+* [MODLOGSAML-192](https://folio-org.atlassian.net/browse/MODLOGSAML-192) Allow `callback` endpoint to return RTR tokens when configured
+* [MODLOGSAML-194](https://folio-org.atlassian.net/browse/MODLOGSAML-194) pac4j 5.7.7, cryptacular 1.2.7 fixing vulns
+
 ## 2.8.1 - 2024-05-29
 
 * [MODLOGSAML-191](https://folio-org.atlassian.net/browse/MODLOGSAML-191) Vert.x 4.5.7 and RMB 35.2.2 fixing Netty CVE-2024-29025
