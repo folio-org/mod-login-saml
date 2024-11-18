@@ -1,3 +1,7 @@
+## 2.9.2 - 2024-11-18
+
+* [MODLOGSAML-201](https://folio-org.atlassian.net/browse/MODLOGSAML-201) \_tenant interface missing from module descriptor
+
 ## 2.9.1 - 2024-11-02
 
 * [MODAT-168](https://folio-org.atlassian.net/browse/MODAT-168) Rename permission auth.signtoken to auth.signtoken.all; bump interfaces
