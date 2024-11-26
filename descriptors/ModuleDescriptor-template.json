@@ -111,8 +111,13 @@
       "handlers" : [
         {
           "methods" : [ "POST" ],
-          "pathPattern" : "/_/tenant"
-        }, {
+          "pathPattern" : "/_/tenant",
+          "modulePermissions": [
+            "configuration.entries.collection.get",
+            "configuration.entries.item.post",
+            "configuration.entries.item.put"
+          ]
+         }, {
           "methods" : [ "GET", "DELETE" ],
           "pathPattern" : "/_/tenant/{id}"
         }
