@@ -10,6 +10,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 import org.folio.config.model.SamlConfiguration;
 import org.folio.dao.ConfigurationsDao;
+import org.folio.okapi.common.ChattyResponsePredicate;
 import org.folio.okapi.common.GenericCompositeFuture;
 import org.folio.okapi.common.WebClientFactory;
 import org.folio.okapi.common.XOkapiHeaders;
@@ -120,14 +121,18 @@ public class ConfigurationsClient {
   public static Future<JsonArray> checkConfig(Vertx vertx, OkapiHeaders okapiHeaders, String query) {
     ConfigurationsDao.verifyOkapiHeaders(okapiHeaders);
     CharSequence encodedQuery = PercentCodec.encode(query);
-
+    var url = okapiHeaders.getUrl() + CONFIGURATIONS_ENTRIES_ENDPOINT_URL + "?limit=1000&query=" + encodedQuery;
+    LOGGER.info("checkConfig GET URL: {}", url);
+    LOGGER.info("checkConfig headers - {}: {}, {}: {}",
+        XOkapiHeaders.URL, okapiHeaders.getUrl(),
+        XOkapiHeaders.TENANT, okapiHeaders.getTenant());
     return WebClientFactory.getWebClient(vertx)
-      .getAbs(okapiHeaders.getUrl() + CONFIGURATIONS_ENTRIES_ENDPOINT_URL + "?limit=1000&query=" + encodedQuery)
+      .getAbs(url)
       .putHeader(XOkapiHeaders.TOKEN, okapiHeaders.getToken())
       .putHeader(XOkapiHeaders.URL, okapiHeaders.getUrl())
       .putHeader(XOkapiHeaders.TENANT, okapiHeaders.getTenant())
-      .expect(ResponsePredicate.SC_OK)
-      .expect(ResponsePredicate.JSON)
+      .expect(ChattyResponsePredicate.SC_OK)
+      .expect(ChattyResponsePredicate.JSON)
       .send()
       .map(res -> res.bodyAsJsonObject().getJsonArray("configs"));
   }
@@ -170,7 +175,7 @@ public class ConfigurationsClient {
       .putHeader(XOkapiHeaders.TOKEN, okapiHeaders.getToken())
       .putHeader(XOkapiHeaders.URL, okapiHeaders.getUrl())
       .putHeader(XOkapiHeaders.TENANT, okapiHeaders.getTenant())
-      .expect(ResponsePredicate.SC_NO_CONTENT) //204 No Content
+      .expect(ChattyResponsePredicate.SC_NO_CONTENT)  // 204
       .send()
       .otherwise(ex -> {
          String error = "To delete" + " " + configId + " " + ex.getMessage();
