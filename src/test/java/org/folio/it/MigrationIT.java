@@ -82,7 +82,6 @@ public class MigrationIT {
       MOD_LOGIN_SAML.followOutput(
           new Slf4jLogConsumer(LOG).withSeparateOutputStreams().withPrefix("mod-login-saml"));
     }
-
   }
 
   @Test
@@ -98,7 +97,7 @@ public class MigrationIT {
   @Test
   public void installAndMigrate() {
     RestAssured.requestSpecification = new RequestSpecBuilder()
-        .addHeader(XOkapiHeaders.URL, String.format("http://host.testcontainers.internal:" + OKAPI_MOCK.port()))
+        .addHeader(XOkapiHeaders.URL, "http://host.testcontainers.internal:" + OKAPI_MOCK.port())
         .addHeader(XOkapiHeaders.TENANT, "diku")
         .addHeader(XOkapiHeaders.TOKEN, "t.oke.n")
         .setContentType(ContentType.JSON)
