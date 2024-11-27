@@ -34,7 +34,7 @@ public class TenantRefAPI extends TenantAPI {
 
   private Future<Integer> configurationsMigration(Map<String, String> headers, Context vertxContext) {
     try {
-      var okapiHeaders = OkapiHelper.okapiHeadersWithUrlTo(headers);
+      var okapiHeaders = OkapiHelper.okapiHeaders(headers);
       ConfigurationsDao.verifyOkapiHeaders(okapiHeaders);
       return new ConfigurationsDaoImpl().dataMigrationLoadData(vertxContext.owner(), okapiHeaders, true);
     } catch (MissingHeaderException misHeadEx) {

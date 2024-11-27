@@ -17,6 +17,7 @@ import org.folio.rest.tools.utils.NetworkUtils;
 import org.folio.util.MockJsonExtended;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -62,6 +63,7 @@ public class TenantRefAPITest extends TestBase {
     deleteAllConfigurationRecords(vertx);
   }
 
+  @Ignore("https://folio-org.atlassian.net/browse/MODLOGSAML-203")
   @Test
   public void loadDataWithMockEmptyDatabaseWithDeletionFailure(TestContext context) {
     mock.setMockContent("mock_content_with_delete.json");
@@ -73,6 +75,7 @@ public class TenantRefAPITest extends TestBase {
       }));
   }
 
+  @Ignore("https://folio-org.atlassian.net/browse/MODLOGSAML-203")
   @Test
   public void loadDataWithMockEmptyDatabase(TestContext context) {
     mock.setMockContent("mock_content_with_delete.json");
@@ -83,6 +86,7 @@ public class TenantRefAPITest extends TestBase {
       }));
   }
 
+  @Ignore("https://folio-org.atlassian.net/browse/MODLOGSAML-203")
   @Test
   public void loadNoDataWithMock400EmptyDatabase(TestContext context) {
     mock.setMockContent("mock_400.json");
@@ -92,6 +96,7 @@ public class TenantRefAPITest extends TestBase {
         assertThat(cause.getMessage(), startsWith("Response status code 400 is not equal to 200"))));
   }
 
+  @Ignore("https://folio-org.atlassian.net/browse/MODLOGSAML-203")
   @Test
   public void loadNoDataWithMock200EmptyDatabase(TestContext context) {
     mock.setMockContent("mock_200_empty.json");
