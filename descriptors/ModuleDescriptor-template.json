@@ -115,7 +115,8 @@
           "modulePermissions": [
             "configuration.entries.collection.get",
             "configuration.entries.item.post",
-            "configuration.entries.item.put"
+            "configuration.entries.item.put",
+            "configuration.entries.item.delete"
           ]
          }, {
           "methods" : [ "GET", "DELETE" ],
