@@ -1,3 +1,7 @@
+## 2.9.3 - 2024-11-28
+
+* [MODLOGSAML-202](https://folio-org.atlassian.net/browse/MODLOGSAML-202) Unable to deploy - fix X-Okapi-Url, permissions and expand logging
+
 ## 2.9.2 - 2024-11-18
 
 * [MODLOGSAML-201](https://folio-org.atlassian.net/browse/MODLOGSAML-201) \_tenant interface missing from module descriptor
