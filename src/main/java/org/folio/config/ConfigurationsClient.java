@@ -134,7 +134,8 @@ public class ConfigurationsClient {
       .expect(ChattyResponsePredicate.SC_OK)
       .expect(ChattyResponsePredicate.JSON)
       .send()
-      .map(res -> res.bodyAsJsonObject().getJsonArray("configs"));
+      .map(res -> res.bodyAsJsonObject().getJsonArray("configs"))
+      .onSuccess(configs -> LOGGER.info("configs.size={}", configs == null ? "null" : configs.size()));
   }
 
   /**
@@ -182,7 +183,8 @@ public class ConfigurationsClient {
          LOGGER.error(error, ex);
          throw new IllegalArgumentException(error);
       })
-     .mapEmpty();
+      .onSuccess(x -> LOGGER.info("succeeded: DELETE {}", endpoint))
+      .mapEmpty();
   }
 
 }
