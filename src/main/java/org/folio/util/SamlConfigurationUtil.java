@@ -39,10 +39,6 @@ public class SamlConfigurationUtil {
     }
   }
 
-  public static boolean isEqual(SamlConfiguration samlConfigFirst, SamlConfiguration samlConfigSecond) {
-    return compareSamlConfigurations(samlConfigFirst, samlConfigSecond).getNumberOfDiffs() == 0;
-  }
-
   public static DiffResult<SamlConfiguration> compareSamlConfigurations(SamlConfiguration samlConfigFirst, SamlConfiguration samlConfigSecond) {
     return new ReflectionDiffBuilder<>(samlConfigFirst, samlConfigSecond, ToStringStyle.SHORT_PREFIX_STYLE)
       .setExcludeFieldNames(SamlConfiguration.ID_CODE, SamlConfiguration.IDS_LIST_CODE)

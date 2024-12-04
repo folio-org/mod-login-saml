@@ -73,13 +73,14 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
 
 
   private Future<Void> localCompareObjects(SamlConfiguration samlConfiguration) {
-    if(SamlConfigurationUtil.isEqual(samlConfiguration, emptySamlConfiguration))
+    var diff = SamlConfigurationUtil.compareSamlConfigurations(samlConfiguration, emptySamlConfiguration);
+    if (diff.getNumberOfDiffs() == 0) {
       return Future.succeededFuture();
-    else {
-      String errorMessage = "After deletion of the data of mod-configuration the compared Objects are different";
-      LOGGER.error("{}", errorMessage);
-      return Future.failedFuture(errorMessage);
     }
+    String errorMessage = "After deletion of the data of mod-configuration the compared Objects are different: "
+        + diff.toString();
+    LOGGER.error("{}", errorMessage);
+    return Future.failedFuture(errorMessage);
   }
 
   @Override
