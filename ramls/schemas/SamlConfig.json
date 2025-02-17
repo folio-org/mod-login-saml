@@ -43,11 +43,6 @@
       "description": "Where the IDP should call back after login is successful. Either callback or callback-with-expiry. Defaults to callback-with-expiry if not present.",
       "type": "string",
       "required": false
-    },
-    "useSecureTokens": {
-      "type": "boolean",
-      "description": "When present, and true, and when callback is configured with the value 'callback', enables the refresh token payload on the /callback endpoint.",
-      "required": false
     }
   }
 }
