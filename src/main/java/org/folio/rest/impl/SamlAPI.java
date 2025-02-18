@@ -301,23 +301,6 @@ public class SamlAPI implements Saml {
       });
   }
 
-  private Response redirectResponseLegacy(JsonObject jsonObject, URI stripesBaseUrl, URI originalUrl) {
-    String authToken = jsonObject.getString("token");
-
-    final String location = UriBuilder.fromUri(stripesBaseUrl)
-      .path("sso-landing")
-      .queryParam("ssoToken", authToken)
-      .queryParam("fwd", originalUrl.getPath())
-      .build()
-      .toString();
-
-    final String cookie = new NewCookie("ssoToken",
-      authToken, "", originalUrl.getHost(), "", 3600, true).toString();
-    var headers = PostSamlCallbackResponse.headersFor302().withSetCookie(cookie).withXOkapiToken(authToken)
-      .withLocation(location);
-    return PostSamlCallbackResponse.respond302(headers);
-  }
-
   private Response redirectResponse(JsonObject jsonObject,
       URI stripesBaseUrl, URI originalUrl, String okapiPath) {
 
