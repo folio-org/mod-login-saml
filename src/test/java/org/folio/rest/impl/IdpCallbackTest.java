@@ -70,7 +70,7 @@ public class IdpCallbackTest extends TestBase {
   @Test
   public void post(TestContext context) {
     IDP.setPostBinding();
-    setOkapi("mock_idptest_post_secure_tokens.json");
+    setOkapi("mock_idptest_post_callback.json");
     dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
     for (int i = 0; i < 2; i++) {
       SamlTestHelper.testPost(CALLBACK);
@@ -80,7 +80,7 @@ public class IdpCallbackTest extends TestBase {
   @Test
   public void redirect(TestContext context) {
     IDP.setRedirectBinding();
-    setOkapi("mock_idptest_redirect_secure_tokens.json");
+    setOkapi("mock_idptest_redirect_callback.json");
     dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
 
     for (int i = 0; i < 2; i++) {

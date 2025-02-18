@@ -56,10 +56,11 @@ public class SamlConfiguration {
   @JsonProperty(IDS_LIST_CODE)
   private List<String> idsList;
   /**
-   * @deprecated
+   * @deprecated See MODLOGSAML-192 for background.
    */
   @Deprecated(since="2.9.3", forRemoval = true)
   @JsonProperty(SAML_USE_SECURE_TOKENS)
+  @JsonIgnore
   private String useSecureTokens;
 
   public SamlConfiguration(){

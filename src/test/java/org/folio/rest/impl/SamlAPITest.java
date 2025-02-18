@@ -365,7 +365,7 @@ public class SamlAPITest extends TestBase {
   }
 
   @Test
-  public void callbackCorsTests_Legacy() {
+  public void corsTestsWithCallback() {
     String origin = "http://localhost";
 
     log.info("=== Test CORS preflight - OPTIONS /saml/callback - success ===");
@@ -384,7 +384,7 @@ public class SamlAPITest extends TestBase {
   }
 
   @Test
-  public void callbackCorsTests() {
+  public void corsTests() {
     String origin = "http://localhost";
 
     log.info("=== Test CORS preflight - OPTIONS /saml/callback - success ===");
@@ -538,9 +538,10 @@ public class SamlAPITest extends TestBase {
   }
 
   @Test
-  public void callbackEndpointTestsUseSecureTokens() {
-    // Configuration needed. /saml/callback returns RTR tokens allowing existing metadata to be used.
-    mock.setMockContent("mock_content_secure_tokens.json");
+  public void callbackEndpointTestDeprecatedUseSecureTokens() {
+    // Ensure that when the deprecated property useSecureTokens is present in the configuration, things
+    // still work as expected.
+    mock.setMockContent("mock_content_callback.json");
     testCallback(CALLBACK_URL);
   }
 
@@ -636,25 +637,6 @@ public class SamlAPITest extends TestBase {
   }
 
   @Test
-  public void getConfigurationEndpointUseSecureTokens(TestContext context) {
-    mock.setMockContent("mock_content_secure_tokens.json");
-    dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
-    given()
-      .header(TENANT_HEADER)
-      .header(TOKEN_HEADER)
-      .header(OKAPI_URL_HEADER)
-      .header(JSON_CONTENT_TYPE_HEADER)
-      .get("/saml/configuration")
-      .then()
-      .statusCode(200)
-      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"))
-      .body("idpUrl", equalTo("https://idp.ssocircle.com"))
-      .body("samlBinding", equalTo("POST"))
-      .body("callback", equalTo("callback"))
-      .body("metadataInvalidated", equalTo(Boolean.FALSE));
-  }
-
-  @Test
   public void putConfigurationEndpoint(TestContext context) {
     SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
       .withIdpUrl(URI.create("http://localhost:" + IDP_MOCK_PORT + "/xml"))
@@ -704,8 +686,8 @@ public class SamlAPITest extends TestBase {
   }
 
   @Test
-  public void putConfiguration_Legacy() {
-    mock.setMockContent("mock_content_legacy.json");
+  public void putConfigurationWithCallback() {
+    mock.setMockContent("mock_content_callback.json");
 
     SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
       .withIdpUrl(URI.create("http://localhost:" + IDP_MOCK_PORT + "/xml"))
