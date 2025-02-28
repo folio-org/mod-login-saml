@@ -93,10 +93,7 @@
     {
       "url": "/token",
       "method": "post",
-      "status": 404,
-      "receivedData": {
-        "token": "new-saml-token"
-      }
+      "status": 404
     },
     {
       "url": "/token/sign",

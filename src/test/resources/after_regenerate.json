@@ -146,10 +146,7 @@
     {
       "url": "/token",
       "method": "post",
-      "status": 404,
-      "receivedData": {
-        "token": "saml-token"
-      }
+      "status": 404
     },
     {
       "url": "/token/sign",
