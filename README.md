@@ -1,6 +1,6 @@
 # mod-login-saml
 
-Copyright (C) 2017-2024 The Open Library Foundation
+Copyright (C) 2017-2025 The Open Library Foundation
 
 This software is distributed under the terms of the Apache License,
 Version 2.0. See the file "[LICENSE](LICENSE)" for more information.
@@ -11,7 +11,7 @@ This module provides SAML2 SSO functionality for FOLIO.
 
 ### Usage
 
-1. On Stripes UI find Settings->Tenant->SSO settings, paste the IdP
+1. On Stripes UI find Settings-\>Tenant-\>SSO settings, paste the IdP
    metadata.xml URL.
   - This configuration is stored per tenant in mod-configuration under
    module=LOGIN-SAML, configName=saml, code=idp.url
