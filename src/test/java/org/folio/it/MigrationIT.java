@@ -53,7 +53,7 @@ public class MigrationIT {
   @ClassRule
   public static final GenericContainer<?> MOD_LOGIN_SAML =
       new GenericContainer<>(
-          new ImageFromDockerfile("mod-login-saml").withDockerfile(Path.of("./Dockerfile")))
+          new ImageFromDockerfile("mod-login-saml").withFileFromPath(".", Path.of(".")))
         .withNetwork(NETWORK)
         .withExposedPorts(8081)
         .withAccessToHost(true)
