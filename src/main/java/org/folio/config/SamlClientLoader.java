@@ -177,7 +177,7 @@ public class SamlClientLoader {
     if (idpMetadata != null) {
       cfg.setIdentityProviderMetadataResource(idpMetadata);
     }
-    cfg.setMaximumAuthenticationLifetime(18000);
+    cfg.setMaximumAuthenticationLifetime(28800);  // 8 hours
 
     return cfg;
   }
@@ -194,7 +194,7 @@ public class SamlClientLoader {
     if (idpMetadata != null) {
       cfg.setIdentityProviderMetadataResource(idpMetadata);
     }
-    cfg.setMaximumAuthenticationLifetime(18000);
+    cfg.setMaximumAuthenticationLifetime(28800);  // 8 hours
 
     return cfg;
   }
