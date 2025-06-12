@@ -1,3 +1,16 @@
+## 2.10.1 - 2025-06-13
+
+* [MODLOGSAML-208](https://folio-org.atlassian.net/browse/MODLOGSAML-208) Bump maximumAuthenticationLifetime from 5 to 8 hours
+
+## 2.10.0 - 2025-05-19
+
+Sunflower (R1-2025) release.
+
+* [MODLOGSAML-207](https://folio-org.atlassian.net/browse/MODLOGSAML-207) Update all dependencies for Sunflower (R1-2025)
+* [FOLREL-617](https://folio-org.atlassian.net/browse/FOLREL-617) Update to mod-login-saml Java 21
+* [MODLOGSAML-204](https://folio-org.atlassian.net/browse/MODLOGSAML-204): Add integration test for fat jar file and Dockerfile
+* [MODLOGSAML-205](https://folio-org.atlassian.net/browse/MODLOGSAML-205): Expand migration logging
+
 ## 2.9.3 - 2024-11-28
 
 * [MODLOGSAML-202](https://folio-org.atlassian.net/browse/MODLOGSAML-202) Unable to deploy - fix X-Okapi-Url, permissions and expand logging
