@@ -46,7 +46,7 @@ public class NoopSession implements Session {
 
   @Override
   public Map<String, Object> data() {
-    return null;
+    return Map.of();
   }
 
   @Override
@@ -56,7 +56,7 @@ public class NoopSession implements Session {
 
   @Override
   public void destroy() {
-
+    // nothing to do
   }
 
   @Override
@@ -81,7 +81,7 @@ public class NoopSession implements Session {
 
   @Override
   public void setAccessed() {
-
+    // nothing to do
   }
 
   @Override

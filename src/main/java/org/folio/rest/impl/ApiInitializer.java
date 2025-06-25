@@ -28,7 +28,7 @@ public class ApiInitializer implements InitAPI {
     }
 
     String disableResolver = System.getProperty("vertx.disableDnsResolver");
-    log.info("vertx.disableDnsResolver (netty workaround): " + disableResolver);
+    log.info("vertx.disableDnsResolver (netty workaround): {}", disableResolver);
 
     // https://issues.folio.org/browse/RMB-856
     RestVerticle.getHttpServerOptions().setMaxFormAttributeSize(MAX_FORM_ATTRIBUTE_SIZE);
@@ -46,18 +46,22 @@ public class ApiInitializer implements InitAPI {
       "Do not use this in production!");
 
     // Create a trust manager that does not validate certificate chains
+    @SuppressWarnings("java:S4830")  // suppress "Enable server certificate validation"
     TrustManager[] trustAllCerts = new TrustManager[]{
       new X509TrustManager() {
+        @Override
         public java.security.cert.X509Certificate[] getAcceptedIssuers() {
           return new X509Certificate[0];
         }
 
-        public void checkClientTrusted(
-          java.security.cert.X509Certificate[] certs, String authType) {
+        @Override
+        public void checkClientTrusted(X509Certificate[] certs, String authType) {
+          // don't validate certificates
         }
 
-        public void checkServerTrusted(
-          java.security.cert.X509Certificate[] certs, String authType) {
+        @Override
+        public void checkServerTrusted(X509Certificate[] certs, String authType) {
+          // don't validate certificates
         }
       }
     };
@@ -68,6 +72,7 @@ public class ApiInitializer implements InitAPI {
       sc.init(null, trustAllCerts, new java.security.SecureRandom());
       HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
     } catch (GeneralSecurityException e) {
+      // ignore
     }
   }
 }
