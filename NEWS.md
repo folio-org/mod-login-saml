@@ -1,6 +1,6 @@
 ## 2.9.4 - 2025-07-21
 
-* [MODLOGSAML-208](https://folio-org.atlassian.net/browse/MODLOGSAML-208) 500 server error occurring when trying to login via SSO
+* [MODLOGSAML-208](https://folio-org.atlassian.net/browse/MODLOGSAML-208) Bump maximumAuthenticationLifetime from 5 to 8 hours
 
 ## 2.9.3 - 2024-11-28
 
