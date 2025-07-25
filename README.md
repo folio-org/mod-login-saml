@@ -33,6 +33,18 @@ This module provides SAML2 SSO functionality for FOLIO.
 
 Endpoints are documented in [RAML file](ramls/saml-login.raml)
 
+### Maximum authentication lifetime
+
+The IdP's maximum authentication lifetime must be configured to be smaller or
+equal to mod-login-saml's maximum authentication lifetime. Otherwise the login
+attempt will fail with a "500 server error" if it into the gap between the two
+values, see [MODLOGSAML-208](https://folio-org.atlassian.net/browse/MODLOGSAML-208).
+
+The maximum authentication lifetime of mod-login-saml is
+
+* 8 hours in mod-login-saml >= 2.10.1 and mod-login-saml >= 2.9.4,
+* 5 hours in mod-login-saml 2.10.0 and mod-login-saml <= 2.9.3.
+
 ### Environment variables
 
 `DB_*`: Configures the connections to the PostgreSQL database. For examples see the bottom of the [module descriptor](descriptors/ModuleDescriptor-template.json), for details see https://github.com/folio-org/raml-module-builder?tab=readme-ov-file#environment-variables .
