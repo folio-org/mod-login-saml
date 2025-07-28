@@ -8,15 +8,17 @@ Version 2.0. See the file "[LICENSE](LICENSE)" for more information.
 ## Introduction
 
 This module provides SAML2 SSO functionality for FOLIO.
+In this module the concept of distributed configuration
+see https://github.com/folio-org/raml-module-builder?tab=readme-ov-file#environment-variables
+is implemented replacing the former usage of the deprecated module mod-configuration.
 
 ### Usage
 
 1. On Stripes UI find Settings-\>Tenant-\>SSO settings, paste the IdP
    metadata.xml URL.
-  - This configuration is stored per tenant in mod-configuration under
-   module=LOGIN-SAML, configName=saml, code=idp.url
-2. Call GET /saml/regenerate to generate keyfile with random passwords and
-   store them in mod-configuration too.
+  - This configuration is stored by the module itself for each tenant.
+2. Call GET /saml/regenerate to generate the keyfile with random passwords,
+   which are stored by the module itself for each tenant too.
   - Don't forget to send `X-Okapi-Tenant` header
   - UI button will replace this manual step
   - Response is `sp-metadata.xml` that needs to be uploaded to IdP's
