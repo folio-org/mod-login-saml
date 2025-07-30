@@ -37,7 +37,7 @@ Endpoints are documented in [RAML file](ramls/saml-login.raml)
 
 The IdP's maximum authentication lifetime must be configured to be smaller or
 equal to mod-login-saml's maximum authentication lifetime. Otherwise the login
-attempt will fail with a "500 server error" if it into the gap between the two
+attempt will fail with a "500 server error" if it falls into the gap between the two
 values, see [MODLOGSAML-208](https://folio-org.atlassian.net/browse/MODLOGSAML-208).
 
 The maximum authentication lifetime of mod-login-saml is
