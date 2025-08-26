@@ -333,7 +333,7 @@ public class SamlAPI implements Saml {
       .toString();
 
     final String cookie = new NewCookie("ssoToken",
-      authToken, "", originalUrl.getHost(), "", 3600, true).toString();
+      authToken, "", originalUrl.getHost(), "", 3600, true, true).toString();
     var headers = PostSamlCallbackResponse.headersFor302().withSetCookie(cookie).withXOkapiToken(authToken)
       .withLocation(location);
     return PostSamlCallbackResponse.respond302(headers);

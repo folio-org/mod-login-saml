@@ -1,3 +1,7 @@
+## 2.10.2
+
+* [MODLOGSAML-211](https://folio-org.atlassian.net/browse/MODLOGSAML-211) Enable httpOnly for legacy API (non-RTR) cookie
+
 ## 2.10.1 - 2025-06-13
 
 * [MODLOGSAML-208](https://folio-org.atlassian.net/browse/MODLOGSAML-208) Bump maximumAuthenticationLifetime from 5 to 8 hours

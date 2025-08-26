@@ -56,6 +56,7 @@ import org.w3c.dom.ls.LSResourceResolver;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.http.Header;
+import io.restassured.matcher.DetailedCookieMatcher;
 import io.restassured.matcher.RestAssuredMatchers;
 import io.restassured.response.ExtractableResponse;
 import io.restassured.response.Response;
@@ -526,6 +527,10 @@ public class SamlAPITest extends TestBase {
     assertNotEquals(metadata, regeneratedMetadata);
   }
 
+  private DetailedCookieMatcher securedHttpOnly() {
+    return RestAssuredMatchers.detailedCookie().secured(true).httpOnly(true);
+  }
+
   @Test
   public void callbackEndpointTests_LegacyDB(TestContext context) {//former method: void callbackEndpointTests_Legacy()
     mock.setMockContent("mock_content_legacy.json");
@@ -563,7 +568,7 @@ public class SamlAPITest extends TestBase {
       .statusCode(302)
       .header("Location", containsString(PercentCodec.encodeAsString(testPath)))
       .header("x-okapi-token", "saml-token")
-      .cookie("ssoToken", "saml-token");
+      .cookie("ssoToken", securedHttpOnly().value("saml-token"));
 
     testCallbackErrorCases(CALLBACK_URL, relayState, cookie);
 
@@ -581,7 +586,7 @@ public class SamlAPITest extends TestBase {
       .statusCode(302)
       .header("Location", containsString(PercentCodec.encodeAsString(testPath)))
       .header("x-okapi-token", "saml-token")
-      .cookie("ssoToken", "saml-token");
+      .cookie("ssoToken", securedHttpOnly().value("saml-token"));
   }
 
   @Test
@@ -604,7 +609,7 @@ public class SamlAPITest extends TestBase {
       .then()
       .statusCode(302)
       .header("x-okapi-token", "new-saml-token")
-      .cookie("ssoToken", "new-saml-token");
+      .cookie("ssoToken", securedHttpOnly().value("new-saml-token"));
   }
 
   @Test
@@ -670,8 +675,8 @@ public class SamlAPITest extends TestBase {
       .post("/saml/callback-with-expiry")
       .then()
       .statusCode(302)
-      .cookie("folioRefreshToken", RestAssuredMatchers.detailedCookie().path("/okapi/authn"))
-      .cookie("folioAccessToken", RestAssuredMatchers.detailedCookie().path("/okapi/"));
+      .cookie("folioRefreshToken", securedHttpOnly().path("/okapi/authn"))
+      .cookie("folioAccessToken", securedHttpOnly().path("/okapi/"));
 
     testCallbackErrorCases(callbackUrl, relayState, cookie);
   }
