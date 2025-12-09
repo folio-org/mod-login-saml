@@ -1,3 +1,7 @@
+## 2.9.5 - 2025-12-08
+
+* [MODLOGSAML-214](https://folio-org.atlassian.net/browse/MODLOGSAML-214) RMB Logging release - RMB 35.3.1, Vert.x 4.5.22
+
 ## 2.9.4 - 2025-07-21
 
 * [MODLOGSAML-208](https://folio-org.atlassian.net/browse/MODLOGSAML-208) Bump maximumAuthenticationLifetime from 5 to 8 hours
