@@ -173,6 +173,9 @@ public class ConfigurationsDaoImpl implements ConfigurationsDao {
   }
 
   private static SamlConfiguration localUpdateSamlConfiguration(SamlConfiguration result, Map<String, String> map2Update) {
+    // Remove deprecated.
+    map2Update.remove(SamlConfiguration.SAML_USE_SECURE_TOKENS);
+
     for (Map.Entry<String, String> entry : map2Update.entrySet()) {
       localUpdateSamlConfiguration(result, entry.getKey(), entry.getValue());
     }
