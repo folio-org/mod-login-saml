@@ -339,37 +339,11 @@ public class SamlAPITest extends TestBase {
   }
 
   @Test
-  public void callbackIdpMetadataTest_LegacyDB(TestContext context) {//former method: void  callbackIdpMetadataTest_Legac()
-    assertCallbackSuccess(context,
-        "=== Test Callback with right metadata - POST /saml/callback - success ===",
-        "mock_content_with_metadata_legacy.json",
-        "/saml/callback");
-  }
-
-  @Test
   public void callbackIdpMetadataTestDB(TestContext context) {
     assertCallbackSuccess(context,
         "=== Test Callback with right metadata - POST /saml/callback-with-expiry - success ===",
         "mock_content_with_metadata.json",
         "/saml/callback-with-expiry");
-  }
-
-  @Test
-  public void callbackIdpMetadataHttp2Test_Legacy(TestContext context) {
-    mock.setMockContent("mock_content_with_metadata_legacy.json");
-    dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
-
-    WebClient.create(vertx)
-    .post(modulePort, "localhost", "/saml/callback")
-    .putHeader("X-Okapi-Token", TENANT)
-    .putHeader("X-Okapi-Tenant", TENANT)
-    .putHeader("X-Okapi-Url", "http://localhost:" + MOCK_SERVER_PORT)
-    .putHeader("Content-Type", "application/x-www-form-urlencoded")
-    .putHeader("Cookie", SamlAPI.RELAY_STATE + "=" + readResourceToString("relay_state.txt").trim())
-    .sendBuffer(Buffer.buffer(readResourceToString("saml_response.txt").trim()))
-    .onComplete(context.asyncAssertSuccess(response -> {
-      assertThat(response.statusMessage() + "\n" + response.bodyAsString(), response.statusCode(), is(302));
-    }));
   }
 
   @Test
@@ -391,7 +365,7 @@ public class SamlAPITest extends TestBase {
   }
 
   @Test
-  public void callbackCorsTests_Legacy() {
+  public void corsTestsWithCallback() {
     String origin = "http://localhost";
 
     log.info("=== Test CORS preflight - OPTIONS /saml/callback - success ===");
@@ -410,7 +384,7 @@ public class SamlAPITest extends TestBase {
   }
 
   @Test
-  public void callbackCorsTests() {
+  public void corsTests() {
     String origin = "http://localhost";
 
     log.info("=== Test CORS preflight - OPTIONS /saml/callback - success ===");
@@ -527,64 +501,6 @@ public class SamlAPITest extends TestBase {
   }
 
   @Test
-  public void callbackEndpointTests_LegacyDB(TestContext context) {//former method: void callbackEndpointTests_Legacy()
-    mock.setMockContent("mock_content_legacy.json");
-    dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
-    final String testPath = "/test/path";
-
-    log.info("=== Setup - POST /saml/login - need relayState and cookie ===");
-    ExtractableResponse<Response> resp = given()
-      .header(TENANT_HEADER)
-      .header(TOKEN_HEADER)
-      .header(OKAPI_URL_HEADER)
-      .header(JSON_CONTENT_TYPE_HEADER)
-      .body("{\"stripesUrl\":\"" + STRIPES_URL + testPath + "\"}")
-      .post("/saml/login")
-      .then()
-      .contentType(ContentType.JSON)
-      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlLogin.json"))
-      .body("bindingMethod", equalTo("POST"))
-      .statusCode(200)
-      .extract();
-
-    String cookie = resp.cookie(SamlAPI.RELAY_STATE);
-    String relayState = resp.body().jsonPath().getString(SamlAPI.RELAY_STATE);
-
-    log.info("=== Test - POST /saml/callback - success ===");
-    given()
-      .header(TENANT_HEADER)
-      .header(TOKEN_HEADER)
-      .header(OKAPI_URL_HEADER)
-      .cookie(SamlAPI.RELAY_STATE, cookie)
-      .formParam("SAMLResponse", "saml-response")
-      .formParam("RelayState", relayState)
-      .post("/saml/callback")
-      .then()
-      .statusCode(302)
-      .header("Location", containsString(PercentCodec.encodeAsString(testPath)))
-      .header("x-okapi-token", "saml-token")
-      .cookie("ssoToken", "saml-token");
-
-    testCallbackErrorCases(CALLBACK_URL, relayState, cookie);
-
-    mock.setMockContent("mock_tokenresponse.json");
-    dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
-    given()
-      .header(TENANT_HEADER)
-      .header(TOKEN_HEADER)
-      .header(OKAPI_URL_HEADER)
-      .cookie(SamlAPI.RELAY_STATE, cookie)
-      .formParam("SAMLResponse", "saml-response")
-      .formParam("RelayState", relayState)
-      .post("/saml/callback")
-      .then()
-      .statusCode(302)
-      .header("Location", containsString(PercentCodec.encodeAsString(testPath)))
-      .header("x-okapi-token", "saml-token")
-      .cookie("ssoToken", "saml-token");
-  }
-
-  @Test
   public void callbackForConsortiumWithMultipleMatchingUserTenant(TestContext context) {
     String origin = "http://localhost";
 
@@ -603,8 +519,8 @@ public class SamlAPITest extends TestBase {
       .post("/saml/callback")
       .then()
       .statusCode(302)
-      .header("x-okapi-token", "new-saml-token")
-      .cookie("ssoToken", "new-saml-token");
+      .cookie("folioAccessToken")
+      .cookie("folioRefreshToken");
   }
 
   @Test
@@ -622,9 +538,10 @@ public class SamlAPITest extends TestBase {
   }
 
   @Test
-  public void callbackEndpointTestsUseSecureTokens() {
-    // Configuration needed. /saml/callback returns RTR tokens allowing existing metadata to be used.
-    mock.setMockContent("mock_content_secure_tokens.json");
+  public void callbackEndpointTestDeprecatedUseSecureTokens() {
+    // Ensure that when the deprecated property useSecureTokens is present in the configuration, things
+    // still work as expected.
+    mock.setMockContent("mock_content_callback.json");
     testCallback(CALLBACK_URL);
   }
 
@@ -720,46 +637,6 @@ public class SamlAPITest extends TestBase {
   }
 
   @Test
-  public void getConfigurationEndpointLegacy(TestContext context) {
-    mock.setMockContent("mock_content_legacy.json"); // Should not contain useSecureTokens in config. This is legacy mode.
-    dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
-    given()
-      .header(TENANT_HEADER)
-      .header(TOKEN_HEADER)
-      .header(OKAPI_URL_HEADER)
-      .header(JSON_CONTENT_TYPE_HEADER)
-      .get("/saml/configuration")
-      .then()
-      .statusCode(200)
-      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"))
-      .body("idpUrl", equalTo("https://idp.ssocircle.com"))
-      .body("samlBinding", equalTo("POST"))
-      .body("callback", equalTo("callback"))
-      .body("useSecureTokens", equalTo(Boolean.FALSE))
-      .body("metadataInvalidated", equalTo(Boolean.FALSE));
-  }
-
-  @Test
-  public void getConfigurationEndpointUseSecureTokens(TestContext context) {
-    mock.setMockContent("mock_content_secure_tokens.json");
-    dataMigrationHelper.dataMigrationCompleted(vertx, context, false);
-    given()
-      .header(TENANT_HEADER)
-      .header(TOKEN_HEADER)
-      .header(OKAPI_URL_HEADER)
-      .header(JSON_CONTENT_TYPE_HEADER)
-      .get("/saml/configuration")
-      .then()
-      .statusCode(200)
-      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"))
-      .body("idpUrl", equalTo("https://idp.ssocircle.com"))
-      .body("samlBinding", equalTo("POST"))
-      .body("callback", equalTo("callback"))
-      .body("useSecureTokens", equalTo(Boolean.TRUE))
-      .body("metadataInvalidated", equalTo(Boolean.FALSE));
-  }
-
-  @Test
   public void putConfigurationEndpoint(TestContext context) {
     SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
       .withIdpUrl(URI.create("http://localhost:" + IDP_MOCK_PORT + "/xml"))
@@ -781,34 +658,6 @@ public class SamlAPITest extends TestBase {
       .then()
       .statusCode(200)
       .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"));
-  }
-
-  @Test
-  public void putConfigurationUseSecureTokens() {
-    SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
-      .withIdpUrl(URI.create("http://localhost:" + IDP_MOCK_PORT + "/xml"))
-      .withSamlAttribute("UserID")
-      .withSamlBinding(SamlConfigRequest.SamlBinding.POST)
-      .withUserProperty("externalSystemId")
-      .withOkapiUrl(URI.create("http://localhost:9130"))
-      .withCallback("callback")
-      .withUseSecureTokens(true);
-
-    String jsonString = Json.encode(samlConfigRequest);
-
-    // PUT
-    given()
-      .header(TENANT_HEADER)
-      .header(TOKEN_HEADER)
-      .header(OKAPI_URL_HEADER)
-      .header(JSON_CONTENT_TYPE_HEADER)
-      .body(jsonString)
-      .put("/saml/configuration")
-      .then()
-      .statusCode(200)
-      .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"))
-      .body("callback", equalTo("callback"))
-      .body("useSecureTokens", equalTo(Boolean.TRUE));
   }
 
   @Test
@@ -837,8 +686,8 @@ public class SamlAPITest extends TestBase {
   }
 
   @Test
-  public void putConfiguration_Legacy() {
-    mock.setMockContent("mock_content_legacy.json");
+  public void putConfigurationWithCallback() {
+    mock.setMockContent("mock_content_callback.json");
 
     SamlConfigRequest samlConfigRequest = new SamlConfigRequest()
       .withIdpUrl(URI.create("http://localhost:" + IDP_MOCK_PORT + "/xml"))
@@ -862,8 +711,7 @@ public class SamlAPITest extends TestBase {
       .statusCode(200)
       .body("callback", equalTo("callback"))
       .body(matchesJsonSchemaInClasspath("ramls/schemas/SamlConfig.json"))
-      .body("callback", equalTo("callback"))
-      .body("useSecureTokens", equalTo(Boolean.FALSE));
+      .body("callback", equalTo("callback"));
   }
 
   @Test

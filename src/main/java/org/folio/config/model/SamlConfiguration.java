@@ -1,5 +1,6 @@
 package org.folio.config.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.ArrayList;
@@ -54,7 +55,12 @@ public class SamlConfiguration {
   private String callback;
   @JsonProperty(IDS_LIST_CODE)
   private List<String> idsList;
+  /**
+   * @deprecated See MODLOGSAML-192 for background.
+   */
+  @Deprecated(since="2.9.3", forRemoval = true)
   @JsonProperty(SAML_USE_SECURE_TOKENS)
+  @JsonIgnore
   private String useSecureTokens;
 
   public SamlConfiguration(){
@@ -171,13 +177,5 @@ public class SamlConfiguration {
 
   public void setUserProperty(String userProperty) {
     this.userProperty = userProperty;
-  }
-
-  public String getUseSecureTokens() {
-    return useSecureTokens;
-  }
-
-  public void setUseSecureTokens(String useSecureTokens) {
-    this.useSecureTokens = useSecureTokens;
   }
 }

@@ -157,20 +157,16 @@
   ],
   "requires": [
     {
-      "id": "authtoken",
-      "version": "2.1"
-    },
-    {
-      "id": "authtoken2",
-      "version": "1.1"
-    },
-    {
       "id": "users",
       "version": "14.0 15.0 16.0"
     },
     {
       "id": "configuration",
       "version": "2.0"
+    },
+    {
+      "id": "authtoken2",
+      "version": "1.1"
     }
   ],
   "launchDescriptor": {
@@ -194,6 +190,6 @@
       { "name": "DB_QUERYTIMEOUT", "value": "60000" },
       { "name": "DB_CHARSET", "value": "UTF-8" },
       { "name": "DB_MAXPOOLSIZE", "value": "5" }
-    ] 
+    ]
   }
 }

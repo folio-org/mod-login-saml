@@ -12,7 +12,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.*;
 
-import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 
@@ -83,7 +82,6 @@ public class SamlAPI implements Saml {
   private static final Logger log = LogManager.getLogger(SamlAPI.class);
   public static final String CSRF_TOKEN = "csrfToken";
   public static final String RELAY_STATE = "relayState";
-  private static final String TOKEN_SIGN_ENDPOINT_LEGACY = "/token";
   private static final String TOKEN_SIGN_ENDPOINT = "/token/sign";
   public static final String SET_COOKIE = "Set-Cookie";
   public static final String LOCATION = "Location";
@@ -257,15 +255,10 @@ public class SamlAPI implements Saml {
           JsonObject payload = new JsonObject().put("payload",
             new JsonObject().put("sub", userObject.getString(USERNAME)).put("user_id", userId));
 
-          var tokenSignEndpoint = getTokenSignEndpoint(configuration);
-          return fetchToken(webClient, payload, parsedHeaders, tokenSignEndpoint)
+          return fetchToken(webClient, payload, parsedHeaders, TOKEN_SIGN_ENDPOINT)
             .map(jsonResponse -> {
-              if (isLegacyResponse(tokenSignEndpoint)) {
-                return redirectResponseLegacy(jsonResponse, stripesBaseUrl, originalUrl);
-              } else {
-                var okapiPath = UrlUtil.getPathFromOkapiUrl(parsedHeaders.getUrl());
-                return redirectResponse(jsonResponse, stripesBaseUrl, originalUrl, okapiPath);
-              }
+              var okapiPath = UrlUtil.getPathFromOkapiUrl(parsedHeaders.getUrl());
+              return redirectResponse(jsonResponse, stripesBaseUrl, originalUrl, okapiPath);
             });
           });
       })
@@ -274,17 +267,6 @@ public class SamlAPI implements Saml {
         var response = failCallbackResponse(cause, routingContext);
         asyncResultHandler.handle(Future.succeededFuture(response));
       });
-  }
-
-  private boolean isLegacyResponse(SamlConfiguration configuration) {
-    return "callback".equals(configuration.getCallback()) && ! "true".equals(configuration.getUseSecureTokens());
-  }
-
-  private String getTokenSignEndpoint(SamlConfiguration configuration) {
-    if (isLegacyResponse(configuration)) {
-      return TOKEN_SIGN_ENDPOINT_LEGACY;
-    }
-    return TOKEN_SIGN_ENDPOINT;
   }
 
   private PostSamlCallbackResponse failCallbackResponse(Throwable cause, RoutingContext routingContext) {
@@ -299,10 +281,6 @@ public class SamlAPI implements Saml {
     }
     log.error(cause.getMessage(), cause);
     return response;
-  }
-
-  private boolean isLegacyResponse(String endpoint) {
-    return endpoint.equals(TOKEN_SIGN_ENDPOINT_LEGACY);
   }
 
   private Future<JsonObject> fetchToken(WebClient client, JsonObject payload, OkapiHeaders parsedHeaders, String endpoint) {
@@ -320,23 +298,6 @@ public class SamlAPI implements Saml {
         }
         return response.bodyAsJsonObject();
       });
-  }
-
-  private Response redirectResponseLegacy(JsonObject jsonObject, URI stripesBaseUrl, URI originalUrl) {
-    String authToken = jsonObject.getString("token");
-
-    final String location = UriBuilder.fromUri(stripesBaseUrl)
-      .path("sso-landing")
-      .queryParam("ssoToken", authToken)
-      .queryParam("fwd", originalUrl.getPath())
-      .build()
-      .toString();
-
-    final String cookie = new NewCookie("ssoToken",
-      authToken, "", originalUrl.getHost(), "", 3600, true).toString();
-    var headers = PostSamlCallbackResponse.headersFor302().withSetCookie(cookie).withXOkapiToken(authToken)
-      .withLocation(location);
-    return PostSamlCallbackResponse.respond302(headers);
   }
 
   private Response redirectResponse(JsonObject jsonObject,
@@ -616,7 +577,6 @@ public class SamlAPI implements Saml {
       .withSamlAttribute(config.getSamlAttribute())
       .withUserProperty(config.getUserProperty())
       .withCallback(config.getCallback())
-      .withUseSecureTokens(Boolean.valueOf(config.getUseSecureTokens()))
       .withMetadataInvalidated(Boolean.valueOf(config.getMetadataInvalidated()));
     try {
       URI uri = URI.create(config.getOkapiUrl());
@@ -726,10 +686,6 @@ public class SamlAPI implements Saml {
 
     result.setCallback(config.getCallback());
     ConfigEntryUtil.valueChanged(config.getCallback(), updatedConfig.getCallback(), result::setCallback);
-
-    result.setUseSecureTokens(config.getUseSecureTokens());
-    ConfigEntryUtil.valueChanged(config.getUseSecureTokens(), updatedConfig.getUseSecureTokens(),
-      result::setUseSecureTokens);
 
     result.setKeystore(config.getKeystore());
     result.setKeystorePassword(config.getKeystorePassword());

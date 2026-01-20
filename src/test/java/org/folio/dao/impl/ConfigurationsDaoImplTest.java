@@ -205,7 +205,7 @@ public class ConfigurationsDaoImplTest extends TestBase {
 
   @Test
   public void testSamlConfigurationUpdateEmptyDatabase(TestContext context) {
-    mock.setMockContent("mock_content_legacy.json");
+    mock.setMockContent("mock_content_callback.json");
     SamlConfiguration samlConfigurationToStoreInDatabase = mock.getMockPartialContent();
     Map<String, String> map2Update = SamlConfigurationUtil.samlConfiguration2Map(samlConfigurationToStoreInDatabase);
     int expectedInt = 0;
@@ -229,7 +229,7 @@ public class ConfigurationsDaoImplTest extends TestBase {
 
   @Test
   public void testSamlConfigurationUpdateEmptyDatabaseComplete(TestContext context) {
-    mock.setMockContent("mock_content_legacy.json");
+    mock.setMockContent("mock_content_callback.json");
     SamlConfiguration samlConfigurationToStoreInDatabase = mock.getMockPartialContent();
     Map<String, String> map2Update = SamlConfigurationUtil.samlConfiguration2Map(mock.getMockPartialContent());
     map2Update.put(SamlConfiguration.IDP_METADATA_CODE, "SamlConfiguration.IDP_METADATA_CODE value");
