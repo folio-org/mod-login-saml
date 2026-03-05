@@ -42,6 +42,7 @@ public class SamlClientLoader {
   public static final String SAML = "/saml/";
   public static final String CALLBACK_WITH_EXPIRY = "callback-with-expiry";
   public static final String CALLBACK = "callback";
+  private static final String MAX_AUTH_LIFETIME_STR = System.getenv().getOrDefault("MAX_AUTH_LIFETIME", "28800");
   private static final Logger log = LogManager.getLogger(SamlClientLoader.class);
 
   public static class SamlIdpUrlFormationException extends RuntimeException {
@@ -177,7 +178,18 @@ public class SamlClientLoader {
     if (idpMetadata != null) {
       cfg.setIdentityProviderMetadataResource(idpMetadata);
     }
-    cfg.setMaximumAuthenticationLifetime(28800);  // 8 hours
+
+    int maxAuthLifetimeSec = 28800;
+
+    try {
+        maxAuthLifetimeSec = Integer.parseInt(MAX_AUTH_LIFETIME_STR);
+    } catch (NumberFormatException e) {
+        String errMessage = String.format("MAX_AUTH_LIFETIME is not a valid integer, defaulting to 28800 seconds (8 hours). Original value was '%s'.", MAX_AUTH_LIFETIME_STR);
+        log.warn(errMessage);
+        maxAuthLifetimeSec = 28800;
+    }
+    
+    cfg.setMaximumAuthenticationLifetime(maxAuthLifetimeSec);
 
     return cfg;
   }
@@ -194,7 +206,18 @@ public class SamlClientLoader {
     if (idpMetadata != null) {
       cfg.setIdentityProviderMetadataResource(idpMetadata);
     }
-    cfg.setMaximumAuthenticationLifetime(28800);  // 8 hours
+
+    int maxAuthLifetimeSec = 28800;
+
+    try {
+        maxAuthLifetimeSec = Integer.parseInt(MAX_AUTH_LIFETIME_STR);
+    } catch (NumberFormatException e) {
+        String errMessage = String.format("MAX_AUTH_LIFETIME is not a valid integer, defaulting to 28800 seconds (8 hours). Original value was '%s'.", MAX_AUTH_LIFETIME_STR);
+        log.warn(errMessage);
+        maxAuthLifetimeSec = 28800;
+    }
+    
+    cfg.setMaximumAuthenticationLifetime(maxAuthLifetimeSec);
 
     return cfg;
   }
