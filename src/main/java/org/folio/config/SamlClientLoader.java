@@ -179,16 +179,16 @@ public class SamlClientLoader {
       cfg.setIdentityProviderMetadataResource(idpMetadata);
     }
 
-    int MAX_AUTH_LIFETIME_SEC = 28800;
+    int maxAuthLifetimeSec = 28800;
 
     try {
-        MAX_AUTH_LIFETIME_SEC = Integer.parseInt(MAX_AUTH_LIFETIME_STR);
+        maxAuthLifetimeSec = Integer.parseInt(MAX_AUTH_LIFETIME_STR);
     } catch (NumberFormatException e) {
         log.warn("MAX_AUTH_LIFETIME is not a valid integer, defaulting to 28800 seconds (8 hours). Original value was '" + MAX_AUTH_LIFETIME_STR + "'.");
-        MAX_AUTH_LIFETIME_SEC = 28800;
+        maxAuthLifetimeSec = 28800;
     }
     
-    cfg.setMaximumAuthenticationLifetime(MAX_AUTH_LIFETIME_SEC);
+    cfg.setMaximumAuthenticationLifetime(maxAuthLifetimeSec);
 
     return cfg;
   }
@@ -206,16 +206,16 @@ public class SamlClientLoader {
       cfg.setIdentityProviderMetadataResource(idpMetadata);
     }
 
-    int MAX_AUTH_LIFETIME_SEC = 28800;
+    int maxAuthLifetimeSec = 28800;
 
     try {
-        MAX_AUTH_LIFETIME_SEC = Integer.parseInt(MAX_AUTH_LIFETIME_STR);
+        maxAuthLifetimeSec = Integer.parseInt(MAX_AUTH_LIFETIME_STR);
     } catch (NumberFormatException e) {
         log.warn("MAX_AUTH_LIFETIME is not a valid integer, defaulting to 28800 seconds (8 hours). Original value was '" + MAX_AUTH_LIFETIME_STR + "'.");
-        MAX_AUTH_LIFETIME_SEC = 28800;
+        maxAuthLifetimeSec = 28800;
     }
     
-    cfg.setMaximumAuthenticationLifetime(MAX_AUTH_LIFETIME_SEC);
+    cfg.setMaximumAuthenticationLifetime(maxAuthLifetimeSec);
 
     return cfg;
   }
