@@ -184,7 +184,8 @@ public class SamlClientLoader {
     try {
         maxAuthLifetimeSec = Integer.parseInt(MAX_AUTH_LIFETIME_STR);
     } catch (NumberFormatException e) {
-        log.warn("MAX_AUTH_LIFETIME is not a valid integer, defaulting to 28800 seconds (8 hours). Original value was '" + MAX_AUTH_LIFETIME_STR + "'.");
+        String errMessage = String.format("MAX_AUTH_LIFETIME is not a valid integer, defaulting to 28800 seconds (8 hours). Original value was '%s'.", MAX_AUTH_LIFETIME_STR);
+        log.warn(errMessage);
         maxAuthLifetimeSec = 28800;
     }
     
@@ -211,7 +212,8 @@ public class SamlClientLoader {
     try {
         maxAuthLifetimeSec = Integer.parseInt(MAX_AUTH_LIFETIME_STR);
     } catch (NumberFormatException e) {
-        log.warn("MAX_AUTH_LIFETIME is not a valid integer, defaulting to 28800 seconds (8 hours). Original value was '" + MAX_AUTH_LIFETIME_STR + "'.");
+        String errMessage = String.format("MAX_AUTH_LIFETIME is not a valid integer, defaulting to 28800 seconds (8 hours). Original value was '%s'.", MAX_AUTH_LIFETIME_STR);
+        log.warn(errMessage);
         maxAuthLifetimeSec = 28800;
     }
     
