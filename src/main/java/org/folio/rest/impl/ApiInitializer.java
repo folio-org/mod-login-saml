@@ -3,6 +3,7 @@ package org.folio.rest.impl;
 import io.vertx.core.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.folio.config.SamlClientLoader;
 import org.folio.rest.RestVerticle;
 import org.folio.rest.resource.interfaces.InitAPI;
 
@@ -32,6 +33,8 @@ public class ApiInitializer implements InitAPI {
 
     // https://issues.folio.org/browse/RMB-856
     RestVerticle.getHttpServerOptions().setMaxFormAttributeSize(MAX_FORM_ATTRIBUTE_SIZE);
+
+    SamlClientLoader.setMaximumAuthenticationLifetime(System.getenv("MAX_AUTH_LIFETIME"));
 
     handler.handle(Future.succeededFuture(true));
   }

@@ -44,6 +44,8 @@ The maximum authentication lifetime of mod-login-saml is
 * 8 hours in mod-login-saml >= 2.10.1 and mod-login-saml >= 2.9.4,
 * 5 hours in mod-login-saml 2.10.0 and mod-login-saml <= 2.9.3.
 
+For mod-login-saml >= 2.10.3 the `MAX_AUTH_LIFETIME` environment variable can be used to overwrite this default.
+
 ### Environment variables
 
 `DB_*`: Configures the connections to the PostgreSQL database. For examples see the bottom of the [module descriptor](descriptors/ModuleDescriptor-template.json), for details see https://github.com/folio-org/raml-module-builder?tab=readme-ov-file#environment-variables .
@@ -51,6 +53,8 @@ The maximum authentication lifetime of mod-login-saml is
 `TRUST_ALL_CERTIFICATES`: if value is `true` then HTTPS certificates not checked. This is a security issue in production environment, use it for testing only! Default value is `false`.
 
 `LOGIN_COOKIE_SAMESITE`: Configures the SameSite attribute of the login token cookies. Defaults to `Lax` if not set. If served from the same host name `Lax` allows deep links from other sites, for example from a wiki or webmail to an inventory instance record, whereas `Strict` doesn't allow them.
+
+`MAX_AUTH_LIFETIME`: Configures the number of seconds for mod-login-saml's maximum authentication lifetime, see above.
 
 ### Sample users for samltest.id
 
