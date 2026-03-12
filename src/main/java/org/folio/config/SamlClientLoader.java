@@ -67,9 +67,14 @@ public class SamlClientLoader {
   private SamlClientLoader() {}
 
   public static void setMaximumAuthenticationLifetime(String seconds) {
-    maximumAuthenticationLifetime = seconds == null
-        ? DEFAULT_MAXIMUM_AUTHENTICATION_LIFETIME
-        : Long.parseLong(seconds);
+    try {
+      maximumAuthenticationLifetime = seconds == null
+          ? DEFAULT_MAXIMUM_AUTHENTICATION_LIFETIME
+          : Long.parseLong(seconds);
+    } catch (NumberFormatException e) {
+      throw new NumberFormatException("Bad value of environmental variable "
+          + "MAX_AUTH_LIFETIME: \"" + seconds + "\"");
+    }
   }
 
   public static Future<SamlClientComposite> loadFromConfiguration(RoutingContext routingContext,

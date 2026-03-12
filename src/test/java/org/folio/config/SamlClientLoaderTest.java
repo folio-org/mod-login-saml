@@ -53,6 +53,8 @@ public class SamlClientLoaderTest {
 
   @Test
   public void setMaximumAuthTimeException() {
-    assertThrows(NumberFormatException.class, () -> SamlClientLoader.setMaximumAuthenticationLifetime("foo"));
+    var e = assertThrows(NumberFormatException.class,
+        () -> SamlClientLoader.setMaximumAuthenticationLifetime("foo"));
+    assertThat(e.getMessage(), is("Bad value of environmental variable MAX_AUTH_LIFETIME: \"foo\""));
   }
 }
