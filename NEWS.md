@@ -1,3 +1,8 @@
+## 2.10.3 - 2026-03-12
+
+* [MODLOGSAML-219](https://folio-org.atlassian.net/browse/MODLOGSAML-219) Support MAX\_AUTH\_LIFETIME env var configuration
+* [MODLOGSAML-220](https://folio-org.atlassian.net/browse/MODLOGSAML-220) Bump bcprov-jdk18on and bcpkix-jdk18on from 1.78.1 to 1.83 - CVE-2025-8916
+
 ## 2.10.2 - 2026-02-19
 
 * [#202](https://github.com/folio-org/mod-login-saml/pull/202) Fix high and medium severity sonar code smells
