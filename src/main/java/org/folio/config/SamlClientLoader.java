@@ -42,7 +42,11 @@ public class SamlClientLoader {
   public static final String SAML = "/saml/";
   public static final String CALLBACK_WITH_EXPIRY = "callback-with-expiry";
   public static final String CALLBACK = "callback";
+  /** in seconds, 28800 seconds are 8 hours */
+  static final long DEFAULT_MAXIMUM_AUTHENTICATION_LIFETIME = 28800;
+
   private static final Logger log = LogManager.getLogger(SamlClientLoader.class);
+  private static long maximumAuthenticationLifetime = DEFAULT_MAXIMUM_AUTHENTICATION_LIFETIME;
 
   public static class SamlIdpUrlFormationException extends RuntimeException {
     private static final long serialVersionUID = 7340537453740028326L;
@@ -61,6 +65,17 @@ public class SamlClientLoader {
   }
 
   private SamlClientLoader() {}
+
+  public static void setMaximumAuthenticationLifetime(String seconds) {
+    try {
+      maximumAuthenticationLifetime = seconds == null
+          ? DEFAULT_MAXIMUM_AUTHENTICATION_LIFETIME
+          : Long.parseLong(seconds);
+    } catch (NumberFormatException e) {
+      throw new NumberFormatException("Bad value of environmental variable "
+          + "MAX_AUTH_LIFETIME: \"" + seconds + "\"");
+    }
+  }
 
   public static Future<SamlClientComposite> loadFromConfiguration(RoutingContext routingContext,
     boolean generateMissingKeyStore, Context vertxContext) {
@@ -174,11 +189,7 @@ public class SamlClientLoader {
       keystorePassword,
       keystorePrivateKeyPassword,
       idpUrlResource);
-    if (idpMetadata != null) {
-      cfg.setIdentityProviderMetadataResource(idpMetadata);
-    }
-    cfg.setMaximumAuthenticationLifetime(28800);  // 8 hours
-
+    configure(cfg, idpMetadata);
     return cfg;
   }
 
@@ -191,12 +202,15 @@ public class SamlClientLoader {
       keystorePassword,
       keystorePrivateKeyPassword,
       idpUrlResource);
-    if (idpMetadata != null) {
-      cfg.setIdentityProviderMetadataResource(idpMetadata);
-    }
-    cfg.setMaximumAuthenticationLifetime(28800);  // 8 hours
-
+    configure(cfg, idpMetadata);
     return cfg;
+  }
+
+  private static void configure(SAML2Configuration saml2configuration, Resource idpMetadata) {
+    if (idpMetadata != null) {
+      saml2configuration.setIdentityProviderMetadataResource(idpMetadata);
+    }
+    saml2configuration.setMaximumAuthenticationLifetime(maximumAuthenticationLifetime);
   }
 
   protected static SAML2Client assembleSaml2Client(String okapiUrl, String tenantId, SAML2Configuration cfg,
