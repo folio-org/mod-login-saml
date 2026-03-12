@@ -148,14 +148,20 @@
       </exclusions>
     </dependency>
 
-    <!-- Fixes multiple vulnerabilities in org.bouncycastle:bcprov-jdk18on:jar:1.71:
+    <!-- Fix multiple vulnerabilities in org.bouncycastle
          https://security.snyk.io/package/maven/org.bouncycastle:bcprov-jdk18on/1.71
-         Remove when pac4j-saml comes with cryptacular >= 1.2.7
+         https://security.snyk.io/package/maven/org.bouncycastle%3Abcpkix-jdk18on/1.78.1
+         Remove when pac4j-saml comes with bcprov-jdk18on/bcpkix-jdk18on >= 1.79
     -->
     <dependency>
-      <groupId>org.cryptacular</groupId>
-      <artifactId>cryptacular</artifactId>
-      <version>1.2.7</version>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcprov-jdk18on</artifactId>
+      <version>1.83</version>
+    </dependency>
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcpkix-jdk18on</artifactId>
+      <version>1.83</version>
     </dependency>
 
     <!-- Fix security issues. Recent opensaml-security-api versions replace
