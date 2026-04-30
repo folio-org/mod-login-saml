@@ -54,8 +54,21 @@
             "configName": "saml",
             "code": "okapi.url",
             "value": "http://localhost:9130"
+          },
+          {
+            "id": "81816efc-63b1-11ee-8c99-0242ac120002",
+            "module": "LOGIN-SAML",
+            "configName": "saml",
+            "code": "saml.callback",
+            "value": "callback"
+          },
+          {
+            "id": "dcc452cf-f726-423b-91ec-ec89e36f9e98",
+            "module": "LOGIN-SAML",
+            "configName": "saml",
+            "code": "saml.useSecureTokens",
+            "value": "true"
           }
-
         ],
           "totalRecords": 7
       },
@@ -94,6 +107,16 @@
     },
     {
       "url": "/configurations/entries/cb20fa86-affb-4488-8b37-2e8c597fff66",
+      "method": "delete",
+      "status": 204
+    },
+    {
+      "url": "/configurations/entries/81816efc-63b1-11ee-8c99-0242ac120002",
+      "method": "delete",
+      "status": 204
+    },
+    {
+      "url": "/configurations/entries/dcc452cf-f726-423b-91ec-ec89e36f9e98",
       "method": "delete",
       "status": 204
     },
@@ -296,7 +319,7 @@
         ]
       }
     },
-     {
+    {
       "url": "/token/sign",
       "method": "post",
       "status": 201,

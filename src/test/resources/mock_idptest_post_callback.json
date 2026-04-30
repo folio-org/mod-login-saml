@@ -61,13 +61,6 @@
             "configName": "saml",
             "code": "saml.callback",
             "value": "callback"
-          },
-          {
-            "id": "dcc452cf-f726-423b-91ec-ec89e36f9e98",
-            "module": "LOGIN-SAML",
-            "configName": "saml",
-            "code": "saml.useSecureTokens",
-            "value": "true"
           }
         ],
         "totalRecords": 9
