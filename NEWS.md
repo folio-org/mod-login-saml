@@ -1,3 +1,8 @@
+## 2.10.4 - 2026-04-30
+
+* [MODLOGSAML-217](https://folio-org.atlassian.net/browse/MODLOGSAML-217) Migrate to GitHub Actions based maven workflow
+* [MODLOGSAML-221](https://folio-org.atlassian.net/browse/MODLOGSAML-221) Fix multiple security vulnerabilities in dependencies (pac4j, log4j, jackson, vertx, netty, bouncycastle, json-smart)
+
 ## 2.10.3 - 2026-03-12
 
 * [MODLOGSAML-219](https://folio-org.atlassian.net/browse/MODLOGSAML-219) Support MAX\_AUTH\_LIFETIME env var configuration
