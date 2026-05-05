@@ -88,12 +88,13 @@ public class SamlAPITest extends TestBase {
   public static final int IDP_MOCK_PORT = NetworkUtils.nextFreePort();
   private static final int MOCK_SERVER_PORT = NetworkUtils.nextFreePort();
   private static final int OKAPI_PROXY_PORT = NetworkUtils.nextFreePort();
-  private static final Header OKAPI_URL_HEADER= new Header("X-Okapi-Url", "http://localhost:" + MOCK_SERVER_PORT);
-  private static final Header OKAPI_PROXY_URL_HEADER=
+  private static final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", "http://localhost:" + MOCK_SERVER_PORT);
+  private static final Header OKAPI_PROXY_URL_HEADER =
       new Header("X-Okapi-Url", "http://localhost:" + OKAPI_PROXY_PORT + "/okapi");
 
   private static final MockJsonExtended mock = new MockJsonExtended();
-  private DataMigrationHelper dataMigrationHelper = new DataMigrationHelper(TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
+  private static DataMigrationHelper dataMigrationHelper = new DataMigrationHelper(TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
+  private static final Map<String, String> DATA_MIGRATION_HELPER_HEADERS = dataMigrationHelper.getHeaders();
 
   @ClassRule
   public static WireMockClassRule okapiProxy = new WireMockClassRule(OKAPI_PROXY_PORT);
@@ -120,7 +121,7 @@ public class SamlAPITest extends TestBase {
     mock.setMockContent("mock_200_empty.json");
     vertx.deployVerticle(IdpMock.class.getName(), idpOptions)
       .compose(x -> vertx.deployVerticle(mock, okapiOptions))
-      .compose(x -> postTenantInstall("http://localhost:" + MOCK_SERVER_PORT))
+      .compose(x -> tenantInitExec(vertx, TENANT_ATTRIBUTES_INSTALLATION, DATA_MIGRATION_HELPER_HEADERS))
       .onComplete(context.asyncAssertSuccess());
   }
 

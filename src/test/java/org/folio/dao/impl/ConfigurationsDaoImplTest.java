@@ -3,15 +3,17 @@ package org.folio.dao.impl;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import io.vertx.core.Future;
+import javax.ws.rs.core.Response;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.config.SamlConfigHolder;
 import org.folio.config.model.SamlConfiguration;
 import org.folio.dao.ConfigurationsDao;
+import org.folio.rest.impl.TenantRefAPI;
 import org.folio.rest.impl.TestBase;
 import org.folio.rest.persist.PostgresClient;
 import org.folio.rest.tools.utils.NetworkUtils;
+import org.folio.util.DataMigrationHelper;
 import org.folio.util.MockJsonExtended;
 import org.folio.util.OkapiHelper;
 import org.folio.util.SamlConfigurationHelper;
@@ -32,6 +34,8 @@ import org.junit.runner.RunWith;
 import io.restassured.RestAssured;
 import io.restassured.http.Header;
 import io.vertx.core.DeploymentOptions;
+import io.vertx.core.Future;
+import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
@@ -50,6 +54,8 @@ public class ConfigurationsDaoImplTest extends TestBase {
 
   private static final int JSON_MOCK_PORT = NetworkUtils.nextFreePort();
   private static final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", "http://localhost:" + JSON_MOCK_PORT);
+  private static DataMigrationHelper dataMigrationHelper = new DataMigrationHelper(TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
+  private static final Map<String, String> DATA_MIGRATION_HELPER_HEADERS = dataMigrationHelper.getHeaders();
 
   private static final MockJsonExtended mock = new MockJsonExtended();
   private ConfigurationsDaoImpl configurationsDaoImpl = new ConfigurationsDaoImpl();
@@ -69,13 +75,13 @@ public class ConfigurationsDaoImplTest extends TestBase {
 
     mock.setMockContent("mock_200_empty.json");
     vertx.deployVerticle(mock, okapiOptions)
-      .compose(x -> postTenantInstall("http://localhost:" + JSON_MOCK_PORT))
+      .compose(x -> tenantInitExec(vertx, TENANT_ATTRIBUTES_INSTALLATION, DATA_MIGRATION_HELPER_HEADERS))
       .onComplete(context.asyncAssertSuccess());
   }
 
   @Before
   public void setUp(TestContext context) {
-    deleteDBEntries(context);
+    dataMigrationHelper.deleteAllConfigurationRecordsCompleted(vertx, context);
     mock.resetReceivedData();
     mock.resetRequestedUrlList();
     log.info("Running {}", testName.getMethodName());
@@ -86,90 +92,8 @@ public class ConfigurationsDaoImplTest extends TestBase {
   public void tearDown() {
     // Need to clear singleton to maintain test order independence
     SamlConfigHolder.getInstance().removeClient(TENANT);
+    deleteAllConfigurationRecords(vertx);
   }
-
-  @Test
-  public void dataMigrationServerStatus400(TestContext context) {
-    mock.setMockContent("mock_400.json");
-    configurationsDao.dataMigration(vertx, createOkapiHeaders(), false)
-      .onFailure(cause -> {
-        context.assertEquals("Response status code 400 is not equal to 200", cause.getMessage());
-      });
-  }
-
-  @Test
-  public void dataMigrationWithoutDataWithoutAndWithDeletion(TestContext context) {
-    mock.setMockContent("mock_200_empty.json");
-    SamlConfiguration samlConfiguration = mock.getMockPartialContent();
-
-    testDataMigration(context, samlConfiguration, false);
-    testDataMigration(context, samlConfiguration, true);
-  }
-
-  private void testDataMigration(TestContext context, SamlConfiguration samlConfiguration, boolean withDeletion) {
-    configurationsDao.dataMigration(vertx, createOkapiHeaders(), withDeletion)
-      .onComplete(context.asyncAssertSuccess(result -> {
-        assertTrue(SamlConfigurationHelper.createDiffResult(result, samlConfiguration).getDiffs().isEmpty());
-      }));
-  }
-
-  @Test
-  public void dataMigrationEmptyDBWithoutDeletion(TestContext context) {
-    mock.setMockContent("mock_content_with_delete.json");
-    SamlConfiguration samlConfiguration = mock.getMockPartialContent();
-
-    testDataMigration(context, samlConfiguration, false);
-  }
-
-  @Test
-  public void dataMigrationServerStatusSuccessWithDeletion(TestContext context) {
-    boolean expectedBoolean = true;
-    mock.setMockContent("mock_content_with_delete.json");
-    SamlConfiguration samlConfiguration = mock.getMockPartialContent();
-    mock.setMockIds();
-
-    configurationsDao.dataMigration(vertx, createOkapiHeaders(), true)
-      .onComplete(context.asyncAssertSuccess(result -> {
-        assertTrue(SamlConfigurationHelper.createDiffResult(result, samlConfiguration).getDiffs().isEmpty());
-        assertEquals(expectedBoolean, mock.getRequestedUrlList().containsAll(mock.getMockPartialContentIds()));
-        log.info("All entries are deleted");
-      }));
-  }
-
-  @Test
-  public void dataMigrationServerStatusSuccessExistentEntryWithAndWithoutDeletion(TestContext context) {
-    mock.setMockContent("mock_content_with_delete.json");
-    SamlConfiguration samlConfiguration = mock.getMockPartialContent();
-    createDatabaseEntry(context, samlConfiguration);
-
-    configurationsDao.dataMigration(vertx, createOkapiHeaders(), false)
-      .onComplete(context.asyncAssertSuccess(result ->
-        assertTrue(SamlConfigurationHelper.createDiffResult(result, samlConfiguration).getDiffs().isEmpty())));
-
-    configurationsDao.dataMigration(vertx, createOkapiHeaders(), true)
-      .onComplete(context.asyncAssertSuccess(result ->
-        assertTrue(SamlConfigurationHelper.createDiffResult(result, samlConfiguration).getDiffs().isEmpty())));
-  }
-
-  @Test
-  public void dataMigrationServerStatusSuccess2ExistentEntriesWithAndWithoutDeletion(TestContext context) {
-    mock.setMockContent("mock_content_with_delete.json");
-    SamlConfiguration samlConfiguration = mock.getMockPartialContent();
-    createDatabaseEntry(context, samlConfiguration);
-
-    mock.setMockContent("mock_example_entries.json");
-    SamlConfiguration samlConfigurationAdditional = mock.getMockPartialContent();
-    createDatabaseEntry(context, samlConfigurationAdditional);
-
-    mock.setMockContent("mock_content_with_delete.json");
-    configurationsDao.dataMigration(vertx, createOkapiHeaders(), false)
-      .onComplete(context.asyncAssertFailure(cause ->
-         assertThat(cause.getMessage(), startsWith("Migration: Number of records are not unique. Instead the number is : 2"))));
-
-    configurationsDao.dataMigration(vertx, createOkapiHeaders(), true)
-      .onComplete(context.asyncAssertFailure(cause ->
-          assertThat(cause.getMessage(), startsWith("Migration: Number of records are not unique. Instead the number is : 2"))));
-   }
 
   @Test
   public void getConfigurationDataEmptyDB(TestContext context) {
@@ -259,7 +183,7 @@ public class ConfigurationsDaoImplTest extends TestBase {
     }));
   }
 
-  private static OkapiHeaders createOkapiHeaders(){
+  public static OkapiHeaders createOkapiHeaders(){
     Map<String, String> parsedHeaders = new HashMap<String, String>();
     parsedHeaders.put(TENANT_HEADER.getName(), TENANT_HEADER.getValue());
     parsedHeaders.put(TOKEN_HEADER.getName(), TOKEN_HEADER.getValue());
@@ -267,7 +191,7 @@ public class ConfigurationsDaoImplTest extends TestBase {
     return OkapiHelper.okapiHeaders(parsedHeaders);
   }
 
-  public Future<String> createDatabaseEntry(TestContext context, SamlConfiguration samlConfiguration) {
+  public static Future<String> createDatabaseEntry(TestContext context, SamlConfiguration samlConfiguration) {
     Async async = context.async();
     Future<String> result = PostgresClient.getInstance(vertx, createOkapiHeaders().getTenant())
       .upsert("configuration", null, samlConfiguration, true)
@@ -276,7 +200,7 @@ public class ConfigurationsDaoImplTest extends TestBase {
     return result;
   }
 
-  public void deleteDBEntries(TestContext context) {
+  public static void deleteDBEntries(TestContext context) {
     Async async = context.async();
     deleteAllConfigurationRecords(vertx)
       .onComplete(context.asyncAssertSuccess(res -> async.complete()));

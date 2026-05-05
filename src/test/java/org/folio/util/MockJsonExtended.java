@@ -14,6 +14,7 @@ import org.folio.config.model.SamlConfiguration;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class MockJsonExtended extends MockJson {
   private static final Logger log = LogManager.getLogger(MockJsonExtended.class);
@@ -25,6 +26,7 @@ public class MockJsonExtended extends MockJson {
   JsonArray receivedData = new JsonArray();
   List<String> requestedUrlList = new ArrayList<String>();
   List<String> mockIds = new ArrayList<String>();
+  List<String> mockIdsHolder = new ArrayList<String>();
 
   public JsonArray getMocks() {
     return mocks;
@@ -42,6 +44,10 @@ public class MockJsonExtended extends MockJson {
       }
     }
     return (null);
+  }
+
+  public List<String> getMockIdsHolder() {
+    return mockIdsHolder;
   }
 
   public SamlConfiguration getMockPartialContent() {
@@ -62,6 +68,7 @@ public class MockJsonExtended extends MockJson {
 
   public void setMockIds() {
     mockIds = getMockPartialContentIds();
+    mockIdsHolder = mockIds.stream().collect(Collectors.toList());
   }
 
   @Override
@@ -80,11 +87,11 @@ public class MockJsonExtended extends MockJson {
       });
     }
 
-    if((mockIds != null && mockIds.size() > 0 && requestedUrlList.size() > 0 && requestedUrlList.containsAll(mockIds)))
-      {
-        super.setMockContent("mock_200_empty.json");
-        mockIds = new ArrayList<String>();
-      }
+    // Simulation of cleared data of mod-configuration
+    if((mockIds != null && mockIds.size() > 0 && requestedUrlList.size() > 0 && requestedUrlList.containsAll(mockIds))) {
+      super.setMockContent("mock_200_empty.json");
+      mockIds = new ArrayList<String>();
+    }
 
     for (int i = 0; i < mocks.size(); i++) {
       JsonObject entry = mocks.getJsonObject(i);
@@ -141,6 +148,16 @@ public class MockJsonExtended extends MockJson {
         localList.add(receivedData.getString(i));
     }
     return localList;
+  }
+
+  public void resetMockIdsHolder() {
+    mockIdsHolder.clear();
+  }
+
+  public void resetNecessaryLists() {
+    resetMockIdsHolder();
+    resetReceivedData();
+    resetRequestedUrlList();
   }
 
   public void resetReceivedData() {

@@ -7,6 +7,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import java.util.Map;
 import org.folio.config.SamlConfigHolder;
 import org.folio.testutil.SimpleSamlPhpContainer;
 import org.folio.util.DataMigrationHelper;
@@ -31,7 +32,8 @@ public class IdpCallbackTest extends TestBase {
   private static MockJsonExtended okapi;
 
   private static Vertx vertx;
-  private DataMigrationHelper dataMigrationHelper = new DataMigrationHelper(TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
+  private static DataMigrationHelper dataMigrationHelper = new DataMigrationHelper(TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
+  private static final Map<String, String> DATA_MIGRATION_HELPER_HEADERS = dataMigrationHelper.getHeaders();
 
   @ClassRule
   public static final SimpleSamlPhpContainer<?> IDP =
@@ -50,7 +52,7 @@ public class IdpCallbackTest extends TestBase {
       .setConfig(new JsonObject().put("http.port", OKAPI_PORT));
     okapi.setMockContent("mock_200_empty.json");
     vertx.deployVerticle(okapi, okapiOptions)
-      .compose(x -> postTenantInstall(OKAPI_URL))
+      .compose(x -> tenantInitExec(vertx, TENANT_ATTRIBUTES_INSTALLATION, DATA_MIGRATION_HELPER_HEADERS))
       .onComplete(context.asyncAssertSuccess());
   }
 

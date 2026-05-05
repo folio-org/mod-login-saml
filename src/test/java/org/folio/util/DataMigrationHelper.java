@@ -5,16 +5,18 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
-import java.util.concurrent.TimeUnit;
-import java.util.HashMap;
-import java.util.Map;
 import org.folio.config.model.SamlConfiguration;
 import org.folio.dao.ConfigurationsDao;
 import org.folio.dao.impl.ConfigurationsDaoImpl;
 import org.folio.rest.impl.TestBase;
+import org.folio.rest.persist.PostgresClient;
 import org.folio.util.DataMigrationHelper;
 import org.folio.util.model.OkapiHeaders;
 
+import java.util.concurrent.TimeUnit;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
 /**
  * @author barbaraloehle
  */
@@ -22,6 +24,7 @@ public final class DataMigrationHelper {
   private ConfigurationsDao configurationsDao;
   private Map<String, Header> headerHashMap = new HashMap<String, Header>(3);
   private Map<String, String> parsedHeaders = new HashMap<String, String>(3);
+  private Map<String, String> parsedIncompleteHeaders = new HashMap<String, String>(2);
   private OkapiHeaders okapiHeaders = new OkapiHeaders();
 
   public DataMigrationHelper() {}
@@ -37,6 +40,11 @@ public final class DataMigrationHelper {
     parsedHeaders.put(headerHashMap.get("tenant").getName(), headerHashMap.get("tenant").getValue());
     parsedHeaders.put(headerHashMap.get("token").getName(), headerHashMap.get("token").getValue());
     parsedHeaders.put(headerHashMap.get("okapiUrl").getName(), headerHashMap.get("okapiUrl").getValue());
+
+    parsedIncompleteHeaders = parsedHeaders.entrySet()
+      .stream().sorted(Map.Entry.comparingByKey())
+      .limit(parsedHeaders.size() - 1)
+      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
     okapiHeaders = createOkapiHeaders();
   }
@@ -60,11 +68,28 @@ public final class DataMigrationHelper {
     return parsedHeaders;
   }
 
+  public Map<String, String> getIncompleteHeaders() {
+    return parsedIncompleteHeaders;
+  }
+
   public OkapiHeaders getOkapiHeaders() {
     return okapiHeaders;
   }
 
-  private static void deleteAllConfigurationRecordsCompleted(Vertx vertx, TestContext context) {
+  private OkapiHeaders createOkapiHeaders() {
+    return OkapiHelper.okapiHeaders(parsedHeaders);
+  }
+
+  public Future<String> createDatabaseEntry(Vertx vertx, TestContext context, SamlConfiguration samlConfiguration) {
+    Async async = context.async();
+    Future<String> result = PostgresClient.getInstance(vertx, getOkapiHeaders().getTenant())
+      .upsert("configuration", null, samlConfiguration, true)
+      .onComplete(context.asyncAssertSuccess(res -> async.complete()));
+    async.awaitSuccess(TimeUnit.MILLISECONDS.convert(15, TimeUnit.SECONDS));
+    return result;
+  }
+
+  public void deleteAllConfigurationRecordsCompleted(Vertx vertx, TestContext context) {
 
     Async asyncDelete = context.async();
     TestBase.deleteAllConfigurationRecords(vertx)
@@ -72,7 +97,5 @@ public final class DataMigrationHelper {
     asyncDelete.awaitSuccess(TimeUnit.MILLISECONDS.convert(1L, TimeUnit.MINUTES));
   }
 
-  private OkapiHeaders createOkapiHeaders() {
-    return OkapiHelper.okapiHeaders(parsedHeaders);
-  }
+
 }
