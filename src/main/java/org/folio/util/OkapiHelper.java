@@ -22,7 +22,6 @@ public class OkapiHelper {
     OkapiHeaders headers = new OkapiHeaders();
 
     headers.setUrl(routingContext.request().getHeader(XOkapiHeaders.URL));
-    headers.setUrlTo(routingContext.request().getHeader(XOkapiHeaders.URL_TO));
     headers.setTenant(routingContext.request().getHeader(XOkapiHeaders.TENANT));
     headers.setToken(routingContext.request().getHeader(XOkapiHeaders.TOKEN));
     headers.setPermissions(routingContext.request().getHeader(XOkapiHeaders.PERMISSIONS));
@@ -36,7 +35,6 @@ public class OkapiHelper {
     OkapiHeaders headers = new OkapiHeaders();
 
     headers.setUrl(parsedHeaders.get(XOkapiHeaders.URL));
-    headers.setUrlTo(parsedHeaders.get(XOkapiHeaders.URL_TO));
     headers.setTenant(parsedHeaders.get(XOkapiHeaders.TENANT));
     headers.setToken(parsedHeaders.get(XOkapiHeaders.TOKEN));
     headers.setPermissions(parsedHeaders.get(XOkapiHeaders.PERMISSIONS));
