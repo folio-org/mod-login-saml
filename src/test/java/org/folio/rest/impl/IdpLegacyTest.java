@@ -19,6 +19,7 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Map;
 import java.util.regex.Pattern;
 import org.folio.config.SamlConfigHolder;
 import org.folio.testutil.SimpleSamlPhpContainer;
@@ -49,7 +50,8 @@ public class IdpLegacyTest extends TestBase{
   private static MockJsonExtended okapi;
 
   private static Vertx vertx;
-  private DataMigrationHelper dataMigrationHelper = new DataMigrationHelper(TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
+  private static DataMigrationHelper dataMigrationHelper = new DataMigrationHelper(TENANT_HEADER, TOKEN_HEADER, OKAPI_URL_HEADER);
+  private static final Map<String, String> DATA_MIGRATION_HELPER_HEADERS = dataMigrationHelper.getHeaders();
 
   @ClassRule
   public static final SimpleSamlPhpContainer<?> IDP =
@@ -68,7 +70,7 @@ public class IdpLegacyTest extends TestBase{
         .setConfig(new JsonObject().put("http.port", OKAPI_PORT));
     okapi.setMockContent("mock_200_empty.json");
     vertx.deployVerticle(okapi, okapiOptions)
-      .compose(x -> postTenantInstall(OKAPI_URL))
+      .compose(x -> tenantInitExec(vertx, TENANT_ATTRIBUTES_INSTALLATION, DATA_MIGRATION_HELPER_HEADERS))
       .onComplete(context.asyncAssertSuccess());
   }
 

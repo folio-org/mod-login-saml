@@ -1,5 +1,7 @@
 package org.folio.rest.impl;
 
+import java.util.Map;
+import javax.ws.rs.core.Response;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -11,12 +13,12 @@ import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
 import org.folio.postgres.testing.PostgresTesterContainer;
 import org.folio.rest.client.TenantClient;
-import org.folio.util.TenantClientExtended;
 import org.folio.rest.jaxrs.model.TenantAttributes;
 import org.folio.rest.persist.PostgresClient;
 import org.folio.rest.RestVerticle;
 import org.folio.rest.tools.utils.NetworkUtils;
 import org.folio.rest.tools.utils.TenantInit;
+import org.folio.util.TenantClientGeneralized;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
@@ -28,8 +30,13 @@ public class TestBase {//contained in "mock_content_with_delete.json"
   public static String moduleUrl;
   public static WebClient webClient;
   public static final String TENANT = "diku";
+  public static final String TOKEN = "token";
   public static final String SCHEMA = TENANT + "_mod_login_saml";
   public static final String PERMISSIONS_HEADER = TENANT + "-permissons"; //for testing org.folio.util.model.OkapiHeaders.java
+  protected static final TenantAttributes TENANT_ATTRIBUTES_INSTALLATION = new TenantAttributes()
+    .withModuleTo("mod-login-saml-2.1.99");
+  protected static final TenantAttributes TENANT_ATTRIBUTES_UPGRADE = new TenantAttributes()
+    .withModuleTo("mod-login-saml-2.1.99").withModuleFrom("mod-login-saml-2.0.0");
 
   @BeforeClass
   public static void beforeAll(TestContext context) {
@@ -72,10 +79,14 @@ public class TestBase {//contained in "mock_content_with_delete.json"
       .mapEmpty();
   }
 
-  public static Future<Void> postTenant(String okapiUrlTo, TenantAttributes ta) {
+  // compare https://github.com/folio-org/mod-permissions/blob/c0e893323c2254c2fedd4a0122abd5f121fec4d4/src/test/java/org/folio/permstest/TestUtil.java#L145
+  public static Future<Response> tenantInitExec(Vertx vertx, TenantAttributes ta, Map<String, String> header) {
+    return Future.future(handler -> new TenantRefAPI().postTenantSync(ta, header, handler, vertx.getOrCreateContext()));
+  }
+
+  public static Future<Void> postTenant(TenantAttributes ta, String okapiUrl) {
     try {
-      TenantClient tenantClient = new TenantClientExtended("http://localhost:" + modulePort, okapiUrlTo,
-        TENANT, TENANT, PERMISSIONS_HEADER, webClient);
+      TenantClient tenantClient = new TenantClientGeneralized("http://localhost:" + modulePort, okapiUrl, TENANT, TENANT, PERMISSIONS_HEADER, webClient);
       return TenantInit.exec(tenantClient, ta, 60000);
     } catch (Exception e) {
       e.printStackTrace(System.err);
@@ -83,17 +94,12 @@ public class TestBase {//contained in "mock_content_with_delete.json"
     }
   }
 
-  public static Future<Void> postTenantInstall(String okapiUrlTo) {
-    TenantAttributes ta = new TenantAttributes();
-    ta.setModuleTo("mod-login-saml-2.1.99");
-    return postTenant(okapiUrlTo, ta);
+  public static Future<Void> postTenantInstall(TenantAttributes taInstall, String okapiUrl) {
+    return postTenant(taInstall, okapiUrl);
   }
 
-  public static Future<Void> postTenantUpgrade(String okapiUrlTo) {
-    TenantAttributes ta = new TenantAttributes();
-    ta.setModuleFrom("mod-login-saml-2.0.0");
-    ta.setModuleTo("mod-login-saml-2.1.99");
-    return postTenant(okapiUrlTo, ta);
+  public static Future<Void> postTenantUpgrade(TenantAttributes taUpgrade, String okapiUrl) {
+    return postTenant(taUpgrade, okapiUrl);
   }
 
   public static int setPreferredPort(int port) {
