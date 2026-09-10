@@ -1,3 +1,8 @@
+## 2.10.5 - 2026-09-10
+
+* [MODLOGSAML-203](https://folio-org.atlassian.net/browse/MODLOGSAML-203) Fix TenantRefAPITest unit tests to work without taking X-Okapi-Url-to header
+* [MODLOGSAML-223](https://folio-org.atlassian.net/browse/MODLOGSAML-223) Netty 4.1.138.Final, Jackson 2.21.6, Vertx 4.5.34, Bouncycastle 1.85.2, Micrometer 1.16.7 fixing vulns
+
 ## 2.10.4 - 2026-04-30
 
 * [MODLOGSAML-217](https://folio-org.atlassian.net/browse/MODLOGSAML-217) Migrate to GitHub Actions based maven workflow
